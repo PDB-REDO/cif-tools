@@ -1,0 +1,25 @@
+TODO 
+
+cif++
+- validate range
+- validate child-parent relationships (is parent available? e.g.)
+- chain validators to allow redefining types e.g.
+
+- improve API
+
+PDB2CIF
+- implement remark 3 for all known programs
+- implement other remarks 
+- implement hetero field in pdb2cif
+
+- DNA one letter code generation (X?)
+
+- hetero field in entity_poly_seq, pdbx_poly_seq_scheme
+
+- chem_comp.type? chem_comp genereren uit db?
+
+
+
+cif-grep
+- more options for cif-grep
+- rewrite cif-grep and the cif-parser to avoid building data structure.
