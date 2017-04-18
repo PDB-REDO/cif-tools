@@ -3,7 +3,6 @@ TODO
 cif++
 - validate range
 - validate child-parent relationships (is parent available? e.g.)
-- chain validators to allow redefining types e.g.
 
 - improve API
 
@@ -17,9 +16,9 @@ PDB2CIF
 - hetero field in entity_poly_seq, pdbx_poly_seq_scheme
 
 - chem_comp.type? chem_comp genereren uit db?
-
+	- partial charge calculation
+	- water for peptides?
 
 
 cif-grep
 - more options for cif-grep
-- rewrite cif-grep and the cif-parser to avoid building data structure.
