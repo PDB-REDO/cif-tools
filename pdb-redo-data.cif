@@ -2467,92 +2467,95 @@ ZN
 
 #List of LINKs that should be removed
 loop_
-_link_remove.mask 
-' C  GLY C7 NAG' 
-' C  GLY C8 NAG' 
-' C  GLY N2 NAG' 
-' CA GLY C7 NAG' 
-' CA GLY C7 NAG' 
-' CA GLY N2 NAG' 
-' CA GLY O7 NAG' 
-' CG ASN C1 NAG' 
-' CG ASN C8 NAG' 
-' CG ASN O1 NAG' 
-' K    K K    K' 
-' K    K N  ASP' 
-' K    K N  LYS' 
-' K    K N2   G' 
-' K    K N7   G' 
-' K    K ND2ASN' 
-' K    K NE ARG' 
-' K    K NE2GLN' 
-' K    K NH2ARG' 
-' N  GLY C7 NAG' 
-' N  GLY C8 NAG' 
-' ND2ASN C2 NAG' 
-' ND2ASN C3 NAG' 
-' ND2ASN O1 NAG' 
-' ND2ASN O5 NAG' 
-' NE2HIS CD1TYR' 
-' NE2HIS CD2TYR' 
-' NE2HIS CE1TYR' 
-' NE2HIS CE2TYR' 
-' O  GLY N2 NAG' 
-' O  TYR O7 NAG' 
-' O4 NAG C4 NAG' 
-' O4 NAG O5 MAN' 
-' O5 MAN O6 MAN' 
-' OE1GLU C1 GLC' 
-' OE2GLU C1 GLC' 
-' OG SER O1 NTJ' 
-' OG SER O5 NGA' 
-'CA   CA ND2ASN' 
-'CA   CA NE2GLN' 
-'CO   CO CD GLU' 
-'CO   CO CE1HIS' 
-'FE  HEM N  CYN' 
-'MG   MG CB SER' 
-'MG   MG CD GLU' 
-'MG   MG CG ASP' 
-'MG   MG N  ALA' 
-'MG   MG N  ARG' 
-'MG   MG N  ASN' 
-'MG   MG N  ASP' 
-'MG   MG N  GLN' 
-'MG   MG N  GLU' 
-'MG   MG N  GLY' 
-'MG   MG N  HIS' 
-'MG   MG N  ILE' 
-'MG   MG N  LEU' 
-'MG   MG N  LYS' 
-'MG   MG N  MET' 
-'MG   MG N  PHE' 
-'MG   MG N  PRO' 
-'MG   MG N  SER' 
-'MG   MG N  THR' 
-'MG   MG N  TRP' 
-'MG   MG N  TYR' 
-'MG   MG N  VAL' 
-'MG   MG N3BGNP' 
-'MG   MG N7   G' 
-'MG   MG ND1HIS' 
-'MG   MG ND2ASN' 
-'MG   MG NE ARG' 
-'MG   MG NE2GLN' 
-'MG   MG NE2HIS' 
-'MG   MG NH1ARG' 
-'MG   MG NH2ARG' 
-'MG   MG NZ LYS' 
-'MG   MG SD MET' 
-'MG   MG K    K' 
-'MG   MGMG   MG' 
-'NA   NA ND2ASN' 
-'NA   NA NE2GLN' 
-'NI   NI CD2HIS' 
-'ZN   ZN CB CYS' 
-'ZN   ZN CD2HIS' 
-'ZN   ZN CE1HIS' 
-'ZN   ZN S  SO4' 
+_link_remove.atom_1
+_link_remove.residue_1
+_link_remove.atom_2
+_link_remove.residue_2
+C   GLY C7  NAG 
+C   GLY C8  NAG 
+C   GLY N2  NAG 
+CA  GLY C7  NAG 
+CA  GLY C7  NAG 
+CA  GLY N2  NAG 
+CA  GLY O7  NAG 
+CG  ASN C1  NAG 
+CG  ASN C8  NAG 
+CG  ASN O1  NAG 
+K   K   K   K   
+K   K   N   ASP 
+K   K   N   LYS 
+K   K   N2  G   
+K   K   N7  G   
+K   K   ND2 ASN 
+K   K   NE  ARG 
+K   K   NE2 GLN 
+K   K   NH2 ARG 
+N   GLY C7  NAG 
+N   GLY C8  NAG 
+ND2 ASN C2  NAG 
+ND2 ASN C3  NAG 
+ND2 ASN O1  NAG 
+ND2 ASN O5  NAG 
+NE2 HIS CD1 TYR 
+NE2 HIS CD2 TYR 
+NE2 HIS CE1 TYR 
+NE2 HIS CE2 TYR 
+O   GLY N2  NAG 
+O   TYR O7  NAG 
+O4  NAG C4  NAG 
+O4  NAG O5  MAN 
+O5  MAN O6  MAN 
+OE1 GLU C1  GLC 
+OE2 GLU C1  GLC 
+OG  SER O1  NTJ 
+OG  SER O5  NGA 
+CA  CA  ND2 ASN 
+CA  CA  NE2 GLN 
+CO  CO  CD  GLU 
+CO  CO  CE1 HIS 
+FE  HEM N   CYN 
+MG  MG  CB  SER 
+MG  MG  CD  GLU 
+MG  MG  CG  ASP 
+MG  MG  N   ALA 
+MG  MG  N   ARG 
+MG  MG  N   ASN 
+MG  MG  N   ASP 
+MG  MG  N   GLN 
+MG  MG  N   GLU 
+MG  MG  N   GLY 
+MG  MG  N   HIS 
+MG  MG  N   ILE 
+MG  MG  N   LEU 
+MG  MG  N   LYS 
+MG  MG  N   MET 
+MG  MG  N   PHE 
+MG  MG  N   PRO 
+MG  MG  N   SER 
+MG  MG  N   THR 
+MG  MG  N   TRP 
+MG  MG  N   TYR 
+MG  MG  N   VAL 
+MG  MG  N3B GNP 
+MG  MG  N7  G   
+MG  MG  ND1 HIS 
+MG  MG  ND2 ASN 
+MG  MG  NE  ARG 
+MG  MG  NE2 GLN 
+MG  MG  NE2 HIS 
+MG  MG  NH1 ARG 
+MG  MG  NH2 ARG 
+MG  MG  NZ  LYS 
+MG  MG  SD  MET 
+MG  MG  K   K   
+MG  MG  MG  MG  
+NA  NA  ND2 ASN 
+NA  NA  NE2 GLN 
+NI  NI  CD2 HIS 
+ZN  ZN  CB  CYS 
+ZN  ZN  CD2 HIS 
+ZN  ZN  CE1 HIS 
+ZN  ZN  S   SO4 
 #End of list of LINKs
 
 #List of LINKs that should have their counterparts swapped
