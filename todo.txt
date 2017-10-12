@@ -1,5 +1,11 @@
 TODO 
 
+parse TLS:
+	- dubbele aanhalingstekens in strings PHENIX
+	- coulant omgaan met ontbrekende haakjes
+	- Element ondersteunen
+	- 
+
 cif++
 - validate range
 - validate child-parent relationships (is parent available? e.g.)
