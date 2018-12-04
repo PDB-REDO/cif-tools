@@ -1,5 +1,9 @@
 TODO 
 
+- distancemap, symmetrie operaties opslaan
+- minimizer multithreaden
+? - check difference density voor O
+
 cif++
 - validate range
 - validate child-parent relationships (is parent available? e.g.)
