@@ -4,11 +4,7 @@ TODO
 - dssp, h <, >
 - ncs check + phi/psi verschil klein (< 60)
 
-
-
-- distancemap, symmetrie operaties opslaan
 - minimizer multithreaden
-? - check difference density voor O
 
 cif++
 - validate range
