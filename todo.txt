@@ -1,5 +1,11 @@
 TODO 
 
+- rscc check < 0.5 ignore
+- dssp, h <, >
+- ncs check + phi/psi verschil klein (< 60)
+
+
+
 - distancemap, symmetrie operaties opslaan
 - minimizer multithreaden
 ? - check difference density voor O
