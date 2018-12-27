@@ -1,9 +1,5 @@
 TODO 
 
-- rscc check < 0.5 ignore
-- dssp, h <, >
-- ncs check + phi/psi verschil klein (< 60)
-
 - minimizer multithreaden
 
 cif++
