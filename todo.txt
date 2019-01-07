@@ -1,7 +1,5 @@
 TODO 
 
-- minimizer multithreaden
-
 cif++
 - validate range
 - validate child-parent relationships (is parent available? e.g.)
@@ -20,7 +18,6 @@ PDB2CIF
 - chem_comp.type? chem_comp genereren uit db?
 	- partial charge calculation
 	- water for peptides?
-
 
 cif-grep
 - more options for cif-grep
