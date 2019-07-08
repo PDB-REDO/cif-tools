@@ -1,0 +1,260 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          map-maker
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Required-Start:	 $local_fs $remote_fs $network $named
+# Required-Stop:	 $local_fs $remote_fs $network $named
+# Short-Description: Start or stop the map-maker server
+# Description:       This is the startup script for the map-maker server (part of PDB-REDO)
+### END INIT INFO
+
+# Author: Maarten L. Hekkelman <m.hekkelman@nki.nl>
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+DESC="PDB-REDO map-maker server"
+NAME=map-maker
+DAEMON=/usr/local/sbin/$NAME
+
+CLIBD_MON=${CLIBD_MON:-/home/pdb-redo/ccp4-7.0/lib/data/monomers/}
+
+SCRIPTNAME="${0##*/}"
+SCRIPTNAME="${SCRIPTNAME##[KS][0-9][0-9]}"
+
+PIDFILE=/var/run/$NAME.pid
+# DAEMON_ARGS=""
+
+RA_INIT_MESSAGE=""
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+print_error_msg() {
+	[ -z "$RA_INIT_MESSAGE" ] || log_warning_msg "$RA_INIT_MESSAGE"
+}
+
+#
+# wait for the server to come up
+#
+ra_wait_start() {
+	local STATUS=$1
+	local i=0
+	
+	if [ $STATUS != 0 ] ; then
+		return $STATUS
+	fi
+	while : ; do
+		PIDTMP=$(pidofproc -p $PIDFILE $DAEMON)
+		if [ -n "${PIDTMP:-}" ] && kill -0 "${PIDTMP:-}" 2> /dev/null; then
+			return $STATUS
+		fi
+		
+		if [ $i = "10" ] ; then
+			RA_INIT_MESSAGE="The map-maker instance did not start within 10 seconds, please consult log file."
+		fi
+		
+		[ "$VERBOSE" != no ] && log_process_msg "."
+		sleep 1
+		i=$(($i+1))
+	done
+}
+
+ra_wait_stop() {
+	local STATUS=$1
+
+	if [ $STATUS != 0 ] ; then
+	        return $STATUS
+	fi
+
+	PIDTMP=$(pidofproc -p $PIDFILE $DAEMON)
+
+	if [ -n "${PIDTMP:-}" ] && kill -0 "${PIDTMP:-}" 2> /dev/null; then
+	        killproc -p $PIDFILE $DAEMON
+
+	        local i=0
+	        while kill -0 "${PIDTMP:-}" 2> /dev/null;  do
+	                if [ $i = '60' ]; then
+	                        STATUS=2
+	                        break
+	                fi
+	                [ "$VERBOSE" != no ] && log_progress_msg "."
+	                sleep 1
+	                i=$(($i+1))
+	        done
+	        return $STATUS
+	else
+	    return $STATUS
+	fi
+}
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+	if pidofproc -p $PIDFILE "$DAEMON" > /dev/null 2>&1 ; then
+		return 1
+	fi
+	
+	env CLIBD_MON=$CLIBD_MON $DAEMON --server $DAEMON_ARGS || return 2
+	ra_wait_start $?
+	return $?
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+	local RA_RET=0
+	
+	if pidof $DAEMON > /dev/null 2>&1 ; then
+		if [ -e $PIDFILE ] && pidof $DAEMON | tr ' ' '\n' | grep -w $(cat $PIDFILE) > /dev/null 2>&1 ; then
+			RA_RET=2
+		else
+			RA_RET=1
+		fi
+	else
+		RA_RET=0
+	fi
+	
+	if [ $RA_RET = 0 ] ; then
+		return 1
+	fi
+	
+	if [ $RA_RET = 2 ] ; then
+		ra_wait_stop $?
+		return $?
+	else
+		RA_INIT_MESSAGE="A process name 'map-maker' is running which does not match the pid file, please verify."
+	fi
+
+	return 0
+}
+
+do_reload() {
+	if ! pidofproc -p $PIDFILE "$DAEMON" > /dev/null 2>&1 ; then
+		RA_INIT_MESSAGE="map-maker is not running"
+		return 2
+	fi
+	killproc -p $PIDFILE $DAEMON SIGHUP
+	return $?
+}
+
+# Sanity checks. They need to occur after function declarations
+
+if [ ! -x $DAEMON ] ; then
+	echo "No map-maker installed"
+	exit 0
+fi
+
+if [ -z "$PIDFILE" ] ; then
+	echo ERROR: PIDFILE is not defined >&2
+	exit 2
+fi
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	RET_STATUS=$?
+	case "$RET_STATUS" in
+		0|1)
+			log_success_msg
+			[ "$VERBOSE" != no ] && [ $RET_STATUS = 1 ] && log_warning_msg "Server was already running"
+	        ;;
+		2)
+			log_failure_msg
+			print_error_msg
+			exit 1
+			;;
+	esac
+	;;
+  stop)
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop "$1"
+	RET_STATUS=$?
+	case "$RET_STATUS" in
+		0|1)
+			log_success_msg
+			[ "$VERBOSE" != no ] && [ $RET_STATUS = 1 ] && log_warning_msg "Server was not running"
+	        ;;
+		2)
+			log_failure_msg
+			print_error_msg
+			exit 1
+	        ;;
+	esac
+	print_error_msg
+
+	;;
+  status)
+	status_of_proc -p $PIDFILE "map-maker" "$NAME"
+	exit $?
+	;;
+  reload)
+	log_daemon_msg "Reloading $DESC" "$NAME"
+	do_reload
+	RET_STATUS=$?
+	case "$RET_STATUS" in
+		0|1)
+			log_success_msg
+			[ "$VERBOSE" != no ] && [ $RET_STATUS = 1 ] && log_warning_msg "Server was already running"
+			;;
+		2)
+			log_failure_msg
+			print_error_msg
+			exit 1
+			;;
+	esac
+	print_error_msg
+	;;
+  restart)
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop stop
+	case "$?" in
+		0|1)
+			do_start
+			case "$?" in
+				0)
+					log_end_msg 0
+					;;
+				1|*)
+					log_end_msg 1 # Old process is still or failed to running
+					print_error_msg
+					exit 1
+					;;
+			esac
+			;;
+		*)
+			# Failed to stop
+			log_end_msg 1
+			print_error_msg
+			exit 1
+			;;
+	esac
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|restart|reload}" >&2
+	exit 3
+	;;
+esac
+
+exit 0
+
+# vim: syntax=sh ts=4 sw=4 sts=4 sr noet
