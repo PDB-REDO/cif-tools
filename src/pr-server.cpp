@@ -16,7 +16,6 @@
 #include <thread>
 
 #include <zeep/http/webapp.hpp>
-#include <zeep/http/webapp/el.hpp>
 #include <zeep/http/preforked-server.hpp>
 
 #include "pr-server.hpp"
@@ -24,7 +23,6 @@
 using namespace std;
 
 namespace zh = zeep::http;
-namespace el = zeep::http::el;
 
 // --------------------------------------------------------------------
 //

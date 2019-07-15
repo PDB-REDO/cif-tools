@@ -11,7 +11,7 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 
-#include "zeep/http/webapp/el.hpp"
+#include "zeep/el/element.hpp"
 
 #include "cif++/BondMap.h"
 #include "cif++/Statistics.h"
@@ -183,38 +183,66 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("output-format") and vm["output-format"].as<string>() == "json")
 	{
-		using namespace zeep::http::el;
+		using object = zeep::el::element;
 		
-		vector<object> rs;
+		// vector<object> rs;
+		
+		// for (auto i: r)
+		// {
+		// 	object res;
+		// 	res["asymID"] = i.asymID;
+		// 	res["seqID"] = i.seqID;
+		// 	res["compID"] = i.compID;
+			
+		// 	tuple<string,int,string,string> pdbID = structure.MapLabelToPDB(i.asymID, i.seqID, i.compID, i.authSeqID);
+			
+		// 	object pdb;
+		// 	pdb["strandID"] = get<0>(pdbID);
+		// 	pdb["seqNum"] = get<1>(pdbID);
+		// 	pdb["compID"] = get<2>(pdbID);
+		// 	pdb["insCode"] = get<3>(pdbID);
+		// 	res["pdb"] = pdb;
+			
+		// 	res["RSR"] = i.RSR;
+		// 	res["SRSR"] = i.SRSR;
+		// 	res["RSCCS"] = i.RSCCS;
+		// 	res["NGRID"] = i.ngrid;
+		// 	res["EDIAm"] = i.EDIAm;
+		// 	res["OPIA"] = i.OPIA;
+			
+		// 	rs.push_back(move(res));
+		// }
+		
+		// object stats(rs);
+
+		object stats;
 		
 		for (auto i: r)
 		{
-			object res;
-			res["asymID"] = i.asymID;
-			res["seqID"] = i.seqID;
-			res["compID"] = i.compID;
-			
 			tuple<string,int,string,string> pdbID = structure.MapLabelToPDB(i.asymID, i.seqID, i.compID, i.authSeqID);
-			
-			object pdb;
-			pdb["strandID"] = get<0>(pdbID);
-			pdb["seqNum"] = get<1>(pdbID);
-			pdb["compID"] = get<2>(pdbID);
-			pdb["insCode"] = get<3>(pdbID);
-			res["pdb"] = pdb;
-			
-			res["RSR"] = i.RSR;
-			res["SRSR"] = i.SRSR;
-			res["RSCCS"] = i.RSCCS;
-			res["NGRID"] = i.ngrid;
-			res["EDIAm"] = i.EDIAm;
-			res["OPIA"] = i.OPIA;
-			
-			rs.push_back(move(res));
+
+			stats.emplace_back(object{
+				{ "asymID", i.asymID },
+				{ "seqID", i.seqID },
+				{ "compID", i.compID },
+				{
+					"pdb", {
+						{ "strandID", get<0>(pdbID) },
+						{ "seqNum", get<1>(pdbID) },
+						{ "compID", get<2>(pdbID) },
+						{ "insCode", get<3>(pdbID) }
+					}
+				},
+				{ "RSR", i.RSR },
+				{ "SRSR", i.SRSR },
+				{ "RSCCS", i.RSCCS },
+				{ "NGRID", i.ngrid },
+				{ "EDIAm", i.EDIAm },
+				{ "OPIA", i.OPIA }
+			});
 		}
 		
-		object stats(rs);
-		cout << stats.toJSON() << endl;
+		cout << stats << endl;
 	}
 	else
 	{

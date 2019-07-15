@@ -18,9 +18,9 @@
 #include "cif++/Secondary.h"
 #include "cif++/Statistics.h"
 
-#include "mrsrc.h"
+#include <zeep/el/element.hpp>
 
-#include <nlohmann/json.hpp>
+#include "mrsrc.h"
 
 using namespace std;
 
@@ -43,7 +43,7 @@ using clipper::Coord_frac;
 
 using MapMaker = mmcif::MapMaker<float>;
 
-using json = nlohmann::json;
+using json = zeep::el::element;
 
 // --------------------------------------------------------------------
 // simple integer compression, based somewhat on MRS code
@@ -807,7 +807,7 @@ json calculateZScores(const Structure& structure)
 	double torsZScoreSum = 0;
 	size_t torsZScoreCount = 0;
 
-	json residues = json::array();
+	json residues;
 
 	for (auto& poly: structure.polymers())
 	{
@@ -1045,7 +1045,8 @@ int pr_main(int argc, char* argv[])
 		of << calculateZScores(structure);
 	}
 	else
-		cout << calculateZScores(structure).dump(2) << endl;
+		// cout << calculateZScores(structure).dump(2) << endl;
+		cout << calculateZScores(structure) << endl;
 	
 	return 0;
 }

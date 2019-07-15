@@ -4,7 +4,7 @@
 
 #include <clipper/clipper-ccp4.h>
 
-#include <zeep/http/webapp/el.hpp>
+#include <zeep/el/element.hpp>
 #include <zeep/http/webapp.hpp>
 
 #include <boost/program_options.hpp>
@@ -25,7 +25,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 namespace c = mmcif;
 namespace zh = zeep::http;
-namespace el = zh::el;
+namespace el = zeep::el;
 namespace ba = boost::algorithm;
 
 // --------------------------------------------------------------------
@@ -216,8 +216,10 @@ MapMakerServer::MapMakerServer()
 	fs::create_directories(tmpDir);
 	fs::current_path(tmpDir);
 
-	mount("map",		boost::bind(&MapMakerServer::handle_map_request, this, _1, _2, _3));
-	mount("style.css",	boost::bind(&MapMakerServer::handle_file, this, _1, _2, _3));
+	using namespace std::placeholders;
+
+	mount("map",		&MapMakerServer::handle_map_request);
+	mount("style.css",	&MapMakerServer::handle_file);
 }
 
 MapMakerServer::~MapMakerServer()
@@ -226,15 +228,12 @@ MapMakerServer::~MapMakerServer()
 
 void MapMakerServer::handle_map_request(const zh::request& request, const el::scope& scope, zh::reply& reply)
 {
-	zh::parameter_map params;
-	get_parameters(scope, params);
-	
-	string pdbID = params.get("id", "").as<string>();
-	string type = params.get("type", "density").as<string>();
-	string stage = params.get("stage", "final").as<string>();
-	float samplingRate = params.get("sampling-rate", "1.5").as<float>();
-	float border = params.get("border", "5").as<float>();
-	bool masked = params.count("masked") > 0;
+	string pdbID = request.get_parameter("id", ""s);
+	string type = request.get_parameter("type", "density"s);
+	string stage = request.get_parameter("stage", "final"s);
+	float samplingRate = request.get_parameter("sampling-rate", 1.5f);
+	float border = request.get_parameter("border", 5.f);
+	bool masked = request.has_parameter("masked");
 	
 	if (type != "density" and type != "difference" and type != "anomalous")
 		throw runtime_error("Invalid type specified, allowed values are density, difference and anomalous");

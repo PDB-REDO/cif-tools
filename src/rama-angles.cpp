@@ -8,7 +8,7 @@
 #include "cif++/Structure.h"
 #include "cif++/Secondary.h"
 
-#include <zeep/http/webapp/el.hpp>
+#include <zeep/el/element.hpp>
 #include <zeep/http/webapp.hpp>
 
 #include <boost/program_options.hpp>
@@ -22,7 +22,7 @@
 #include "ramachandran.h"
 
 #include "mrsrc.h"
-#include <nlohmann/json.hpp>
+
 #include "pr-server.hpp"
 
 using namespace std;
@@ -30,9 +30,9 @@ using namespace std;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 namespace zh = zeep::http;
-namespace el = zeep::http::el;
+namespace el = zeep::el;
 namespace ba = boost::algorithm;
-using json = nlohmann::json;
+using json = zeep::el::element;
 
 using mmcif::Structure;
 
@@ -250,9 +250,9 @@ class RamaAnglesServer : public zh::webapp
 RamaAnglesServer::RamaAnglesServer()
 	: webapp(kRamaAnglesNS)
 {
-	mount("orig",		boost::bind(&RamaAnglesServer::handle_rama_request, this, _1, _2, _3));
-	mount("redo",		boost::bind(&RamaAnglesServer::handle_rama_request, this, _1, _2, _3));
-	mount("style.css",	boost::bind(&RamaAnglesServer::handle_file, this, _1, _2, _3));
+	mount("orig",		&RamaAnglesServer::handle_rama_request);
+	mount("redo",		&RamaAnglesServer::handle_rama_request);
+	mount("style.css",	&RamaAnglesServer::handle_file);
 }
 
 RamaAnglesServer::~RamaAnglesServer()
@@ -282,7 +282,7 @@ void RamaAnglesServer::handle_rama_request(const zh::request& request, const el:
 
 	json result = CreateJSONForStructureFile(f.string());
 	
-	reply.set_content(result.dump(), "application/json");
+	reply.set_content(result);
 }
 
 void RamaAnglesServer::load_template(const std::string& file, zeep::xml::document& doc)
@@ -383,7 +383,7 @@ int pr_main(int argc, char* argv[])
 		
 		("server",										"Start as web service")
 		("address",				po::value<string>(),	"External address, default is 0.0.0.0")
-		("port",				po::value<uint16>(),	"Port to listen to, default is 10336")
+		("port",				po::value<uint16_t>(),	"Port to listen to, default is 10336")
 		("no-daemon,F",									"Do not fork into background")
 		("user,u",				po::value<string>(),	"User to run the daemon")
 		("logfile",				po::value<string>(),	"Logfile to write to, default /var/log/rama-angles.log")
@@ -468,9 +468,9 @@ int pr_main(int argc, char* argv[])
 		if (vm.count("address"))
 			address = vm["address"].as<string>();
 		
-		uint16 port = 10336;
+		uint16_t port = 10336;
 		if (vm.count("port"))
-			port = vm["port"].as<uint16>();
+			port = vm["port"].as<uint16_t>();
 
 		string user = "nobody";
 		if (vm.count("user"))
