@@ -8,7 +8,6 @@
 #include "cif++/Structure.h"
 #include "cif++/Secondary.h"
 
-#include <zeep/el/element.hpp>
 #include <zeep/http/webapp.hpp>
 
 #include <boost/program_options.hpp>
@@ -30,9 +29,21 @@ using namespace std;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 namespace zh = zeep::http;
-namespace el = zeep::el;
 namespace ba = boost::algorithm;
-using json = zeep::el::element;
+
+#if LIBZEEP_VERSION_MAJOR >= 4
+#include <zeep/el/element.hpp>
+
+namespace el = zeep::el;
+using json = el::element;
+
+#else
+#include <nlohmann/json.hpp>
+#include <zeep/http/webapp/el.hpp>
+namespace el = zeep::http::el;
+
+using json = nlohmann::json;
+#endif
 
 using mmcif::Structure;
 
@@ -250,9 +261,9 @@ class RamaAnglesServer : public zh::webapp
 RamaAnglesServer::RamaAnglesServer()
 	: webapp(kRamaAnglesNS)
 {
-	mount("orig",		&RamaAnglesServer::handle_rama_request);
-	mount("redo",		&RamaAnglesServer::handle_rama_request);
-	mount("style.css",	&RamaAnglesServer::handle_file);
+	mount("orig",		std::bind(&RamaAnglesServer::handle_rama_request, this, placeholders::_1, placeholders::_2, placeholders::_3));
+	mount("redo",		std::bind(&RamaAnglesServer::handle_rama_request, this, placeholders::_1, placeholders::_2, placeholders::_3));
+	mount("style.css",	std::bind(&RamaAnglesServer::handle_file, this, placeholders::_1, placeholders::_2, placeholders::_3));
 }
 
 RamaAnglesServer::~RamaAnglesServer()
@@ -282,7 +293,11 @@ void RamaAnglesServer::handle_rama_request(const zh::request& request, const el:
 
 	json result = CreateJSONForStructureFile(f.string());
 	
+#if LIBZEEP_VERSION_MAJOR >= 4
 	reply.set_content(result);
+#else
+	reply.set_content(result.dump(), "application/json");
+#endif
 }
 
 void RamaAnglesServer::load_template(const std::string& file, zeep::xml::document& doc)

@@ -1040,7 +1040,10 @@ int pr_main(int argc, char* argv[])
 			{
 				string asymIDa = a["label_asym_id"].as<string>();
 				string asymIDb = b["label_asym_id"].as<string>();
-				d = asymIDa.compare(asymIDb);
+
+				d = asymIDa.length() - asymIDb.length();
+				if (d == 0)
+					d = asymIDa.compare(asymIDb);
 			}
 
 			if (d == 0)
