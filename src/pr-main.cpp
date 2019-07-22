@@ -89,17 +89,20 @@ class RUsage
   public:
 	~RUsage()
 	{
-		struct rusage u;
-		auto end = std::chrono::system_clock::now();
-		chrono::duration<double> diff = end - start;
-		
-		if (getrusage(RUSAGE_SELF, &u) == 0)
-			cerr << "CPU usage: "
-				 << u.ru_utime << " user, "
-				 << u.ru_stime << " system, "
-				 << diff << " wall" << endl;
-		else
-			perror("Failed to get rusage");
+		if (VERBOSE)
+		{
+			struct rusage u;
+			auto end = std::chrono::system_clock::now();
+			chrono::duration<double> diff = end - start;
+			
+			if (getrusage(RUSAGE_SELF, &u) == 0)
+				cerr << "CPU usage: "
+					<< u.ru_utime << " user, "
+					<< u.ru_stime << " system, "
+					<< diff << " wall" << endl;
+			else
+				perror("Failed to get rusage");
+		}
 	}
 
 	chrono::time_point<chrono::system_clock>	start = std::chrono::system_clock::now();

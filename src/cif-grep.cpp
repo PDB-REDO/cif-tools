@@ -3,7 +3,6 @@
 #include <fstream>
 #include <functional>
 #include <regex>
-#include <atomic>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
@@ -12,7 +11,6 @@
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/thread.hpp>
 
 #include "cif++/Cif++.h"
 #include "cif++/Structure.h"
@@ -28,13 +26,13 @@ namespace io = boost::iostreams;
 class grepParser : public cif::SacParser
 {
   public:
-	grepParser(const string& file, istream& is, const string& pattern, bool quiet)
-		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet)
+	grepParser(const string& file, istream& is, const string& pattern, bool quiet, bool printLineNr)
+		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet), mLineNr(printLineNr)
 	{
 	}
 	
-	grepParser(const string& file, istream& is, const string& tag, const string& pattern, bool quiet)
-		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet)
+	grepParser(const string& file, istream& is, const string& tag, const string& pattern, bool quiet, bool printLineNr)
+		: grepParser(file, is, pattern, quiet, printLineNr)
 	{
 		tie(mCat, mItem) = cif::splitTagName(tag);
 	}
@@ -65,7 +63,9 @@ class grepParser : public cif::SacParser
 			{
 				if (not mFile.empty())
 					cout << mFile << ':';
-				cout << mLineNr << '\t' << value << endl;
+				if (mLineNr)
+					cout << mLineNr << ':';
+				cout << value << endl;
 			}
 		}
 	}
@@ -74,26 +74,26 @@ class grepParser : public cif::SacParser
 	string	mCat, mItem;
 	regex	mRx;
 	size_t	mMatches = 0;
-	bool	mQuiet;
+	bool	mQuiet, mLineNr;
 };
 
-bool cifGrep(const string& pattern, const string& tag, const string& file, istream& is, bool quiet)
+size_t cifGrep(const string& pattern, const string& tag, const string& file, istream& is, bool quiet, bool printLineNr)
 {
-	bool result = false;
+	size_t result = 0;
 	
 	if (tag.empty())
 	{
-		grepParser gp(file, is, pattern, quiet);
+		grepParser gp(file, is, pattern, quiet, printLineNr);
 		gp.parseFile();
 		
-		result = gp.getMatches() > 0;
+		result = gp.getMatches();
 	}
 	else
 	{
-		grepParser gp(file, is, tag, pattern, quiet);
+		grepParser gp(file, is, tag, pattern, quiet, printLineNr);
 		gp.parseFile();
 		
-		result = gp.getMatches() > 0;
+		result = gp.getMatches();
 	}
 	
 	return result;
@@ -104,14 +104,17 @@ int pr_main(int argc, char* argv[])
 	po::options_description visible_options("cif-grep [option...] pattern [file ...]");
 	visible_options.add_options()
 		("item,i",	po::value<string>(),		"Item tag to scan, default is all item values")
-		("help,h",								"Display help message")
+		("help",								"Display help message")
 		("version",								"Print version")
-		("quiet",								"Only print files matching pattern")
+		("quiet,q",								"Only print files matching pattern")
+		("count,c",								"Only show number of hits")
+		("line-number,n",						"Print line numbers")
+		("no-filename,h",						"Don't print the filename")
+		("with-filename,H",						"Do print the filename")
 		("verbose,v",							"Verbose output")
-		("progress",							"Show progress bar")
 		("files-with-matches,l",				"Print only names of files containing matches")
 		("recursive,r",							"Search recursively");
-	
+
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
 		("pattern",	po::value<string>(),		"Pattern")
@@ -138,7 +141,7 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("help") or vm.count("pattern") == 0)
 	{
 		cerr << visible_options << endl;
-		exit(1);
+		exit(vm.count("help") ? 0 : 1);
 	}
 
 	VERBOSE = vm.count("verbose") != 0;
@@ -147,7 +150,13 @@ int pr_main(int argc, char* argv[])
 
 	bool quiet = vm.count("quiet") > 0;
 	bool filenamesOnly = vm.count("files-with-matches") > 0;
-	bool progress = VERBOSE == 0 and vm.count("progress") > 0;
+	bool countOnly = vm.count("count") > 0;
+	bool noFileNames = filenamesOnly == false and vm.count("no-filename") > 0;
+	bool doFileNames = vm.count("with-filename") > 0;
+	bool lineNumbers = vm.count("line-number") > 0;
+	size_t count = 0;
+
+	quiet = quiet or countOnly;
 
 	string pattern = vm["pattern"].as<string>();
 	string tag;
@@ -168,12 +177,14 @@ int pr_main(int argc, char* argv[])
 			cerr << "matching only for category: " << cat << " and item " << item << endl;
 	}
 	
-	bool result = false;
+	size_t result = false;
 	if (vm.count("input") == 0)
 	{
-		result = cifGrep(pattern, tag, "stdin", cin, quiet or filenamesOnly);
-		if (filenamesOnly and result)
+		result = cifGrep(pattern, tag, "stdin", cin, quiet or filenamesOnly, lineNumbers);
+		if (doFileNames or (filenamesOnly and result != 0))
 			cout << "stdin" << endl;
+		if (countOnly)
+			cout << result << endl;
 	}
 	else
 	{
@@ -212,84 +223,60 @@ int pr_main(int argc, char* argv[])
 				return make_tuple(size, f);
 			});
 		
-//		sort(filesWithSizes.begin(), filesWithSizes.end(),
-//			[](auto& a, auto& b) -> bool
-//			{
-//				return get<0>(a) > get<0>(b);
-//			});
+			if (doFileNames)
+				noFileNames = false;
+			else if (files.size() <= 1)
+				noFileNames = true;
 		
-		unique_ptr<cif::Progress> p;
-		if (progress)
-			p.reset(new cif::Progress(totalSize, "searching"));
+		for (auto file: filesWithSizes)
+		{
+			fs::path f;
+			size_t size;
+			tie(size, f) = file;
+
+			if (not fs::is_regular(f))
+				continue;
+			
+			if (VERBOSE)
+				cerr << f << endl;
+
+			ifstream infile(f.c_str(), ios_base::in | ios_base::binary);
+			if (not infile.is_open())
+				throw runtime_error("Could not open file " + f.string());
+	
+			io::filtering_stream<io::input> in;
 		
-		vector<fs::path> matches;
-		
-		boost::thread_group t;
-		size_t N = boost::thread::hardware_concurrency();
-		atomic<size_t> next(0);
-		
-		for (size_t i = 0; i < N; ++i)
-			t.create_thread([&]()
+			if (f.extension() == ".bz2")
+				in.push(io::bzip2_decompressor());
+			else if (f.extension() == ".gz")
+				in.push(io::gzip_decompressor());
+			
+			in.push(infile);
+	
+			try
 			{
-				for (;;)
+				size_t r = cifGrep(pattern, tag, noFileNames ? ""s : f.filename().string(), in, quiet or filenamesOnly, lineNumbers);
+
+				if (r > 0)
 				{
-					size_t i = next++;
-					
-					if (i >= filesWithSizes.size())
-						break;
+					count += r;
 
-					size_t size;
-					fs::path f;
-					tie(size, f) = filesWithSizes[i];
-					
-					if (not fs::is_regular(f))
-						continue;
-					
-					if (VERBOSE)
-						cerr << f << endl;
-
-					if (p)
-						p->message(f.leaf().string());
-					
-					ifstream infile(f.c_str(), ios_base::in | ios_base::binary);
-					if (not infile.is_open())
-						throw runtime_error("Could not open file " + f.string());
-			
-					io::filtering_stream<io::input> in;
-				
-					if (f.extension() == ".bz2")
-						in.push(io::bzip2_decompressor());
-					else if (f.extension() == ".gz")
-						in.push(io::gzip_decompressor());
-					
-					in.push(infile);
-			
-					try
-					{
-						if (cifGrep(pattern, tag, f.filename().string(), in, quiet or filenamesOnly))
-						{
-							matches.push_back(f);
-							if (filenamesOnly)
-								cout << f << endl;
-							else if (VERBOSE)
-								cout << "Matching file: " << f << endl;
-							result = true;
-						}
-					}
-					catch (const exception& e)
-					{
-						cerr << endl
-							 << "exception for " << f << endl
-							 << " => " << e.what() << endl;
-					}
-						
-					if (p)
-						p->consumed(size);
+					if (VERBOSE or (countOnly and not noFileNames))
+						cout << f << ':' << r << endl;
+					result = true;
 				}
-			});
-		
-		t.join_all();
+			}
+			catch (const exception& e)
+			{
+				cerr << endl
+						<< "exception for " << f << endl
+						<< " => " << e.what() << endl;
+			}
+		}
 	}
+
+	if (noFileNames and countOnly and count > 0)
+		cout << count << endl;
 
 	return result ? 0 : 1;
 }
