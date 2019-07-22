@@ -116,37 +116,39 @@ void load_version_info()
 {
 	mrsrc::rsrc version("version.txt");
 	if (not version)
-		throw runtime_error("version resource is missing");
-
-	struct membuf : public streambuf
+		VERSION = "unknown version, version resource is missing";
+	else
 	{
-		membuf(char* data, size_t length)		{ this->setg(data, data, data + length); }
-	} buffer(const_cast<char*>(version.data()), version.size());
-	
-	istream is(&buffer);
-	string line;
-	regex
-		rxVersionNr(R"(Last Changed Rev: (\d+))"),
-		rxVersionDate(R"(Last Changed Date: (\d{4}-\d{2}-\d{2}).*)");
-
-	while (getline(is, line))
-	{
-		smatch m;
-
-		if (regex_match(line, m, rxVersionNr))
+		struct membuf : public streambuf
 		{
-			gVersionNr = m[1];
-			continue;
+			membuf(char* data, size_t length)		{ this->setg(data, data, data + length); }
+		} buffer(const_cast<char*>(version.data()), version.size());
+		
+		istream is(&buffer);
+		string line;
+		regex
+			rxVersionNr(R"(Last Changed Rev: (\d+))"),
+			rxVersionDate(R"(Last Changed Date: (\d{4}-\d{2}-\d{2}).*)");
+
+		while (getline(is, line))
+		{
+			smatch m;
+
+			if (regex_match(line, m, rxVersionNr))
+			{
+				gVersionNr = m[1];
+				continue;
+			}
+
+			if (regex_match(line, m, rxVersionDate))
+			{
+				gVersionDate = m[1];
+				continue;
+			}
 		}
 
-		if (regex_match(line, m, rxVersionDate))
-		{
-			gVersionDate = m[1];
-			continue;
-		}
+		VERSION = gVersionNr + " " + gVersionDate;
 	}
-
-	VERSION = gVersionNr + " " + gVersionDate;
 }
 
 string get_version_nr()
