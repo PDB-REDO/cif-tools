@@ -874,6 +874,9 @@ int pr_main(int argc, char* argv[])
 		auto unls = db["atom_site"].find(cif::Key("label_comp_id") == "UNL");
 		numOfAtomsDeleted += unls.size();
 		
+		for (auto a: unls)
+			db["atom_site"].erase(a);
+
 		db["chem_comp"].erase(r);
 		break;
 	}
