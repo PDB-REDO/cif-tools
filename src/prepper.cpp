@@ -877,7 +877,11 @@ int pr_main(int argc, char* argv[])
 		for (auto a: unls)
 			db["atom_site"].erase(a);
 
+		db["pdbx_nonpoly_scheme"].erase(cif::Key("mon_id") == "UNL");
+		db["pdbx_entity_nonpoly"].erase(cif::Key("comp_id") == "UNL");
+		db["struct_conn"].erase(cif::Key("ptnr1_label_comp_id") == "UNL" or cif::Key("ptnr2_label_comp_id") == "UNL");
 		db["chem_comp"].erase(r);
+
 		break;
 	}
 
