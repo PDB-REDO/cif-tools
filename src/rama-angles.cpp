@@ -287,11 +287,13 @@ void RamaAnglesServer::handle_rama_request(const zh::request& request, const el:
 		f = gPDBDIR / pdbid.substr(1, 2) / (pdbid + ".cif.gz");
 	else if (selector == "redo")
 		f = gPDBREDODIR / pdbid.substr(1, 2) / pdbid / (pdbid + "_final.cif");
-	
+
 	if (not fs::exists(f))
 		throw runtime_error("pdb file not found: " + f.string());
 
 	json result = CreateJSONForStructureFile(f.string());
+
+	reply.set_header("Access-Control-Allow-Origin", "*");
 	
 #if LIBZEEP_VERSION_MAJOR >= 4
 	reply.set_content(result);
@@ -500,20 +502,30 @@ int pr_main(int argc, char* argv[])
 		if (vm.count("logfile"))
 			logFile = vm["logfile"].as<string>();
 
-		auto serverFactory = []() -> zeep::http::server*
+		if (fork)
 		{
-			return new RamaAnglesServer();
-		};
-		
-		for (;;)
+			auto serverFactory = []() -> zeep::http::server*
+			{
+				return new RamaAnglesServer();
+			};
+			
+			for (;;)
+			{
+				if (not logFile.empty())
+					OpenLogFile(logFile);
+				
+				if (RunMainLoop(address, port, user, serverFactory))
+					continue;
+				
+				break;
+			}
+		}
+		else
 		{
-			if (fork and not logFile.empty())
-				OpenLogFile(logFile);
-			
-			if (RunMainLoop(address, port, user, serverFactory))
-				continue;
-			
-			break;
+			RamaAnglesServer app;
+			app.bind("0.0.0.0", 10333);
+			thread t(bind(&RamaAnglesServer::run, &app, 2));
+			t.join();
 		}
 		
 		return 0;
