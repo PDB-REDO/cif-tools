@@ -440,7 +440,7 @@ int pr_main(int argc, char* argv[])
 {
 	int result = 0;
 	
-	po::options_description visible_options("stripper " + VERSION + " options file]" );
+	po::options_description visible_options("prepper " + VERSION + " options file]" );
 	visible_options.add_options()
 		("output,o",	po::value<string>(),	"The output file, default is stdout")
 		("pdb-care",	po::value<string>(),	"pdb-care file")
