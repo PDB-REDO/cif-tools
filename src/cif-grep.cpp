@@ -55,7 +55,7 @@ class grepParser : public cif::SacParser
 	{
 		if ((mCat.empty() or cif::iequals(category, mCat)) and
 			(mItem.empty() or cif::iequals(item, mItem)) and
-			regex_match(value, mRx))
+			regex_search(value, mRx))
 		{
 			++mMatches;
 			
@@ -257,14 +257,13 @@ int pr_main(int argc, char* argv[])
 			{
 				size_t r = cifGrep(pattern, tag, noFileNames ? ""s : f.filename().string(), in, quiet or filenamesOnly, lineNumbers);
 
-				if (r > 0)
-				{
-					count += r;
+				count += r;
 
-					if (VERBOSE or (countOnly and not noFileNames))
-						cout << f << ':' << r << endl;
+				if (VERBOSE or (countOnly and not noFileNames))
+					cout << f << ':' << r << endl;
+
+				if (r > 0)
 					result = true;
-				}
 			}
 			catch (const exception& e)
 			{
@@ -275,7 +274,7 @@ int pr_main(int argc, char* argv[])
 		}
 	}
 
-	if (noFileNames and countOnly and count > 0)
+	if (noFileNames and countOnly)
 		cout << count << endl;
 
 	return result ? 0 : 1;
