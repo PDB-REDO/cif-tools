@@ -167,6 +167,10 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
+	VERBOSE = vm.count("verbose") != 0;
+	if (vm.count("debug"))
+		VERBOSE = vm["debug"].as<int>();
+
 	//
 	
 	fs::path input = vm["input"].as<string>();
@@ -205,8 +209,7 @@ int pr_main(int argc, char* argv[])
 			
 			//
 
-			if (VERBOSE)
-				cerr << "Need to flip " << res.compoundID() << ' ' << res.asymID() << ':' << res.seqID() << endl;
+			cerr << "Need to flip " << res.compoundID() << ' ' << res.asymID() << ':' << res.seqID() << endl;
 			
 			if (resType == "TYR" or resType == "PHE")
 			{
