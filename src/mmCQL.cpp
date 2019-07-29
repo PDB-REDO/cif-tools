@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <functional>
+#include <unordered_set>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
@@ -83,12 +84,15 @@ class StatementList : public Statement
 class SelectStatement : public Statement
 {
   public:
-	SelectStatement(cif::Category& category, vector<string>&& items, cif::Condition&& where)
-		: mCategory(category), mItems(move(items)), mWhere(move(where)) {}
+	SelectStatement(cif::Category& category, bool distinct, vector<string>&& items, cif::Condition&& where)
+		: mCategory(category), mDistinct(distinct), mItems(move(items)), mWhere(move(where)) {}
 
 	virtual void Execute()
 	{
 		vector<string> fields(mItems.size());
+		unordered_set<string> seen;
+
+		cout << ba::join(mItems, "\t") << endl;
 
 		for (auto r: mCategory.find(move(mWhere)))
 		{
@@ -97,13 +101,87 @@ class SelectStatement : public Statement
 					cif::detail::ItemReference ref = r[item];
 					return ref.as<string>();
 					});
-			cout << ba::join(fields, "\t") << endl;
+
+			string line = ba::join(fields, "\t");
+			bool seenLine = seen.count(line);
+
+			if (not mDistinct or not seenLine)
+				cout << line << endl;
+
+			if (mDistinct and not seenLine)
+				seen.insert(line);
 		}
 	}
 
   private:
 	cif::Category& mCategory;
+	bool mDistinct;
 	vector<string> mItems;
+	cif::Condition mWhere;
+};
+
+// -----------------------------------------------------------------------
+
+class DeleteStatement : public Statement
+{
+  public:
+	DeleteStatement(cif::Category& category, cif::Condition&& where)
+		: mCategory(category), mWhere(move(where)) {}
+
+	virtual void Execute()
+	{
+		cif::RowSet remove(mCategory);
+		
+		mWhere.prepare(mCategory);
+
+		for (auto r: mCategory)
+		{
+			if (mWhere(mCategory, r))
+				remove.push_back(r);
+		}
+
+		for (auto r: remove)
+			mCategory.erase(r);
+
+		cout << "Number of removed rows " << remove.size() << endl;
+	}
+
+  private:
+	cif::Category& mCategory;
+	cif::Condition mWhere;
+};
+
+// -----------------------------------------------------------------------
+
+class UpdateStatement : public Statement
+{
+  public:
+	UpdateStatement(cif::Category& category, vector<pair<string,string>>&& itemValuePairs, cif::Condition&& where)
+		: mCategory(category), mItemValuePairs(move(itemValuePairs)), mWhere(move(where)) {}
+
+	virtual void Execute()
+	{
+		size_t updated = 0;
+
+		mWhere.prepare(mCategory);
+
+		for (auto r: mCategory)
+		{
+			if (mWhere(mCategory, r))
+			{
+				for (auto iv: mItemValuePairs)
+					r[iv.first] = iv.second;
+
+				++updated;
+			}
+		}
+
+		cout << "Number of updated rows: " << updated << endl;
+	}
+
+  private:
+	cif::Category& mCategory;
+	vector<pair<string,string>> mItemValuePairs;
 	cif::Condition mWhere;
 };
 
@@ -218,6 +296,8 @@ class Parser
 	// parser rules
 	StatementPtr ParseStatement();
 	StatementPtr ParseSelect();
+	StatementPtr ParseDelete();
+	StatementPtr ParseUpdate();
 	vector<string> ParseItemList();
 
 	cif::Condition ParseWhereClause(cif::Category& cat);
@@ -736,7 +816,7 @@ Parser::Token Parser::GetNextToken()
 void Parser::Match(Token expected)
 {
 	if (mLookahead != expected)
-		throw runtime_error("Syntax error in command, expected " + Describe(expected) + " but found " + Describe(mLookahead));
+		throw runtime_error("Syntax error in command, expected " + Describe(expected) + " but found " + Describe(mLookahead) + " (" + mToken + ")");
 	
 	mLookahead = GetNextToken();
 }
@@ -768,6 +848,16 @@ StatementPtr Parser::ParseStatement()
 		case Token::select:
 			Match(Token::select);
 			result = ParseSelect();
+			break;
+		
+		case Token::delete_:
+			Match(Token::delete_);
+			result = ParseDelete();
+			break;
+		
+		case Token::update:
+			Match(Token::update);
+			result = ParseUpdate();
 			break;
 		
 		default:
@@ -831,10 +921,94 @@ StatementPtr Parser::ParseSelect()
 	if (mLookahead == Token::where)
 	{
 		Match(Token::where);
-		return StatementPtr{ new SelectStatement(*category, move(items), ParseNotWhereClause(*category)) };
+		return StatementPtr{ new SelectStatement(*category, distinct, move(items), ParseNotWhereClause(*category)) };
 	}
 	else
-		return StatementPtr{ new SelectStatement(*category, move(items), cif::All()) };
+		return StatementPtr{ new SelectStatement(*category, distinct, move(items), cif::All()) };
+}
+
+// -----------------------------------------------------------------------
+
+StatementPtr Parser::ParseDelete()
+{
+	Match(Token::from);
+
+	string cat = mToken;
+	Match(Token::ident);
+
+	auto category = mDb.get(cat);
+	if (category == nullptr)
+		throw runtime_error("Category " + cat + " is not defined in this file");
+
+	if (mLookahead == Token::where)
+	{
+		Match(Token::where);
+		return StatementPtr{ new DeleteStatement(*category, ParseNotWhereClause(*category)) };
+	}
+	else
+		return StatementPtr{ new DeleteStatement(*category, cif::All()) };
+}
+
+// -----------------------------------------------------------------------
+
+StatementPtr Parser::ParseUpdate()
+{
+	string cat = mToken;
+	Match(Token::ident);
+
+	auto category = mDb.get(cat);
+	if (category == nullptr)
+		throw runtime_error("Category " + cat + " is not defined in this file");
+
+	auto cv = category->getCatValidator();
+
+	Match(Token::set);
+
+	vector<pair<string,string>> itemValuePairs;
+	for (;;)
+	{
+		string item = mToken;
+		Match(Token::ident);
+
+		auto iv = cv ? cv->getValidatorForItem(item) : nullptr;
+		if (cv and iv == nullptr)
+			throw runtime_error("Invalid item '" + item + "' for category '" + cat + '\'');
+		
+		Match(Token::eq_);
+
+		string value = mToken;
+		switch (mLookahead)
+		{
+			case Token::integer:
+			case Token::number:
+			case Token::string:
+				Match(mLookahead);
+				break;
+			default:
+				Match(Token::string);
+		}
+
+		if (iv)
+			iv->operator()(value);
+
+		itemValuePairs.emplace_back(item, value);
+
+		if (mLookahead == Token::comma)
+		{
+			Match(Token::comma);
+			continue;
+		}
+
+		break;
+	}
+
+	if (mLookahead == Token::where)
+	{
+		Match(Token::where);
+		return StatementPtr{ new UpdateStatement(*category, move(itemValuePairs), ParseNotWhereClause(*category)) };
+	}
+	else
+		return StatementPtr{ new UpdateStatement(*category, move(itemValuePairs), cif::All()) };
 }
 
 // -----------------------------------------------------------------------
@@ -918,6 +1092,12 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 	string item = mToken;
 	Match(Token::ident);
 
+	auto cv = cat.getCatValidator();
+	if (cv != nullptr and cv->getValidatorForItem(item) == nullptr)
+	{
+		throw runtime_error("Invalid item '" + item + "' for category '" + cat.name() + "' in where clause");
+	}
+
 	if (mLookahead < Token::eq_ or mLookahead > Token::ne_)
 		Match(Token::eq_);
 	
@@ -937,7 +1117,7 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 		default:
 			Match(Token::string);
 	}
-	
+
 	switch (oper)
 	{
 		case Token::eq_:	return cif::Key(item) == value;
@@ -947,7 +1127,6 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 		case Token::ge_:	return cif::Key(item) >= value;
 		case Token::ne_:	return cif::Key(item) != value;
 		default:			throw logic_error("should never happen");
-
 	}
 }
 
@@ -957,24 +1136,28 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-diff " + VERSION + " options file1 file2");
+	po::options_description visible_options("mmCQL " + VERSION + " [options] input output");
 	visible_options.add_options()
 		("help,h",										"Display help message")
 		("version",										"Print version")
 		("verbose,v",									"Verbose output")
 
+		("force",										"Force writing of output file, even if it is the same as the input file")
+
 		("script,f",     po::value<string>(),   		"Read commands from script");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input,i",     po::value<string>(),    "Input file")
-		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
+		("input,i",		po::value<string>(),			"Input file")
+		("output,o",	po::value<string>(),			"Output file")
+		("debug,d",		po::value<int>(),				"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
 
 	po::positional_options_description p;
 	p.add("input", 1);
+	p.add("output", 1);
 	
 	po::variables_map vm;
 	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
@@ -992,6 +1175,12 @@ int pr_main(int argc, char* argv[])
 		exit(vm.count("help") != 0);
 	}
 
+	if (vm.count("output") and vm["output"].as<string>() == vm["input"].as<string>() and vm.count("force") == 0)
+	{
+		cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)" << endl;
+		exit(1);
+	}
+
 	VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
 		VERBOSE = vm["debug"].as<int>();
@@ -1001,10 +1190,9 @@ int pr_main(int argc, char* argv[])
 
 	cql::Parser parser(file.data());
 
-	ifstream cmdFile;
 	if (vm.count("script"))
 	{
-		cmdFile.open(vm["script"].as<string>());
+		ifstream cmdFile(vm["script"].as<string>());
 		if (not cmdFile.is_open())
 			throw runtime_error("Failed to open command file " + vm["script"].as<string>());
 
@@ -1032,7 +1220,8 @@ int pr_main(int argc, char* argv[])
 		}
 	}
 
-	cmdFile.close();
+	if (vm.count("output"))
+		file.save(vm["output"].as<string>());
 
 	return 0;	
 }
