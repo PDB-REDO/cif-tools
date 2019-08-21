@@ -216,6 +216,10 @@ int pr_main(int argc, char* argv[])
 				auto a = res.atomByID("CD1");
 				auto b = res.atomByID("CD2");
 				structure.swapAtoms(a, b);
+
+				auto c = res.atomByID("CE1");
+				auto d = res.atomByID("CE2");
+				structure.swapAtoms(c, d);
 			}
 			else if (resType == "ASP")
 			{
