@@ -10,6 +10,8 @@
 
 #include <zeep/http/webapp.hpp>
 
+#include <thread>
+
 #include <boost/program_options.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
