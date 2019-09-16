@@ -103,77 +103,85 @@ void OpenLogFile(const string& logFile)
 
 bool RunMainLoop(const string& address, uint16_t port, const string& user, CreateServer&& serverFactory)
 {
-	cout << "restarting server" << endl;
+	int sig = 0;
 
-    sigset_t new_mask, old_mask;
-    sigfillset(&new_mask);
-    pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
-
-	zeep::http::preforked_server server([=]() -> zeep::http::server*
+	for (;;)
 	{
+		cout << "restarting server" << endl;
+
+		sigset_t new_mask, old_mask;
+		sigfillset(&new_mask);
+		pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
+
+		zeep::http::preforked_server server([=]() -> zeep::http::server*
+		{
+			try
+			{
+				if (not user.empty())
+				{
+					struct passwd* pw = getpwnam(user.c_str());
+					if (pw == NULL or setuid(pw->pw_uid) < 0)
+					{
+						cerr << "Failed to set uid to " << user << ": " << strerror(errno) << endl;
+						exit(1);
+					}
+				}
+				
+				return serverFactory();
+			}
+			catch (const exception& e)
+			{
+				cerr << "Failed to launch server: " << e.what() << endl;
+				exit(1);
+			}
+		});
+		
+		std::thread t(std::bind(&zeep::http::preforked_server::run, &server, address, port, 2));
+		
 		try
 		{
-			if (not user.empty())
-			{
-				struct passwd* pw = getpwnam(user.c_str());
-				if (pw == NULL or setuid(pw->pw_uid) < 0)
-				{
-					cerr << "Failed to set uid to " << user << ": " << strerror(errno) << endl;
-					exit(1);
-				}
-			}
-			
-			return serverFactory();
+			server.start();
 		}
-		catch (const exception& e)
+		catch (const exception& ex)
 		{
-			cerr << "Failed to launch server: " << e.what() << endl;
-			exit(1);
+			cerr << endl
+				<< "Exception running server: " << endl
+				<< ex.what() << endl
+				<< endl;
 		}
-	});
-	
-	std::thread t(std::bind(&zeep::http::preforked_server::run, &server, address, port, 2));
-	server.start();
 
-	try
-	{
-		server.start();
+		pthread_sigmask(SIG_SETMASK, &old_mask, 0);
+
+		// Wait for signal indicating time to shut down.
+		sigset_t wait_mask;
+		sigemptyset(&wait_mask);
+		sigaddset(&wait_mask, SIGINT);
+		sigaddset(&wait_mask, SIGHUP);
+		sigaddset(&wait_mask, SIGQUIT);
+		sigaddset(&wait_mask, SIGTERM);
+		sigaddset(&wait_mask, SIGCHLD);
+		pthread_sigmask(SIG_BLOCK, &wait_mask, 0);
+
+		sigwait(&wait_mask, &sig);
+
+		pthread_sigmask(SIG_SETMASK, &old_mask, 0);
+
+		server.stop();
+		t.join();
+
+		if (sig == SIGCHLD)
+		{
+			int status, pid;
+			pid = waitpid(-1, &status, WUNTRACED);
+
+			if (pid != -1 and WIFSIGNALED(status))
+				cout << "child " << pid << " terminated by signal " << WTERMSIG(status) << endl;
+			continue;
+		}
+
+		break;
 	}
-	catch (const exception& ex)
-	{
-		cerr << endl
-			 << "Exception running server: " << endl
-			 << ex.what() << endl
-			 << endl;
-	}
 
-    pthread_sigmask(SIG_SETMASK, &old_mask, 0);
-
-	// Wait for signal indicating time to shut down.
-	sigset_t wait_mask;
-	sigemptyset(&wait_mask);
-	sigaddset(&wait_mask, SIGINT);
-	sigaddset(&wait_mask, SIGHUP);
-	sigaddset(&wait_mask, SIGQUIT);
-	sigaddset(&wait_mask, SIGTERM);
-	sigaddset(&wait_mask, SIGCHLD);
-	pthread_sigmask(SIG_BLOCK, &wait_mask, 0);
-	int sig = 0;
-	sigwait(&wait_mask, &sig);
-
-    pthread_sigmask(SIG_SETMASK, &old_mask, 0);
-
-	server.stop();
-	t.join();
-
-	if (sig == SIGCHLD)
-	{
-		int status, pid;
-		pid = waitpid(-1, &status, WUNTRACED);
-
-		if (pid != -1 and WIFSIGNALED(status))
-			cout << "child " << pid << " terminated by signal " << WTERMSIG(status) << endl;
-	}
 
 	return sig == SIGHUP;
 }
