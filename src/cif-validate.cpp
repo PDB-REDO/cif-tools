@@ -18,6 +18,7 @@ int pr_main(int argc, char* argv[])
 		("help,h",								"Display help message")
 		("version",								"Print version")
 		("dict",	po::value<string>(),		"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
+		("validate-links",						"Validate all links")
 		("verbose,v",							"Verbose output");
 	
 	po::options_description hidden_options("hidden options");
@@ -63,7 +64,12 @@ int pr_main(int argc, char* argv[])
 		f.load(cin);
 	else
 		f.load(vm["input"].as<string>());
-	
-	return f.isValid() ? 0 : 1;
+
+	int result = f.isValid() ? 0 : 1;
+
+	if (vm.count("validate-links"))
+		f.validateLinks();
+
+	return result;
 }
 
