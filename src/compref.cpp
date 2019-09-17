@@ -22,7 +22,7 @@
 #include "minimizer.h"
 #include "ramachandran.h"
 
-#include "mrsrc.h"
+#include "cif++/mrsrc.h"
 
 using namespace std;
 

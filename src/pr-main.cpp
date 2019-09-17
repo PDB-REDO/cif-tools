@@ -10,7 +10,7 @@
 #include <cmath>
 #include <regex>
 
-#include "mrsrc.h"
+#include "cif++/mrsrc.h"
 
 using namespace std;
 

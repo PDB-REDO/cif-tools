@@ -17,7 +17,7 @@
 
 #include "cif++/MapMaker.h"
 
-#include "mrsrc.h"
+#include "cif++/mrsrc.h"
 #include "pr-server.hpp"
 
 using namespace std;

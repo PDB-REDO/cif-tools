@@ -43,7 +43,7 @@
 
 #include "HBondTraits.h"
 
-#include "mrsrc.h"
+#include "cif++/mrsrc.h"
 #include "svm++.h"
 
 using namespace std;

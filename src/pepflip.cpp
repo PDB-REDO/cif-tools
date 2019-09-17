@@ -26,7 +26,7 @@
 #include "ramachandran.h"
 #include "skiplist.h"
 
-#include "mrsrc.h"
+#include "cif++/mrsrc.h"
 
 using namespace std;
 

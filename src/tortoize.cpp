@@ -20,7 +20,7 @@
 
 #include <zeep/el/element.hpp>
 
-#include "mrsrc.h"
+#include "cif++/mrsrc.h"
 
 using namespace std;
 
@@ -837,13 +837,13 @@ json calculateZScores(const Structure& structure)
 			// remap some common modified amino acids
 			if (aa == "MSE")
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "Replacing MSE with MET" << endl;
 				aa = "MET";
 			}
 			else if (aa == "HYP")
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "Replacing HYP with PRO" << endl;
 
 				aa = "PRO";
@@ -851,7 +851,7 @@ json calculateZScores(const Structure& structure)
 
 			if (mmcif::kAAMap.find(aa) == mmcif::kAAMap.end())
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "Skipping unrecognized residue " << aa << endl;
 
 				continue;
@@ -948,12 +948,12 @@ int pr_main(int argc, char* argv[])
 		("help,h",										"Display help message")
 		("version",										"Print version")
 		
-		("verbose,v",									"Verbose output")
+		("cif::VERBOSE,v",									"cif::VERBOSE output")
 		;
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("debug,d",				po::value<int>(),		"Debug level (for even more verbose output)")
+		("debug,d",				po::value<int>(),		"Debug level (for even more cif::VERBOSE output)")
 		("build",				po::value<string>(),	"Build a binary data table")
 		;
 
@@ -1006,9 +1006,9 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("cif::VERBOSE") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	if (vm.count("log"))
 	{
