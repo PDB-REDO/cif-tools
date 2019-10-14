@@ -11,14 +11,13 @@
 #include <regex>
 
 #include "cif++/mrsrc.h"
+#include "cif++/Cif++.h"
 
 using namespace std;
 
 string VERSION;
 
 int pr_main(int argc, char* argv[]);
-
-int VERBOSE;
 
 // --------------------------------------------------------------------
 
@@ -89,7 +88,7 @@ class RUsage
   public:
 	~RUsage()
 	{
-		if (VERBOSE)
+		if (cif::VERBOSE)
 		{
 			struct rusage u;
 			auto end = std::chrono::system_clock::now();

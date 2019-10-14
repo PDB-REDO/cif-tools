@@ -128,7 +128,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 			}
 			catch (const exception& ex)
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "While processing plane-5-atoms restraints: " << ex.what() << endl;
 	//			continue;
 			}
@@ -157,7 +157,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 			}
 			catch (const exception& ex)
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "While processing bond restraints: " << ex.what() << endl;
 				continue;
 			}
@@ -183,7 +183,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 			}
 			catch (const exception& ex)
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "While processing angle restraints: " << ex.what() << endl;
 				continue;
 			}
@@ -213,7 +213,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 //			}
 //			catch (const exception& ex)
 //			{
-//				if (VERBOSE > 1)
+//				if (cif::VERBOSE > 1)
 //					cerr << "While processing torsion restraints: " << ex.what() << endl;
 //				continue;
 //			}
@@ -242,7 +242,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 			}
 			catch (const exception& ex)
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "While processing chiral volume restraints: " << ex.what() << endl;
 				continue;
 			}
@@ -267,7 +267,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 			}
 			catch (const exception& ex)
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "While processing planarity restraints: " << ex.what() << endl;
 				continue;
 			}
@@ -349,7 +349,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 			
 			if (bonds.is1_4(a1, a2))
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "1_4 for " << a1 << " and " << a2 << endl;
 				minDist = 2.64;
 			}
@@ -436,7 +436,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 				}
 				catch (const exception& ex)
 				{
-					if (VERBOSE)
+					if (cif::VERBOSE)
 						cerr << "err calculating nbc distance: " << ex.what() << endl;
 					minDist = 2.8;
 				}
@@ -489,7 +489,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 
 	// report
 	
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cout << "created " << mBondRestraints.size() << " bond restraints" << endl
 			 << "created " << mAngleRestraints.size() << " angle restraints" << endl
 			 << "created " << mTorsionRestraints.size() << " torsion restraints" << endl
@@ -501,7 +501,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 
 	AtomLocationProvider loc(mReferencedAtoms);
 
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 		for (auto r: mRestraints)
 			r->print(loc);
 }
@@ -557,7 +557,7 @@ void Minimizer::addLinkRestraints(const Monomer& a, const Monomer& b, const Link
 		}
 		catch (const exception& ex)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "While processing bond restraints: " << ex.what() << endl;
 			continue;
 		}
@@ -582,7 +582,7 @@ void Minimizer::addLinkRestraints(const Monomer& a, const Monomer& b, const Link
 		}
 		catch (const exception& ex)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "While processing angle restraints: " << ex.what() << endl;
 			continue;
 		}
@@ -612,7 +612,7 @@ void Minimizer::addLinkRestraints(const Monomer& a, const Monomer& b, const Link
 //		}
 //		catch (const exception& ex)
 //		{
-//			if (VERBOSE)
+//			if (cif::VERBOSE)
 //				cerr << "While processing torsion restraints: " << ex.what() << endl;
 //			continue;
 //		}
@@ -640,7 +640,7 @@ void Minimizer::addLinkRestraints(const Monomer& a, const Monomer& b, const Link
 		}
 		catch (const exception& ex)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "While processing chiral volume restraints: " << ex.what() << endl;
 			continue;
 		}
@@ -665,7 +665,7 @@ void Minimizer::addLinkRestraints(const Monomer& a, const Monomer& b, const Link
 		}
 		catch (const exception& ex)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "While processing planarity restraints: " << ex.what() << endl;
 			continue;
 		}
@@ -707,7 +707,7 @@ double Minimizer::score(const AtomLocationProvider& loc)
 	for (auto r: mRestraints)
 		result += r->f(loc);
 	
-	if (VERBOSE > 3)
+	if (cif::VERBOSE > 3)
 		cout << "score: " << result << endl;
 
 	return result;
@@ -727,7 +727,7 @@ class GSLAtomLocation : public AtomLocationProvider
 	{
 		assert(mIndex.size() == mFixedLocations.size());
 
-		if (VERBOSE > 2)
+		if (cif::VERBOSE > 2)
 		{
 			for (size_t i = 0; i < mIndex.size(); ++i)
 			{
@@ -830,7 +830,7 @@ class GSLDFCollector : public DFCollector
 
 GSLDFCollector::~GSLDFCollector()
 {
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 	{
 		cerr << string(cif::get_terminal_width(), '-') << endl
 			 << "Collected gradient: " << endl;
@@ -863,7 +863,7 @@ void GSLDFCollector::add(AtomRef atom, double dx, double dy, double dz)
 		gsl_vector_set(mDF, ix * 3 + 1, gsl_vector_get(mDF, ix * 3 + 1) + dy);
 		gsl_vector_set(mDF, ix * 3 + 2, gsl_vector_get(mDF, ix * 3 + 2) + dz);
 		
-		if (VERBOSE > 1)
+		if (cif::VERBOSE > 1)
 			cerr << "atom: " << label(atom) << " d: " << setprecision(10) << dx << ", " << dy << ", " << dz << endl;
 	}
 }
@@ -947,14 +947,14 @@ double GSLMinimizer::refine(bool storeAtoms)
 		{
 			if (status != GSL_ENOPROG)
 				cerr << "Unexpected result from gsl_multimin_fdfminimizer_iterate: " << status << endl;
-			else if (VERBOSE)
+			else if (cif::VERBOSE)
 				cerr << "Minimizer stopped at iteration " << i << " at " << m_s->f << endl;
 			break;
 		}
 
 		status = gsl_multimin_test_gradient(m_s->gradient, gradLim);
 
-		if (VERBOSE > 1)
+		if (cif::VERBOSE > 1)
 		{
 			double norm = gsl_blas_dnrm2(m_s->gradient);
 			cout << "iteration number " << i << " with f: " << m_s->f
@@ -964,7 +964,7 @@ double GSLMinimizer::refine(bool storeAtoms)
 		
 		if (status == GSL_SUCCESS)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Minimum found at iteration " << i << " at " << m_s->f << endl;
 			break;
 		}
@@ -1026,7 +1026,7 @@ void GSLMinimizer::Fdf(const gsl_vector* v, void* params, double* f, gsl_vector*
 	GSLMinimizer* self = reinterpret_cast<GSLMinimizer*>(params);
 	self->Fdf(v, f, df);
 
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 		cout << "FDF => " << setprecision(10) << *f << endl;
 }
 
@@ -1036,7 +1036,7 @@ double GSLMinimizer::F(const gsl_vector* v)
 	
 //	return score(loc);
 	auto F = score(loc);
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 		cout << "F => " << setprecision(10) << F << endl;
 	return F;
 }

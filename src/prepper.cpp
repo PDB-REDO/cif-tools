@@ -152,7 +152,7 @@ int DropLink(cif::Datablock& db,
 			cif::Key("ptnr2_label_atom_id") == fromAtomId
 		)))
 	{
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Stripping link " << r["id"].as<string>() << endl;
 		
 		db["struct_conn"].erase(r);
@@ -253,7 +253,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 		string newName = rename->get_attribute("new_name");
 		if (not dat["carb_rename_ignore"].find(cif::Key("from_comp_id") == resname and cif::Key("to_comp_id") == newName).empty())
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Skipping pdb-care rename suggestion from " << resname << " to " << newName << endl;
 			continue;
 		}
@@ -294,7 +294,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 			r["auth_comp_id"] = newName;
 		}
 		
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cout << "Renamed " << pdbResname << " to " << newName << endl;
 		
 		oldNames.insert(resname);
@@ -306,7 +306,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		if (db["atom_site"].find(cif::Key("label_comp_id") == cmp).empty())
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cout << "Removing _chem_comp " << cmp << endl;
 
 			db["chem_comp"].erase(cif::Key("id") == cmp);
@@ -318,13 +318,13 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 		if (not db["chem_comp"].find(cif::Key("id") == cmp).empty())
 			continue;
 
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cout << "Adding _chem_comp " << cmp << endl;
 		
 		auto compound = c::Compound::create(cmp);
 		if (compound == nullptr)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Unknown compound " << cmp << endl;
 
 			db["chem_comp"].emplace({
@@ -507,9 +507,9 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("dict"))
 		c::CompoundFactory::instance().pushDictionary(vm["dict"].as<string>());
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	bool serverMode = vm.count("server") > 0;
 	
@@ -554,7 +554,7 @@ int pr_main(int argc, char* argv[])
 		
 		if (compId == "HOH")
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Deleted zero occupancy water atom: " << a["id"] << endl;
 
 			db["atom_site"].erase(a);
@@ -565,7 +565,7 @@ int pr_main(int argc, char* argv[])
 			auto compound = c::Compound::create(compId);
 			if (compound and (cif::iequals(compound->group(), "peptide") or cif::iequals(compound->group(), "P-peptide")))
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "Changed occupancy to 1.00 for (hetero) atom: " << id << endl;
 				a["occupancy"] = 1.0;
 	
@@ -573,7 +573,7 @@ int pr_main(int argc, char* argv[])
 			}
 			else
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "Changed occupancy to 0.01 for (hetero) atom: " << id << endl;
 				a["occupancy"] = 0.01;
 	
@@ -588,7 +588,7 @@ int pr_main(int argc, char* argv[])
 		string id, compId, atomId, altId;
 		cif::tie(id, compId, atomId, altId) = a.get("id", "label_comp_id", "label_atom_id", "label_alt_id");
 		
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Deleted zero occupancy (hetero) atom: " << a["id"] << endl;
 
 		db["atom_site"].erase(a);
@@ -617,7 +617,7 @@ int pr_main(int argc, char* argv[])
 		
 		for (auto lr: ll)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Deleted dubious LINK " << lr["id"] << endl;
 
 			db["struct_conn"].erase(lr);
@@ -629,7 +629,7 @@ int pr_main(int argc, char* argv[])
 	// remove rediculously long LINKs
 	for (auto lr: db["struct_conn"].find(cif::Key("pdbx_dist_value") > 5.0))
 	{
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Deleted extremely long LINK: " << lr["id"] << endl;
 
 		db["struct_conn"].erase(lr);
@@ -654,7 +654,7 @@ int pr_main(int argc, char* argv[])
 	{
 		string asymId, seqId;
 		
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Flipping at OD1 glycosylated ASN " << lr["id"] << endl;
 		
 		if (lr["ptnr1_label_atom_id"].as<string>() == "OD1")
@@ -713,7 +713,7 @@ int pr_main(int argc, char* argv[])
 		if (not nonO1.find(cif::Key("id") == compId[0] or cif::Key("id") == compId[1]).empty())
 			continue;
 		
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Fixing non-standard carbohydrate LINK " << lr["id"] << endl;
 		
 		string asymId[2], seqId[2], entityId[2];
@@ -845,7 +845,7 @@ int pr_main(int argc, char* argv[])
 	// Remove hydrogens and X
 	for (auto h: db["atom_site"].find(cif::Key("type_symbol") == "H" or cif::Key("type_symbol") == "D" or cif::Key("type_symbol") == "X"))
 	{
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Deleted (hetero) atom: " << h["id"] << endl;
 		
 		db["atom_site"].erase(h);
@@ -862,13 +862,13 @@ int pr_main(int argc, char* argv[])
 			if (c::CompoundFactory::instance().create("UNL") == nullptr)
 				throw runtime_error("File contains unspecified UNL residues");
 
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "File contains UNL records but also specifies the residue in the dictionary, accepting" << endl;
 
 			break;
 		}
 
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "File contains UNL records but does not specify the residue in the dictionary, dropping" << endl;
 
 		auto unls = db["atom_site"].find(cif::Key("label_comp_id") == "UNL");
@@ -889,7 +889,7 @@ int pr_main(int argc, char* argv[])
 //	{
 //		for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "UNL"))
 //		{
-//			if (VERBOSE)
+//			if (cif::VERBOSE)
 //				cerr << "Deleted (hetero) atom: " << a["id"] << endl;
 //			
 //			db["atom_site"].erase(cif::Key("label_comp_id") == "UNL");
@@ -904,7 +904,7 @@ int pr_main(int argc, char* argv[])
 		
 		if (kBackBone.count(atomId) == 0 and atomId != "CB")
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Deleted atom from unknown residue " << a["id"] << endl;
 			
 			db["atom_site"].erase(a);		// We have a crazy atom in an unknown residue
@@ -915,7 +915,7 @@ int pr_main(int argc, char* argv[])
 	
 	for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "GLY" and cif::Key("label_atom_id") == "CB"))
 	{
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "Deleted CB atom from GLY " << a["id"] << endl;
 		
 		db["atom_site"].erase(a);
@@ -942,7 +942,7 @@ int pr_main(int argc, char* argv[])
 		
 		if (not sideChainAtoms.empty())
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Changed selenium occupancy to 1.00 for " << a["id"] << endl;
 			
 			a["occupancy"] = 1.0;
@@ -960,7 +960,7 @@ int pr_main(int argc, char* argv[])
 		{
 			db["atom_site_anisotrop"].erase(aa);
 			
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Deleted aniso record for atom with id " << id << " since B-factor is less than 2" << endl;
 			
 			++numOfAnisosDeleted;
@@ -992,7 +992,7 @@ int pr_main(int argc, char* argv[])
 		{
 			delAniso.insert(id);
 
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Deleted aniso record for atom with id " << id << " since one of the eigen values of U is less than zero" << endl;
 			
 			++numOfAnisosDeleted;

@@ -105,9 +105,9 @@ int pr_main(int argc, char* argv[])
 	cif::File pdbRedoDataCif(pdbRedoData);
 	auto& redoDB = pdbRedoDataCif["PDB_REDO_DAT"];
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	// Load dict, if any
 	
@@ -357,7 +357,7 @@ int pr_main(int argc, char* argv[])
 		
 		if (not hasRanges)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cout << "Skipping TLS group " << refineTlsId << " since selection is empty" << endl;
 			
 			continue;

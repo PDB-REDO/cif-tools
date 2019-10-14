@@ -11,7 +11,9 @@
 
 using namespace std;
 
+namespace cif {
 extern int VERBOSE;
+}
 
 namespace svm
 {
@@ -174,7 +176,7 @@ class Solver
 				G[t] += m_Q(t, i) * deltaAi + m_Q(t, j) * deltaAj;
 		}
 		
-		if (VERBOSE > 1)
+		if (cif::VERBOSE > 1)
 			cout << "optimization finished in " << iteration << " iterations" << endl;
 		
 		double sum = 0, v = 0;
@@ -753,7 +755,7 @@ ModelBase* SVM<K,C_SVC>::Train(const vector<label_type>& y, const Data& m)
 	
 	GroupClasses(y, label, count, start, perm);
 
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 	{
 		cout << "Nr of classes: " << label.size() << endl
 			 << " => { ";
@@ -859,7 +861,7 @@ ModelBase* SVM<K,C_SVC>::Train(const vector<label_type>& y, const Data& m)
 		classes.push_back(ci);
 	}
 	
-//		if (VERBOSE > 1)
+//		if (cif::VERBOSE > 1)
 //			cout << "Total nSV = " << totalSV << endl;
 
 	Matrix sv;
@@ -1145,7 +1147,7 @@ const double tau = 1e-12;
 	double obj;
 	tie(result.alpha, result.rho, obj) = s.Solve(y);
 	
-	if (VERBOSE > 1 and Cp == Cn)
+	if (cif::VERBOSE > 1 and Cp == Cn)
 	{
 		double sum_alpha = accumulate(
 			result.alpha.begin(), result.alpha.end(), 0.0);
@@ -1168,7 +1170,7 @@ const double tau = 1e-12;
 		result.alpha[i] *= y[i];
 	}
 	
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 		cout << "obj = " << obj << ", rho = " << result.rho << endl
 			 << "nSV = " << nSV << ", nBSV = " << nBSV << endl; 
 

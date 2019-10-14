@@ -394,11 +394,11 @@ float InterpolateDensityRadius(const clipper::Xmap<float>& xmap, const c::Atom& 
 		
 		sample.sd = sqrt(sum2 / dots.size());
 		
-		if (VERBOSE > 1)
+		if (cif::VERBOSE > 1)
 			cout << "For r = " << radius << " avg: " << sample.avg << " and sd " << sample.sd << endl;
 	}
 	
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 		cout << endl;
 
 	// Use linear interpolation for now
@@ -697,7 +697,7 @@ FeatureScoreArray CalculateScoresForWater(const c::Atom& water, const c::Structu
 	float resolution, float meanDensity, float rmsDensity,
 	NotAHBondSet& notAHBond, const CentrifugeParameters& params)
 {
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cout << string(cif::get_terminal_width(), '-') << endl;
 
 //	if (not water.isWater())
@@ -749,10 +749,10 @@ FeatureScoreArray CalculateScoresForWater(const c::Atom& water, const c::Structu
 
 		if (distance < params.minWaterDistance)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 			{
 				cout << "Bumps with atom " << atom.id() << endl;
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cout << "atom: " << atom.location() << endl
 						 << "water: " << water.location() << endl
 						 << "distance = " << distance << endl;
@@ -764,12 +764,12 @@ FeatureScoreArray CalculateScoresForWater(const c::Atom& water, const c::Structu
 		{
 			if (notAHBond(atom))
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cout << "Atom " << atom.id() << " is not a HBond donor or acceptor" << endl;
 			}
 			else
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cout << "HBond with " << atom.id() << " at " << distance << "" << endl;
 	
 				sc[kFeatureNrOfHBonds] += 1;
@@ -782,7 +782,7 @@ FeatureScoreArray CalculateScoresForWater(const c::Atom& water, const c::Structu
 		}
 	};
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 	{
 		cout << "density at point: " << sc[kFeatureDensity] << endl
 			 << "density integrated: " << sc[kFeatureDensityIntegrated] << endl
@@ -886,9 +886,9 @@ int centrifugeLearn(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	// collect parameters
 	CentrifugeParameters params = kDefaultParameters;
@@ -941,7 +941,7 @@ int centrifugeLearn(int argc, char* argv[])
 		smatch m;
 		string filename = input.filename().string();
 		
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "reading " << filename << endl;
 		
 		if (not regex_match(filename, m, rx))
@@ -1069,7 +1069,7 @@ int centrifugeLearn(int argc, char* argv[])
 					cerr << "unknown (new?) water " << asymId << ':' << seqId << endl;
 				else
 				{
-					if (VERBOSE)
+					if (cif::VERBOSE)
 					{
 						float d = DistanceSquared(w.location(), i->loc);
 						if (d > 0)
@@ -1136,7 +1136,7 @@ int centrifugeLearn(int argc, char* argv[])
 			if (not water.comp().isWater())
 				throw runtime_error("This is not a water in " + file.string() + " id: " + id);
 
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cout << string(cif::get_terminal_width(), '=') << endl
 					 << "Learning from " << id << " @ " << water.location() << endl
 					 << "accepted count: " << (cnt - 1) << endl;
@@ -1197,7 +1197,7 @@ int centrifugeLearn(int argc, char* argv[])
 	if (scales.empty())
 		throw runtime_error("Nothing learned");
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 	{
 		cout << string(cif::get_terminal_width(), '=') << endl
 			 << "Number of waters processed: " << data.size() << endl
@@ -1416,9 +1416,9 @@ int centrifugePredict(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	// Read the model
 	fs::ifstream modelFile(vm["model"].as<string>());
@@ -1452,7 +1452,7 @@ int centrifugePredict(int argc, char* argv[])
 	
 	fs::path file = vm["input-coordinates"].as<string>();
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cout << string(cif::get_terminal_width(), '=') << endl
 			 << "Processing file: " << file << endl;
 	
@@ -1617,9 +1617,9 @@ int edia_test(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	vector<string> mtzColumns = { "FWT", "PHWT" };
 
@@ -1629,7 +1629,7 @@ int edia_test(int argc, char* argv[])
 	fs::path pdbFile = vm["pdb"].as<string>();
 	fs::path mtzFile = vm["mtz"].as<string>();
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cout << string(cif::get_terminal_width(), '=') << endl
 			 << "Processing file: " << pdbFile << endl;
 	
@@ -1651,7 +1651,7 @@ int edia_test(int argc, char* argv[])
 	if (vm.count("resolution"))
 		resolution = vm["resolution"].as<float>();
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cout << "Resolution: " << resolution << endl
 			 << "Mean Density: " << meanDensity << endl
 			 << "RMS Density: " << rmsDensity << endl
@@ -1756,7 +1756,7 @@ int edia_test(int argc, char* argv[])
 			{
 				if (cAtomID == "OXT")
 					--N;
-				else if (VERBOSE)
+				else if (cif::VERBOSE)
 					cerr << "Missing atom for compound " << compId << " in asym " << asymId << " seq_id " << (seqId == kNonPolySeqID ? 0 : seqId) << endl;
 			}
 			else

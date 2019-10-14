@@ -212,7 +212,7 @@ bool ChironHelper::canSwapIsomers(const mmcif::Residue& res, string& swapCompoun
 {
 	bool result = false;
 	
-	if (VERBOSE or not mCompound.isSugar())
+	if (cif::VERBOSE or not mCompound.isSugar())
 	{
 		auto isomers = mCompound.isomers();
 	
@@ -221,7 +221,7 @@ bool ChironHelper::canSwapIsomers(const mmcif::Residue& res, string& swapCompoun
 			auto chiralErrInitial = countChiralErrors(res, mCompound);
 			auto chiralErr = chiralErrInitial;
 			
-			if (VERBOSE > 1)
+			if (cif::VERBOSE > 1)
 				cerr << "Trying to swap isomers, initial error count is " << chiralErrInitial << endl;
 			
 			for (auto i: isomers)
@@ -230,7 +230,7 @@ bool ChironHelper::canSwapIsomers(const mmcif::Residue& res, string& swapCompoun
 				
 				vector<tuple<string,string>> m = c->mapToIsomer(mCompound);
 				
-				if (VERBOSE > 2)
+				if (cif::VERBOSE > 2)
 				{
 					for (auto& a: m)
 						cerr << "  " << get<0>(a) << " => " << get<1>(a) << endl;
@@ -238,7 +238,7 @@ bool ChironHelper::canSwapIsomers(const mmcif::Residue& res, string& swapCompoun
 				
 				auto err = countChiralErrors(res, *c, m);
 	
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "isomer " << i << " has " << err << " errors" << endl;
 	
 				if (chiralErr > err)
@@ -248,7 +248,7 @@ bool ChironHelper::canSwapIsomers(const mmcif::Residue& res, string& swapCompoun
 					swapCompound = i;
 					swap(swapAtoms, m);
 					
-					if (VERBOSE > 1)
+					if (cif::VERBOSE > 1)
 						cerr << "Err count decreased to " << chiralErr << endl; 
 	
 					if (chiralErr == 0)	 // we're done.
@@ -258,7 +258,7 @@ bool ChironHelper::canSwapIsomers(const mmcif::Residue& res, string& swapCompoun
 	
 			if (result and mCompound.isSugar())
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "Since residue " << res.compoundID() << " is a sugar, it will not be swapped with " << swapCompound << endl;
 				result = false;
 			}
@@ -284,7 +284,7 @@ size_t ChironHelper::countChiralErrors(const mmcif::Residue& res, const mmcif::C
 			auto i = find_if(mapping.begin(), mapping.end(), [&](auto& m) { return get<0>(m) == name; });
 			if (i == mapping.end())
 			{
-//				if (VERBOSE > 1 and not mapping.empty())
+//				if (cif::VERBOSE > 1 and not mapping.empty())
 //					cerr << "no mapping found for atom " << name << " in " << c.id() << endl;
 				 result = name;
 			}
@@ -307,7 +307,7 @@ size_t ChironHelper::countChiralErrors(const mmcif::Residue& res, const mmcif::C
 			if ((chiralVolume < 0 and cc.volumeSign == mmcif::positiv) or
 				(chiralVolume > 0 and cc.volumeSign == mmcif::negativ))
 			{
-				if (VERBOSE > 1)
+				if (cif::VERBOSE > 1)
 					cerr << "chiral error in " << c.id() << " around " << cc.atomIDCentre << " with volume: " << chiralVolume << endl;
 				
 				++result;
@@ -315,7 +315,7 @@ size_t ChironHelper::countChiralErrors(const mmcif::Residue& res, const mmcif::C
 		}
 		catch (const exception& ex)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << "Missing atom in counting chiral errors: " << ex.what() << endl;
 		}
 	}
@@ -426,7 +426,7 @@ bool ChironHelper::canSwapSubChain(string atom1, string atom2,
 		break;
 	}
 
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "canSwap(" << atom1 << ", " << atom2 << ") => " << boolalpha << result << endl;
 
 	return result;
@@ -438,7 +438,7 @@ int Process(mmcif::Structure& structure, const mmcif::Residue& res, const mmcif:
 {
 	int result = 0;
 	
-	if (VERBOSE > 1)
+	if (cif::VERBOSE > 1)
 		cerr << "Process " << res.compoundID() << " " << res.asymID() << res.seqID() << endl;
 	
 	for (auto cc: compound.chiralCentres())
@@ -456,7 +456,7 @@ int Process(mmcif::Structure& structure, const mmcif::Residue& res, const mmcif:
 			auto chiralVolume = DotProduct(atom1.location() - centre.location(),
 				CrossProduct(atom2.location() - centre.location(), atom3.location() - centre.location()));
 
-			if (VERBOSE)
+			if (cif::VERBOSE)
 			{
 				cerr << "chiral volume for " << res.compoundID() << " " << res.asymID() << res.seqID()
 					 << " with centre " << cc.atomIDCentre
@@ -544,7 +544,7 @@ int Process(mmcif::Structure& structure, const mmcif::Residue& res, const mmcif:
 		}
 		catch (const runtime_error& ex)
 		{
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << ex.what() << endl;
 			
 			continue;
@@ -631,9 +631,9 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 	
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	mmcif::File f(vm["xyzin"].as<string>());
 	mmcif::Structure structure(f);

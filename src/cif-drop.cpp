@@ -84,9 +84,9 @@ int cif_drop(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	set<string> columns;
 	for (auto cs: vm["column"].as<vector<string>>())
@@ -99,7 +99,7 @@ int cif_drop(int argc, char* argv[])
 		}
 	}
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 	{
 		cerr << "Dropping columns:" << endl;
 		for (auto c: columns)

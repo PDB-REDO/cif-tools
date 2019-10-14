@@ -144,9 +144,9 @@ int pr_main(int argc, char* argv[])
 		exit(vm.count("help") ? 0 : 1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	bool quiet = vm.count("quiet") > 0;
 	bool filenamesOnly = vm.count("files-with-matches") > 0;
@@ -173,7 +173,7 @@ int pr_main(int argc, char* argv[])
 		if (item.empty())
 			throw runtime_error("Invalid item: '" + item + '\''); 
 		
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "matching only for category: " << cat << " and item " << item << endl;
 	}
 	
@@ -237,7 +237,7 @@ int pr_main(int argc, char* argv[])
 			if (not fs::is_regular(f))
 				continue;
 			
-			if (VERBOSE)
+			if (cif::VERBOSE)
 				cerr << f << endl;
 
 			ifstream infile(f.c_str(), ios_base::in | ios_base::binary);
@@ -259,7 +259,7 @@ int pr_main(int argc, char* argv[])
 
 				count += r;
 
-				if (VERBOSE or (countOnly and not noFileNames))
+				if (cif::VERBOSE or (countOnly and not noFileNames))
 					cout << f << ':' << r << endl;
 
 				if (r > 0)

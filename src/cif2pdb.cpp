@@ -54,9 +54,9 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	string input = vm["input"].as<string>();
 	regex pdbIdRx(R"(\d\w{3})");
@@ -80,7 +80,7 @@ int pr_main(int argc, char* argv[])
 	if (not vm.count("no-validate") and not f.isValid())
 	{
 		cerr << "This input mmCIF file is not valid";
-		if (not VERBOSE)
+		if (not cif::VERBOSE)
 			cerr << ", use the --verbose option to see what errors were found" << endl;
 		exit(1);
 	}

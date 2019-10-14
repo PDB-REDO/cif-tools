@@ -1181,9 +1181,9 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	auto input = vm["input"].as<string>();
 	c::File file{fs::path(input)};

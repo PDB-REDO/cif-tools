@@ -87,9 +87,9 @@ const char s[] = R"(1. HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS.
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	for (fs::path input: vm["input"].as<vector<string>>())
 	{
@@ -210,9 +210,9 @@ int pdb2cif_test(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	// Load dict, if any
 	
@@ -296,9 +296,9 @@ int cif2pdb_test(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	fs::path file = vm["input"].as<string>();
 	
@@ -381,9 +381,9 @@ int pdb_diff_test(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	fs::path baseDir = PDB_DIR;
 	if (vm.count("data_dir"))
@@ -520,9 +520,9 @@ int pdb2pdb_diff_test(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	fs::path baseDir = PDB_DIR;
 	if (vm.count("data_dir"))

@@ -113,7 +113,7 @@ void transplant(cif::File& target, cif::File& donor)
 			
 			if (d.empty())
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "Cannot map entity " << id << " in target file to an entity in the donor" << endl;
 				continue;
 			}
@@ -145,7 +145,7 @@ void transplant(cif::File& target, cif::File& donor)
 			
 			if (d.empty())
 			{
-				if (VERBOSE)
+				if (cif::VERBOSE)
 					cerr << "Cannot map entity " << id << " in target file to an entity in the donor" << endl;
 				continue;
 			}
@@ -156,7 +156,7 @@ void transplant(cif::File& target, cif::File& donor)
 		{
 			cif::tie(dEntityID) = dbd["entity"][cif::Key("type") == type].get("id");
 		}
-		else if (VERBOSE)
+		else if (cif::VERBOSE)
 			cerr << "Unsupported entity type: " << type << endl;
 		
 		if (dEntityID.empty())
@@ -226,9 +226,9 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	// Load dict, if any
 	

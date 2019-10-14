@@ -137,7 +137,7 @@ void predict_file(svm::ModelBase* model, const char* filename)
 
 int centrifuge_test(int argc, char* argv[])
 {
-	VERBOSE = 1;
+	cif::VERBOSE = 1;
 	
 	ifstream data("1cbs-0.8.txt.scale");
 	if (not data.is_open())

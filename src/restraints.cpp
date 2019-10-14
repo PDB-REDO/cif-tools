@@ -46,7 +46,7 @@ double BondRestraint::f(const AtomLocationProvider& atoms) const
 	double d = mDist - Distance(atoms[mA], atoms[mB]);
 	double result = (d * d) / (mDistESD * mDistESD);
 	
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "bond::f() = " << atoms.atom(mA) << " <> " << atoms.atom(mB)
 			 << " " << atoms[mA] << " <> " << atoms[mB]
 			 << " => " << result << endl;
@@ -64,7 +64,7 @@ void BondRestraint::df(const AtomLocationProvider& atoms, DFCollector& df) const
 	
 	auto c = 2 * (1 - mDist / bi) / (mDistESD * mDistESD);
 	
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "bond::df(): " << atoms.atom(mA) << " <> " << atoms.atom(mB) << ' '
 			 << bi << ' ' << mDist << ' ' << mDistESD << endl;
 
@@ -89,7 +89,7 @@ double AngleRestraint::f(const AtomLocationProvider& atoms) const
 	double d = mAngle - angle;
 	double result = (d * d) / (mESD * mESD);
 	
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "angle::f() " << atoms.atom(mA) << "/" << atoms.atom(mB) << "/" << atoms.atom(mC) << ' ' << " = " << result << endl;
 	
 	return result;
@@ -99,7 +99,7 @@ void AngleRestraint::df(const AtomLocationProvider& atoms, DFCollector& df) cons
 {
 	const double kRadToDegree = 180.0 / mmcif::kPI, kDegreeToRad = 1 / kRadToDegree;
 	
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "angle::df() " << atoms.atom(mA) << "/" << atoms.atom(mB) << "/" << atoms.atom(mC) << ' ' << ": " << endl;
 
 	DPoint k = atoms[mA], l = atoms[mB], m = atoms[mC];
@@ -240,7 +240,7 @@ double TorsionRestraint::f(const AtomLocationProvider& atoms) const
 		if (not isnan(diff))
 			result = (diff * diff) / (mESD * mESD);
 
-		if (VERBOSE > 2)
+		if (cif::VERBOSE > 2)
 			cerr << "torsion::f() = " << result << " for theta " << theta
 				 << " diff: " << diff
 				 << " target: " << mTarget << " sigma: " << mESD
@@ -253,7 +253,7 @@ double TorsionRestraint::f(const AtomLocationProvider& atoms) const
 
 void TorsionRestraint::df(const AtomLocationProvider& atoms, DFCollector& df) const
 {
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "torsion::df() " << atoms.atom(mA) << "/" << atoms.atom(mB) << "/" << atoms.atom(mC) << "/" << atoms.atom(mD) << ' ' << ": " << endl;
 
 	double cos_a1 = CosinusAngle(atoms[mB], atoms[mA], atoms[mC], atoms[mB]);
@@ -308,7 +308,7 @@ double ChiralVolumeRestraint::f(const AtomLocationProvider& atoms) const
 	double d = mVolume - chiralVolume;
 	double result = (d * d) / (kChiralVolumeESD * kChiralVolumeESD);
 	
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "chiral::f() = " << result << endl;
 	
 	return result;
@@ -316,7 +316,7 @@ double ChiralVolumeRestraint::f(const AtomLocationProvider& atoms) const
 
 void ChiralVolumeRestraint::df(const AtomLocationProvider& atoms, DFCollector& df) const
 {
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "chiral::df(): " << endl;
 
 	DPoint centre = atoms[mCentre];
@@ -404,7 +404,7 @@ double PlanarityRestraint::f(const AtomLocationProvider& atoms) const
 			return sum + r * r;
 		});
 
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 	{
 		vector<string> as;
 		transform(mAtoms.begin(), mAtoms.end(), back_inserter(as),
@@ -423,7 +423,7 @@ double PlanarityRestraint::f(const AtomLocationProvider& atoms) const
 
 void PlanarityRestraint::df(const AtomLocationProvider& atoms, DFCollector& df) const
 {
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 	{
 		vector<string> as;
 		transform(mAtoms.begin(), mAtoms.end(), back_inserter(as),
@@ -473,7 +473,7 @@ double NonBondedContactRestraint::f(const AtomLocationProvider& atoms) const
 		result = (d * d) / (mDistESD * mDistESD);
 	}
 	
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 			cerr << "non-bonded-contact::f() = " << result << " min-dist is " << mMinDist << " and dist is " << sqrt(distance)
 			 << " a1: " << atoms.atom(mA) << " a2: " << atoms.atom(mB) << endl
 			 << " a1: " << atoms[mA] << " a2: " << atoms[mB] << endl;
@@ -492,7 +492,7 @@ void NonBondedContactRestraint::df(const AtomLocationProvider& atoms, DFCollecto
 		if (bi < 0.1)
 			bi = 0.1;
 		
-		if (VERBOSE > 2)
+		if (cif::VERBOSE > 2)
 			cerr << "non-bonded::df(): " << atoms.atom(mA) << " and " << atoms.atom(mB) << " "
 				 << "distance: " << bi << " "
 				 << "target: " << mMinDist << endl;
@@ -530,7 +530,7 @@ double DensityRestraint::f(const AtomLocationProvider& atoms) const
 		result += a.second * mXMap.interp<clipper::Interp_cubic>(pf);
 	}
 
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "density::f() = " << -result << endl;
 	
 	return mMapWeight * -result;
@@ -538,7 +538,7 @@ double DensityRestraint::f(const AtomLocationProvider& atoms) const
 
 void DensityRestraint::df(const AtomLocationProvider& atoms, DFCollector& df) const
 {
-	if (VERBOSE > 2)
+	if (cif::VERBOSE > 2)
 		cerr << "density::df(): " << endl;
 
 	for (auto& a: mAtoms)

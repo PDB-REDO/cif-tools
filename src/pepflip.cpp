@@ -185,13 +185,13 @@ void TrustBasedOnSS(Structure& structure, vector<PFRes>& residues)
 					{
 						for (auto j = b + kBufferSS; j < i - kBufferSS - 2; ++j)
 						{
-							if (VERBOSE)
+							if (cif::VERBOSE)
 								cerr << residues[j] << "  - trusted based on secondary structure (" << char(cur) << ')' << endl;
 							if (not dssp.isAlphaHelixEndBeforeStart(residues[j].mAsymID, residues[j].mSeqID))
 								residues[j].mTrust = true;
 						}
 
-						if (VERBOSE)
+						if (cif::VERBOSE)
 							cerr << residues[i - kBufferSS - 2] << "  - n-term of secondary structure (" << char(cur) << "). It will be considered for flips" << endl;
 					}
 					
@@ -398,7 +398,7 @@ void CheckDensity(Structure& structure, vector<PFRes>& residues, MapMaker& mm)
 //					continue;
 //			}
 //
-//			if (VERBOSE)
+//			if (cif::VERBOSE)
 //				cerr << "HBond between " << a << " and " << a2 << endl;
 //			
 //			result += 1;
@@ -771,17 +771,17 @@ void FlipPeptides(Structure& structure, const string& asymID,
 	
 	if (trustDSSP)
 	{
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << endl
 				 << "Calculating DSSP" << endl;
 	
 		TrustBasedOnSS(structure, residues);
 
-		if (VERBOSE)
+		if (cif::VERBOSE)
 			cerr << "DSSP done" << endl;
 	}
 
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cerr << endl
 			 << "Initial check" << endl;
 
@@ -799,7 +799,7 @@ void FlipPeptides(Structure& structure, const string& asymID,
 	flipped.reserve(residues.size());
 	
 	unique_ptr<cif::Progress> p;
-	if (not VERBOSE)
+	if (not cif::VERBOSE)
 		p.reset(new cif::Progress(residues.size(), "Flipping, 1st round"));
 	
 	if (NTHREADS == 1)
@@ -897,7 +897,7 @@ void FlipPeptides(Structure& structure, const string& asymID,
 				 << endl;
 			
 			unique_ptr<cif::Progress> p;
-			if (not VERBOSE)
+			if (not cif::VERBOSE)
 				p.reset(new cif::Progress(residuesRound2.size(), "Flipping, 2nd round"));
 			
 			for (size_t i: residuesRound2)
@@ -1080,9 +1080,9 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	if (vm.count("log"))
 	{
@@ -1104,7 +1104,7 @@ int pr_main(int argc, char* argv[])
 	if (NTHREADS > boost::thread::hardware_concurrency())
 		NTHREADS = boost::thread::hardware_concurrency();
 
-	if (VERBOSE or NTHREADS < 1)
+	if (cif::VERBOSE or NTHREADS < 1)
 		NTHREADS = 1;
 
 	if (vm.count("dict"))

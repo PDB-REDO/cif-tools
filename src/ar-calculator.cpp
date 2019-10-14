@@ -21,7 +21,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 namespace c = mmcif;
 
-int VERBOSE = 0;
+int cif::VERBOSE = 0;
 
 // avoid having to include all the clipper libraries... sigh
 
@@ -103,7 +103,7 @@ tuple<float,float> ar_calculate(const mmcif::atom_view& atoms, bool includeWeigh
 
 void ar_calculator(fs::path file)
 {
-	if (VERBOSE)
+	if (cif::VERBOSE)
 		cout << string(get_terminal_width(), '=') << endl
 			 << "Processing file: " << file << endl;
 	
@@ -149,9 +149,9 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
-	VERBOSE = vm.count("verbose") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
-		VERBOSE = vm["debug"].as<int>();
+		cif::VERBOSE = vm["debug"].as<int>();
 	
 	fs::path file = vm["input"].as<string>();
 
