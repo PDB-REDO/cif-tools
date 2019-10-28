@@ -814,22 +814,22 @@ int pr_main(int argc, char* argv[])
 		}
 	}
 	
-	// // Set Refmac link types
-	// for (auto t: dat["link_label"])
-	// {
-	// 	string atomId[2], compId[2], type;
-	// 	cif::tie(atomId[0], compId[0], atomId[1], compId[1], type) =
-	// 		t.get("atom_id_1", "comp_id_1", "atom_id_2", "comp_id_2", "refmac");
+	// Set Refmac link types
+	for (auto t: dat["link_label"])
+	{
+		string atomId[2], compId[2], type;
+		cif::tie(atomId[0], compId[0], atomId[1], compId[1], type) =
+			t.get("atom_id_1", "comp_id_1", "atom_id_2", "comp_id_2", "refmac");
 		
-	// 	for (auto ll: db["struct_conn"].find(
-	// 		cif::Key("ptnr1_label_atom_id") == atomId[0] and
-	// 		cif::Key("ptnr1_label_comp_id") == compId[0] and
-	// 		cif::Key("ptnr2_label_atom_id") == atomId[1] and
-	// 		cif::Key("ptnr2_label_comp_id") == compId[1]))
-	// 	{
-	// 		ll["details"] = type;
-	// 	}
-	// }
+		for (auto ll: db["struct_conn"].find(
+			cif::Key("ptnr1_label_atom_id") == atomId[0] and
+			cif::Key("ptnr1_label_comp_id") == compId[0] and
+			cif::Key("ptnr2_label_atom_id") == atomId[1] and
+			cif::Key("ptnr2_label_comp_id") == compId[1]))
+		{
+			ll["ccp4_link_id"] = type;
+		}
+	}
 	
 	// change X atom_type to N for ASX/GLX 
 	for (auto a: db["atom_site"].find(
