@@ -177,11 +177,11 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		string fromAtomId, fromAsymId, fromCompId, fromSeqId;
 		tie(fromAtomId, fromAsymId, fromCompId, fromSeqId)
-			= MapAtom(db, e->get_attribute("from"));
+			= MapAtom(db, e->attr("from"));
 
 		string toAtomId, toAsymId, toCompId, toSeqId;
 		tie(toAtomId, toAsymId, toCompId, toSeqId)
-			= MapAtom(db, e->get_attribute("to"));
+			= MapAtom(db, e->attr("to"));
 		
 		deletedLinkCount += DropLink(db, fromAtomId, fromAsymId, fromCompId, fromSeqId,
 			toAtomId, toAsymId, toCompId, toSeqId);
@@ -192,11 +192,11 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		string fromAtomId, fromAsymId, fromCompId, fromSeqId;
 		tie(fromAtomId, fromAsymId, fromCompId, fromSeqId)
-			= MapAtom(db, e->get_attribute("from"));
+			= MapAtom(db, e->attr("from"));
 
 		string toAtomId, toAsymId, toCompId, toSeqId;
 		tie(toAtomId, toAsymId, toCompId, toSeqId)
-			= MapAtom(db, e->get_attribute("to"));
+			= MapAtom(db, e->attr("to"));
 		
 		deletedLinkCount += DropLink(db, fromAtomId, fromAsymId, fromCompId, fromSeqId,
 			toAtomId, toAsymId, toCompId, toSeqId);
@@ -208,11 +208,11 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		string fromAtomId, fromAsymId, fromCompId, fromSeqId;
 		tie(fromAtomId, fromAsymId, fromCompId, fromSeqId)
-			= MapAtom(db, e->get_attribute("from"));
+			= MapAtom(db, e->attr("from"));
 
 		string toAtomId, toAsymId, toCompId, toSeqId;
 		tie(toAtomId, toAsymId, toCompId, toSeqId)
-			= MapAtom(db, e->get_attribute("to"));
+			= MapAtom(db, e->attr("to"));
 		
 		db["struct_conn"].emplace({
 			{ "id", "covale_s" + to_string(linkID++) },
@@ -239,7 +239,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 		if (not rename)
 			continue;
 		
-		string pdbResname = e->get_attribute("pdb_resname");
+		string pdbResname = e->attr("pdb_resname");
 		
 		string resname = pdbResname.substr(0, 3);
 		string chainID = pdbResname.substr(4, 1);
@@ -250,7 +250,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 			iCode.clear();
 		
 		// see if we need to skip this pair
-		string newName = rename->get_attribute("new_name");
+		string newName = rename->attr("new_name");
 		if (not dat["carb_rename_ignore"].find(cif::Key("from_comp_id") == resname and cif::Key("to_comp_id") == newName).empty())
 		{
 			if (cif::VERBOSE)
@@ -539,7 +539,86 @@ int pr_main(int argc, char* argv[])
 		numOfLinksFixed = 0,
 		numOfAnisosDeleted = 0,
 		numOfBFactorsReset = 0,
-		numOfRenamedWaters = 0;
+		numOfRenamedWaters = 0,
+		numOfReplacedDummies = 0;
+
+	// Replace DUMmies with waters
+	// If the source file was PDB formatted, the dummies will have each a separate asym_id
+
+	string waterAsymID;
+	vector<string> dumbAsymIDs;
+	for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "DUM" and cif::Key("label_atom_id") == "DUM"))
+	{
+		if (waterAsymID.empty())
+		{
+			string waterEntityID;
+
+			for (auto r: db["entity"].find(cif::Key("type") == "water"))
+			{
+				waterEntityID = r["id"].as<string>();
+				break;
+			}
+
+			// Did the structure have any waters at all?
+			if (waterEntityID.empty())
+			{
+				auto& entity = db["entity"];
+				waterEntityID = "w-" + to_string(entity.size() + 1);
+				entity.emplace({
+					{ "id", waterEntityID },
+					{ "type", "water" },
+					{ "src_method", "nat" },
+					{ "pdbx_description", "water" },
+					{ "formula_weight", "18.015" }
+				});
+			}
+
+			for (auto r: db["struct_asym"].find(cif::Key("entity_id") == waterEntityID))
+			{
+				waterAsymID = r["id"].as<string>();
+				break;
+			}
+
+			// need to create a new water struct_asym
+			if (waterAsymID.empty())
+			{
+				waterAsymID = "W-" + to_string(db["struct_asym"].size());
+				db["struct_asym"].emplace({
+					{ "id", waterAsymID },
+					{ "pdbx_blank_PDB_chainid_flag", "N" },
+					{ "pdbx_modified", "N"},
+					{ "entity_id", waterEntityID }
+				});
+			}
+		}
+
+		a["label_comp_id"] = "HOH";
+		a["label_atom_id"] = "O";
+		a["type_symbol"] = "O";
+
+		a["auth_comp_id"] = "HOH";
+		a["auth_atom_id"] = "HOH";
+		a["auth_seq_id"] = ".";
+
+		dumbAsymIDs.push_back(a["label_asym_id"].as<string>());
+
+		a["label_seq_id"] = ".";
+		a["label_asym_id"] = waterAsymID;
+
+		++numOfReplacedDummies;
+	}
+
+	for (auto asymID: dumbAsymIDs)
+	{
+		auto& cat = db["struct_asym"];
+
+		for (auto s: cat.find(cif::Key("id") == asymID))
+		{
+			if (cat.isOrphan(s))
+				cat.erase(s);
+			break;
+		}
+	}
 
 	FixMatrix(db);
 	
@@ -1025,6 +1104,7 @@ int pr_main(int argc, char* argv[])
 		 << "Added   LINK   records: " << numOfLinksAdded << endl
 		 << "Fixed   LINK   records: " << numOfLinksFixed << endl
 		 << "Renamed water atoms   : " << numOfRenamedWaters << endl
+		 << "Replace dummies       : " << numOfReplacedDummies << endl
 		 ;
 		 
 	if (vm.count("output"))
