@@ -545,80 +545,101 @@ int pr_main(int argc, char* argv[])
 	// Replace DUMmies with waters
 	// If the source file was PDB formatted, the dummies will have each a separate asym_id
 
-	string waterAsymID;
-	vector<string> dumbAsymIDs;
-	for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "DUM" and cif::Key("label_atom_id") == "DUM"))
+	auto& atomSites = db["atom_site"];
+
+	vector<tuple<string,string,string,string,string,string,string,string,string,int,int>> dummies;
+	for (auto a: atomSites.find(cif::Key("label_comp_id") == "DUM" and cif::Key("label_atom_id") == "DUM"))
+		dummies.push_back(a.get("id", "label_asym_id", "label_alt_id", "Cartn_x", "Cartn_y", "Cartn_z", "occupancy", "B_iso_or_equiv",
+			"auth_asym_id", "auth_seq_id", "pdbx_PDB_model_num"));
+
+	string waterAsymID, waterEntityID;
+	if (not dummies.empty())
 	{
-		if (waterAsymID.empty())
+		for (auto r: db["entity"].find(cif::Key("type") == "water"))
 		{
-			string waterEntityID;
-
-			for (auto r: db["entity"].find(cif::Key("type") == "water"))
-			{
-				waterEntityID = r["id"].as<string>();
-				break;
-			}
-
-			// Did the structure have any waters at all?
-			if (waterEntityID.empty())
-			{
-				auto& entity = db["entity"];
-				waterEntityID = "w-" + to_string(entity.size() + 1);
-				entity.emplace({
-					{ "id", waterEntityID },
-					{ "type", "water" },
-					{ "src_method", "nat" },
-					{ "pdbx_description", "water" },
-					{ "formula_weight", "18.015" }
-				});
-			}
-
-			for (auto r: db["struct_asym"].find(cif::Key("entity_id") == waterEntityID))
-			{
-				waterAsymID = r["id"].as<string>();
-				break;
-			}
-
-			// need to create a new water struct_asym
-			if (waterAsymID.empty())
-			{
-				waterAsymID = "W-" + to_string(db["struct_asym"].size());
-				db["struct_asym"].emplace({
-					{ "id", waterAsymID },
-					{ "pdbx_blank_PDB_chainid_flag", "N" },
-					{ "pdbx_modified", "N"},
-					{ "entity_id", waterEntityID }
-				});
-			}
+			waterEntityID = r["id"].as<string>();
+			break;
 		}
 
-		a["label_comp_id"] = "HOH";
-		a["label_atom_id"] = "O";
-		a["type_symbol"] = "O";
+		// Did the structure have any waters at all?
+		if (waterEntityID.empty())
+		{
+			auto& entity = db["entity"];
+			waterEntityID = "w-" + to_string(entity.size() + 1);
+			entity.emplace({
+				{ "id", waterEntityID },
+				{ "type", "water" },
+				{ "src_method", "nat" },
+				{ "pdbx_description", "water" },
+				{ "formula_weight", "18.015" }
+			});
+		}
 
-		a["auth_comp_id"] = "HOH";
-		a["auth_atom_id"] = "HOH";
-		a["auth_seq_id"] = ".";
+		for (auto r: db["struct_asym"].find(cif::Key("entity_id") == waterEntityID))
+		{
+			waterAsymID = r["id"].as<string>();
+			break;
+		}
 
-		dumbAsymIDs.push_back(a["label_asym_id"].as<string>());
+		// need to create a new water struct_asym
+		if (waterAsymID.empty())
+		{
+			waterAsymID = "W-" + to_string(db["struct_asym"].size());
+			db["struct_asym"].emplace({
+				{ "id", waterAsymID },
+				{ "pdbx_blank_PDB_chainid_flag", "N" },
+				{ "pdbx_modified", "N"},
+				{ "entity_id", waterEntityID }
+			});
+		}
+	}
 
-		a["label_seq_id"] = ".";
-		a["label_asym_id"] = waterAsymID;
+	auto& structAsym = db["struct_asym"];
+	for (auto& [id, asym, alt, x, y, z, occ, bIso, chain, seq, model]: dummies)
+	{
+		bool singleAsym = atomSites.find(cif::Key("label_asym_id") == asym).size() == 1;
+
+		atomSites.erase(cif::Key("id") == id);
+		if (singleAsym)
+			structAsym.erase(cif::Key("id") == asym);
+
+		atomSites.emplace({
+			{ "group_PDB", "HETATM" },
+			{ "id", id },
+			{ "type_symbol", "O" },
+			{ "label_atom_id", "O" },
+			{ "label_alt_id", alt },
+			{ "label_comp_id", "HOH" },
+			{ "label_asym_id", waterAsymID },
+			{ "label_entity_id", waterEntityID },
+			{ "label_seq_id", "." },
+			{ "pdbx_PDB_ins_code", "" },
+			{ "Cartn_x", x },
+			{ "Cartn_y", y },
+			{ "Cartn_z", z },
+			{ "occupancy", occ },
+			{ "B_iso_or_equiv", bIso },
+			{ "auth_seq_id", seq },
+			{ "auth_comp_id", "HOH" },
+			{ "auth_asym_id", chain },
+			{ "auth_atom_id", "O" },
+			{ "pdbx_PDB_model_num", model }
+		});
 
 		++numOfReplacedDummies;
 	}
 
-	for (auto asymID: dumbAsymIDs)
-	{
-		auto& cat = db["struct_asym"];
+	// for (auto asymID: dumbAsymIDs)
+	// {
+	// 	auto& cat = db["struct_asym"];
 
-		for (auto s: cat.find(cif::Key("id") == asymID))
-		{
-			if (cat.isOrphan(s))
-				cat.erase(s);
-			break;
-		}
-	}
+	// 	for (auto s: cat.find(cif::Key("id") == asymID))
+	// 	{
+	// 		if (cat.isOrphan(s))
+	// 			cat.erase(s);
+	// 		break;
+	// 	}
+	// }
 
 	FixMatrix(db);
 	
@@ -626,7 +647,7 @@ int pr_main(int argc, char* argv[])
 		tie(numOfLinksDeleted, numOfLinksAdded) = HandlePDBCare(db, vm["pdb-care"].as<string>(), dat);
 	
 	// handle atoms with zero occupancy
-	for (auto a: db["atom_site"].find(cif::Key("occupancy") == 0.0))
+	for (auto a: atomSites.find(cif::Key("occupancy") == 0.0))
 	{
 		string id, compId, atomId, altId;
 		cif::tie(id, compId, atomId, altId) = a.get("id", "label_comp_id", "label_atom_id", "label_alt_id");
@@ -636,7 +657,7 @@ int pr_main(int argc, char* argv[])
 			if (cif::VERBOSE)
 				cerr << "Deleted zero occupancy water atom: " << a["id"] << endl;
 
-			db["atom_site"].erase(a);
+			atomSites.erase(a);
 			++numOfAtomsDeleted;
 		}
 		else
@@ -662,7 +683,7 @@ int pr_main(int argc, char* argv[])
 	}
 	
 	// handle atoms with negative occupancy
-	for (auto a: db["atom_site"].find(cif::Key("occupancy") < 0.0))
+	for (auto a: atomSites.find(cif::Key("occupancy") < 0.0))
 	{
 		string id, compId, atomId, altId;
 		cif::tie(id, compId, atomId, altId) = a.get("id", "label_comp_id", "label_atom_id", "label_alt_id");
@@ -670,7 +691,7 @@ int pr_main(int argc, char* argv[])
 		if (cif::VERBOSE)
 			cerr << "Deleted zero occupancy (hetero) atom: " << a["id"] << endl;
 
-		db["atom_site"].erase(a);
+		atomSites.erase(a);
 		++numOfAtomsDeleted;
 	}
 	
@@ -747,7 +768,7 @@ int pr_main(int argc, char* argv[])
 			lr["ptnr2_label_atom_id"] = "ND2";
 		}
 		
-		for (auto r: db["atom_site"].find(
+		for (auto r: atomSites.find(
 			cif::Key("label_asym_id") == asymId and
 			cif::Key("label_comp_id") == "ASN" and
 			cif::Key("label_seq_id") == seqId and
@@ -824,7 +845,7 @@ int pr_main(int argc, char* argv[])
 		lr["ptnr2_label_alt_id"] = alt;
 		
 		// Update atom_site records
-		for (auto a: db["atom_site"].find(
+		for (auto a: atomSites.find(
 			cif::Key("label_asym_id") == asymId[1] and
 			cif::Key("label_comp_id") == compId[1] and
 			cif::Key("label_seq_id") == seqId[1] and
@@ -911,7 +932,7 @@ int pr_main(int argc, char* argv[])
 	}
 	
 	// change X atom_type to N for ASX/GLX 
-	for (auto a: db["atom_site"].find(
+	for (auto a: atomSites.find(
 		cif::Key("type_symbol") == "X" and
 		(cif::Key("label_comp_id") == "ASX" or cif::Key("label_comp_id") == "GLX")))
 	{
@@ -922,12 +943,12 @@ int pr_main(int argc, char* argv[])
 	}
 
 	// Remove hydrogens and X
-	for (auto h: db["atom_site"].find(cif::Key("type_symbol") == "H" or cif::Key("type_symbol") == "D" or cif::Key("type_symbol") == "X"))
+	for (auto h: atomSites.find(cif::Key("type_symbol") == "H" or cif::Key("type_symbol") == "D" or cif::Key("type_symbol") == "X"))
 	{
 		if (cif::VERBOSE)
 			cerr << "Deleted (hetero) atom: " << h["id"] << endl;
 		
-		db["atom_site"].erase(h);
+		atomSites.erase(h);
 
 		++numOfAtomsDeleted;
 	}
@@ -950,11 +971,11 @@ int pr_main(int argc, char* argv[])
 		if (cif::VERBOSE)
 			cerr << "File contains UNL records but does not specify the residue in the dictionary, dropping" << endl;
 
-		auto unls = db["atom_site"].find(cif::Key("label_comp_id") == "UNL");
+		auto unls = atomSites.find(cif::Key("label_comp_id") == "UNL");
 		numOfAtomsDeleted += unls.size();
 		
 		for (auto a: unls)
-			db["atom_site"].erase(a);
+			atomSites.erase(a);
 
 		db["pdbx_nonpoly_scheme"].erase(cif::Key("mon_id") == "UNL");
 		db["pdbx_entity_nonpoly"].erase(cif::Key("comp_id") == "UNL");
@@ -966,18 +987,18 @@ int pr_main(int argc, char* argv[])
 
 //	if (serverMode)
 //	{
-//		for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "UNL"))
+//		for (auto a: atomSites.find(cif::Key("label_comp_id") == "UNL"))
 //		{
 //			if (cif::VERBOSE)
 //				cerr << "Deleted (hetero) atom: " << a["id"] << endl;
 //			
-//			db["atom_site"].erase(cif::Key("label_comp_id") == "UNL");
+//			atomSites.erase(cif::Key("label_comp_id") == "UNL");
 //			
 //			++numOfAtomsDeleted;
 //		}
 //	}
 	
-	for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "UNK"))
+	for (auto a: atomSites.find(cif::Key("label_comp_id") == "UNK"))
 	{
 		string atomId = a["label_atom_id"].as<string>();
 		
@@ -986,24 +1007,24 @@ int pr_main(int argc, char* argv[])
 			if (cif::VERBOSE)
 				cerr << "Deleted atom from unknown residue " << a["id"] << endl;
 			
-			db["atom_site"].erase(a);		// We have a crazy atom in an unknown residue
+			atomSites.erase(a);		// We have a crazy atom in an unknown residue
 
 			++numOfAtomsDeleted;
 		}
 	}
 	
-	for (auto a: db["atom_site"].find(cif::Key("label_comp_id") == "GLY" and cif::Key("label_atom_id") == "CB"))
+	for (auto a: atomSites.find(cif::Key("label_comp_id") == "GLY" and cif::Key("label_atom_id") == "CB"))
 	{
 		if (cif::VERBOSE)
 			cerr << "Deleted CB atom from GLY " << a["id"] << endl;
 		
-		db["atom_site"].erase(a);
+		atomSites.erase(a);
 		
 		++numOfAtomsDeleted;
 	}
 	
 	// Fix occupancy for Se in MSE when other side chain atoms have full occupancy
-	for (auto a: db["atom_site"].find(
+	for (auto a: atomSites.find(
 		cif::Key("label_comp_id") == "MSE" and
 		cif::Key("label_alt_id") == "" and
 		cif::Key("label_atom_id") == "SE" and
@@ -1012,7 +1033,7 @@ int pr_main(int argc, char* argv[])
 		string asymId, seqId;
 		cif::tie(asymId, seqId) = a.get("label_asym_id", "label_seq_id");
 		
-		auto sideChainAtoms = db["atom_site"].find(
+		auto sideChainAtoms = atomSites.find(
 			cif::Key("label_asym_id") == asymId and
 			cif::Key("label_seq_id") == seqId and
 			cif::Key("label_comp_id") == "MSE" and
@@ -1031,7 +1052,7 @@ int pr_main(int argc, char* argv[])
 	}
 
 	// delete aniso records when B factor < 2	
-	for (auto a: db["atom_site"].find(cif::Key("B_iso_or_equiv") < 2.0))
+	for (auto a: atomSites.find(cif::Key("B_iso_or_equiv") < 2.0))
 	{
 		string id = a["id"].as<string>();
 		
@@ -1082,7 +1103,7 @@ int pr_main(int argc, char* argv[])
 		db["atom_site_anisotrop"].erase(cif::Key("id") == id);
 	
 	// Rename ATOM's with residue name WAT and atom id OW0 to HOH/O
-	for (auto a: db["atom_site"].find(
+	for (auto a: atomSites.find(
 		(cif::Key("label_comp_id") == "WAT" and cif::Key("label_atom_id") == "OW0") or
 		(cif::Key("auth_comp_id") == "WAT" and cif::Key("auth_atom_id") == "OW0")))
 	{
@@ -1116,7 +1137,7 @@ int pr_main(int argc, char* argv[])
 		// a change is needed. So ignore sorting on label_atom_id since
 		// that will keep the files mostly intact.
 
-		db["atom_site"].sort([](const cif::Row& a, const cif::Row& b) -> int
+		atomSites.sort([](const cif::Row& a, const cif::Row& b) -> int
 		{
 			int d = 0;
 
