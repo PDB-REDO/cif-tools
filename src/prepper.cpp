@@ -547,10 +547,9 @@ int pr_main(int argc, char* argv[])
 
 	auto& atomSites = db["atom_site"];
 
-	vector<tuple<string,string,string,string,string,string,string,string,string,int,int>> dummies;
+	vector<string> dummies;
 	for (auto a: atomSites.find(cif::Key("label_comp_id") == "DUM" and cif::Key("label_atom_id") == "DUM"))
-		dummies.push_back(a.get("id", "label_asym_id", "label_alt_id", "Cartn_x", "Cartn_y", "Cartn_z", "occupancy", "B_iso_or_equiv",
-			"auth_asym_id", "auth_seq_id", "pdbx_PDB_model_num"));
+		dummies.push_back(a["id"].as<string>());
 
 	string waterAsymID, waterEntityID;
 	if (not dummies.empty())
@@ -592,54 +591,40 @@ int pr_main(int argc, char* argv[])
 				{ "entity_id", waterEntityID }
 			});
 		}
+
+		set<string> asyms;
+
+		for (auto dummy: dummies)
+		{
+			for (auto r: atomSites.find(cif::Key("id") == dummy))
+			{
+				asyms.emplace(r["label_asym_id"].as<string>());
+
+				r.assign({
+					{ "label_asym_id", waterAsymID },
+					{ "label_atom_id", "O"},
+					{ "label_comp_id", "HOH" },
+					{ "auth_comp_id", "HOH" },
+					{ "auth_atom_id", "O" }
+				});
+				break;
+			}
+		}
+
+		numOfReplacedDummies = dummies.size();
+
+		// cleanup old, likely empty asyms
+		auto& structAsym = db["struct_asym"];
+		for (auto asym: asyms)
+		{
+			for (auto r: structAsym.find(cif::Key("id") == asym))
+			{
+				if (not structAsym.hasChildren(r))
+					structAsym.erase(r);
+				break;
+			}
+		}
 	}
-
-	auto& structAsym = db["struct_asym"];
-	for (auto& [id, asym, alt, x, y, z, occ, bIso, chain, seq, model]: dummies)
-	{
-		bool singleAsym = atomSites.find(cif::Key("label_asym_id") == asym).size() == 1;
-
-		atomSites.erase(cif::Key("id") == id);
-		if (singleAsym)
-			structAsym.erase(cif::Key("id") == asym);
-
-		atomSites.emplace({
-			{ "group_PDB", "HETATM" },
-			{ "id", id },
-			{ "type_symbol", "O" },
-			{ "label_atom_id", "O" },
-			{ "label_alt_id", alt },
-			{ "label_comp_id", "HOH" },
-			{ "label_asym_id", waterAsymID },
-			{ "label_entity_id", waterEntityID },
-			{ "label_seq_id", "." },
-			{ "pdbx_PDB_ins_code", "" },
-			{ "Cartn_x", x },
-			{ "Cartn_y", y },
-			{ "Cartn_z", z },
-			{ "occupancy", occ },
-			{ "B_iso_or_equiv", bIso },
-			{ "auth_seq_id", seq },
-			{ "auth_comp_id", "HOH" },
-			{ "auth_asym_id", chain },
-			{ "auth_atom_id", "O" },
-			{ "pdbx_PDB_model_num", model }
-		});
-
-		++numOfReplacedDummies;
-	}
-
-	// for (auto asymID: dumbAsymIDs)
-	// {
-	// 	auto& cat = db["struct_asym"];
-
-	// 	for (auto s: cat.find(cif::Key("id") == asymID))
-	// 	{
-	// 		if (cat.isOrphan(s))
-	// 			cat.erase(s);
-	// 		break;
-	// 	}
-	// }
 
 	FixMatrix(db);
 	
@@ -1125,7 +1110,7 @@ int pr_main(int argc, char* argv[])
 		 << "Added   LINK   records: " << numOfLinksAdded << endl
 		 << "Fixed   LINK   records: " << numOfLinksFixed << endl
 		 << "Renamed water atoms   : " << numOfRenamedWaters << endl
-		 << "Replace dummies       : " << numOfReplacedDummies << endl
+		 << "Replaced dummies      : " << numOfReplacedDummies << endl
 		 ;
 		 
 	if (vm.count("output"))
