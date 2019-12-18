@@ -935,7 +935,6 @@ json calculateZScores(const Structure& structure, float fractionForMRSd, size_t 
 
 	boost::thread_group t;
 	atomic<size_t> next(0);
-	mutex m;
 
     random_device rd;
 
@@ -946,7 +945,8 @@ json calculateZScores(const Structure& structure, float fractionForMRSd, size_t 
 		cerr << "Using " << observationCount << " scores per sample" << endl;
 	
 	for (size_t ti = 0; ti < NTHREADS; ++ti)
-		t.create_thread([zScorePerResidue,&ramaZScores,&next,seed=rd(),observationCount,&m]()
+		t.create_thread([zScorePerResidue,&ramaZScores,&next,seed=rd(),
+			observationCount,mean=tbl.mean_ramachandran(),sd=tbl.sd_ramachandran()]()
 		{
 		    mt19937 g(seed);
 
@@ -960,13 +960,11 @@ json calculateZScores(const Structure& structure, float fractionForMRSd, size_t 
 				vector<float> zs(observationCount);
 				sample(zScorePerResidue.begin(), zScorePerResidue.end(), zs.begin(), observationCount, g);
 				
-				ramaZScores[i] = (accumulate(zs.begin(), zs.end(), 0.f) / observationCount);
+				ramaZScores[i] = ((accumulate(zs.begin(), zs.end(), 0.f) / observationCount) - mean) / sd;
 			}
 		});
 
 	t.join_all();
-	
-	for (auto& z: ramaZScores) z = (z - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
 
 	float avgZScore = accumulate(ramaZScores.begin(), ramaZScores.end(), 0.f) / sampleCount;
 	double sumZScoreD = accumulate(ramaZScores.begin(), ramaZScores.end(), 0.0f,
