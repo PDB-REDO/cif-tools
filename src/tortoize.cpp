@@ -9,11 +9,15 @@
 
 #include <fcntl.h>
 #include <iomanip>
+#include <random>
+
+#include <mutex>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/thread.hpp>
 
 #include "cif++/Secondary.h"
 #include "cif++/Statistics.h"
@@ -44,6 +48,8 @@ using clipper::Coord_frac;
 using MapMaker = mmcif::MapMaker<float>;
 
 using json = zeep::el::element;
+
+size_t NTHREADS = boost::thread::hardware_concurrency();
 
 // --------------------------------------------------------------------
 // simple integer compression, based somewhat on MRS code
@@ -797,7 +803,7 @@ void DataTable::load(const char* name, vector<Data>& table, float& mean, float& 
 
 // --------------------------------------------------------------------
 
-json calculateZScores(const Structure& structure)
+json calculateZScores(const Structure& structure, float fractionForMRSd, size_t sampleCount)
 {
 	mmcif::DSSP dssp(structure);
 	auto& tbl = DataTable::instance();
@@ -808,6 +814,7 @@ json calculateZScores(const Structure& structure)
 	size_t torsZScoreCount = 0;
 
 	json residues;
+	vector<float> zScorePerResidue;
 
 	for (auto& poly: structure.polymers())
 	{
@@ -883,6 +890,8 @@ json calculateZScores(const Structure& structure)
 				{ "z-score", zr }
 			};
 
+			zScorePerResidue.push_back(zr);
+
 			ramaZScoreSum += zr;
 			++ramaZScoreCount;
 
@@ -922,10 +931,54 @@ json calculateZScores(const Structure& structure)
 	float ramaVsRand = ramaZScoreSum / ramaZScoreCount;
 	float torsVsRand = torsZScoreSum / torsZScoreCount;
 
+	vector<float> ramaZScores(sampleCount, 0);
+
+	boost::thread_group t;
+	atomic<size_t> next(0);
+	mutex m;
+
+    random_device rd;
+
+	size_t observationCount = static_cast<size_t>(fractionForMRSd * zScorePerResidue.size());
+	if (observationCount < 3 or observationCount >= zScorePerResidue.size())
+		throw runtime_error("Invalid fraction specified, result would be: " + to_string(observationCount) + " scores");
+	else if (cif::VERBOSE)
+		cerr << "Using " << observationCount << " scores per sample" << endl;
+	
+	for (size_t ti = 0; ti < NTHREADS; ++ti)
+		t.create_thread([zScorePerResidue,&ramaZScores,&next,seed=rd(),observationCount,&m]()
+		{
+		    mt19937 g(seed);
+
+			for (;;)
+			{
+				size_t i = next++;
+				
+				if (i + 1 >= ramaZScores.size())
+					break;
+
+				vector<float> zs(observationCount);
+				sample(zScorePerResidue.begin(), zScorePerResidue.end(), zs.begin(), observationCount, g);
+				
+				ramaZScores[i] = (accumulate(zs.begin(), zs.end(), 0.f) / observationCount);
+			}
+		});
+
+	t.join_all();
+	
+	for (auto& z: ramaZScores) z = (z - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
+
+	float avgZScore = accumulate(ramaZScores.begin(), ramaZScores.end(), 0.f) / sampleCount;
+	double sumZScoreD = accumulate(ramaZScores.begin(), ramaZScores.end(), 0.0f,
+		[avgZScore](float a, float z) { return a + (avgZScore - z) * (avgZScore - z); });
+	float ramaRMSd = static_cast<float>(sqrt(sumZScoreD / sampleCount));
+
 	return {
 		{ "avg-vs-random-rama", ramaVsRand },
 		{ "avg-vs-random-rama", ramaVsRand },
 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
+		{ "avg-for-rmsd", avgZScore },
+		{ "ramachandran-z-rmsd", ramaRMSd },
 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
 		{ "residues", residues },
 	};
@@ -947,13 +1000,18 @@ int pr_main(int argc, char* argv[])
 
 		("help,h",										"Display help message")
 		("version",										"Print version")
+
+		("rmsd-fraction",		po::value<float>(),		"fraction to use for RMSd")
+		("rmsd-count",			po::value<size_t>(),	"Samples to use for RMSd")
 		
-		("cif::VERBOSE,v",									"cif::VERBOSE output")
+		("threads,a",			po::value<size_t>(),	"Max. nr. of threads")
+
+		("verbose,v",									"verbose output")
 		;
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("debug,d",				po::value<int>(),		"Debug level (for even more cif::VERBOSE output)")
+		("debug,d",				po::value<int>(),		"Debug level (for even more verbose output)")
 		("build",				po::value<string>(),	"Build a binary data table")
 		;
 
@@ -1006,7 +1064,7 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	cif::VERBOSE = vm.count("cif::VERBOSE") != 0;
+	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
@@ -1031,9 +1089,25 @@ int pr_main(int argc, char* argv[])
 			mmcif::CompoundFactory::instance().pushDictionary(dict);
 	}
 
+	if (vm.count("threads"))
+		NTHREADS = vm["threads"].as<uint16_t>();
+	if (NTHREADS > boost::thread::hardware_concurrency())
+		NTHREADS = boost::thread::hardware_concurrency();
+
+	if (NTHREADS < 1)
+		NTHREADS = 1;
+
 	mmcif::File f(vm["xyzin"].as<string>());
 	Structure structure(f);
 	
+	float fractionForRMSd = 0.5f;
+	if (vm.count("rmsd-fraction"))
+		fractionForRMSd = vm["rmsd-fraction"].as<float>();
+
+	size_t countForRMSd = 100;
+	if (vm.count("rmsd-count"))
+		countForRMSd = vm["rmsd-count"].as<size_t>();
+
 	if (vm.count("output"))
 	{
 		ofstream of(vm["output"].as<string>());
@@ -1042,11 +1116,11 @@ int pr_main(int argc, char* argv[])
 			cerr << "Could not open output file" << endl;
 			exit(1);
 		}
-		of << calculateZScores(structure);
+		of << calculateZScores(structure, fractionForRMSd, countForRMSd);
 	}
 	else
 		// cout << calculateZScores(structure).dump(2) << endl;
-		cout << calculateZScores(structure) << endl;
+		cout << calculateZScores(structure, fractionForRMSd, countForRMSd) << endl;
 	
 	return 0;
 }
