@@ -928,48 +928,85 @@ json calculateZScores(const Structure& structure, float fractionForMRSd, size_t 
 		}
 	}
 
+	const size_t N = zScorePerResidue.size();
+
 	float ramaVsRand = ramaZScoreSum / ramaZScoreCount;
 	float torsVsRand = torsZScoreSum / torsZScoreCount;
 
 	vector<float> ramaZScores(sampleCount, 0);
 
-	boost::thread_group t;
-	atomic<size_t> next(0);
-
     random_device rd;
 
-	size_t observationCount = static_cast<size_t>(fractionForMRSd * zScorePerResidue.size());
-	if (observationCount < 3 or observationCount >= zScorePerResidue.size())
+	size_t observationCount = static_cast<size_t>(fractionForMRSd * N);
+	if (observationCount < 3 or observationCount >= N)
 		throw runtime_error("Invalid fraction specified, result would be: " + to_string(observationCount) + " scores");
 	else if (cif::VERBOSE)
 		cerr << "Using " << observationCount << " scores per sample" << endl;
 	
-	for (size_t ti = 0; ti < NTHREADS; ++ti)
-		t.create_thread([zScorePerResidue,&ramaZScores,&next,seed=rd(),
-			observationCount,mean=tbl.mean_ramachandran(),sd=tbl.sd_ramachandran()]()
-		{
-		    mt19937 g(seed);
+	{
+		boost::thread_group t;
+		atomic<size_t> next(0);
 
-			for (;;)
+		for (size_t ti = 0; ti < NTHREADS; ++ti)
+			t.create_thread([zScorePerResidue,&ramaZScores,&next,seed=rd(),
+				observationCount,mean=tbl.mean_ramachandran(),sd=tbl.sd_ramachandran()]()
 			{
-				size_t i = next++;
-				
-				if (i + 1 >= ramaZScores.size())
-					break;
+				mt19937 g(seed);
 
-				vector<float> zs(observationCount);
-				sample(zScorePerResidue.begin(), zScorePerResidue.end(), zs.begin(), observationCount, g);
-				
-				ramaZScores[i] = ((accumulate(zs.begin(), zs.end(), 0.f) / observationCount) - mean) / sd;
-			}
-		});
+				for (;;)
+				{
+					size_t i = next++;
+					
+					if (i + 1 >= ramaZScores.size())
+						break;
 
-	t.join_all();
+					vector<float> zs(observationCount);
+					sample(zScorePerResidue.begin(), zScorePerResidue.end(), zs.begin(), observationCount, g);
+					
+					ramaZScores[i] = ((accumulate(zs.begin(), zs.end(), 0.f) / observationCount) - mean) / sd;
+				}
+			});
+
+		t.join_all();
+	}
 
 	float avgZScore = accumulate(ramaZScores.begin(), ramaZScores.end(), 0.f) / sampleCount;
 	double sumZScoreD = accumulate(ramaZScores.begin(), ramaZScores.end(), 0.0f,
 		[avgZScore](float a, float z) { return a + (avgZScore - z) * (avgZScore - z); });
 	float ramaRMSd = static_cast<float>(sqrt(sumZScoreD / sampleCount));
+
+	// jackknife variance estimate, see: https://en.wikipedia.org/wiki/Jackknife_resampling
+
+	vector<double> estimates(N);
+
+	{
+		boost::thread_group t;
+		atomic<size_t> next(0);
+
+		for (size_t ti = 0; ti < NTHREADS; ++ti)
+			t.create_thread([N,&zScorePerResidue,&next,&estimates,mean=tbl.mean_ramachandran(),sd=tbl.sd_ramachandran()]()
+			{
+				for (;;)
+				{
+					size_t i = next++;
+					
+					if (i + 1 >= N)
+						break;
+					
+					double sum = 0;
+					for (size_t j = 0; j < N; ++j)
+						if (j != i)	sum += zScorePerResidue[j];
+					
+					estimates[i] = ((sum / (N - 1)) - mean) / sd;
+				}
+			});
+
+		t.join_all();
+	}
+
+	double estimateMean = accumulate(estimates.begin(), estimates.end(), 0.0) / N;
+	double estimateVar = (N - 1) * accumulate(estimates.begin(), estimates.end(), 0.0,
+		[estimateMean](double s, double e) { return s + (e - estimateMean) * (e - estimateMean); }) / N;
 
 	return {
 		{ "avg-vs-random-rama", ramaVsRand },
@@ -977,6 +1014,7 @@ json calculateZScores(const Structure& structure, float fractionForMRSd, size_t 
 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
 		{ "avg-for-rmsd", avgZScore },
 		{ "ramachandran-z-rmsd", ramaRMSd },
+		{ "ramachandran-jackknife-variance-estimate", estimateVar },
 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
 		{ "residues", residues },
 	};
