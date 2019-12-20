@@ -1005,16 +1005,20 @@ json calculateZScores(const Structure& structure, float fractionForMRSd, size_t 
 	}
 
 	double estimateMean = accumulate(estimates.begin(), estimates.end(), 0.0) / N;
-	double estimateVar = (N - 1) * accumulate(estimates.begin(), estimates.end(), 0.0,
-		[estimateMean](double s, double e) { return s + (e - estimateMean) * (e - estimateMean); }) / N;
+	double summedDiff = accumulate(estimates.begin(), estimates.end(), 0.0,
+		[estimateMean](double s, double e) { return s + (e - estimateMean) * (e - estimateMean); });
+	
+	double estimateVar = (N - 1) * summedDiff / N;
+
+	double stddev = sqrt(summedDiff / (N - 1));
 
 	return {
-		{ "avg-vs-random-rama", ramaVsRand },
 		{ "avg-vs-random-rama", ramaVsRand },
 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
 		{ "avg-for-rmsd", avgZScore },
 		{ "ramachandran-z-rmsd", ramaRMSd },
 		{ "ramachandran-jackknife-variance-estimate", estimateVar },
+		{ "ramachandran-jackknife-sd", stddev },
 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
 		{ "residues", residues },
 	};
