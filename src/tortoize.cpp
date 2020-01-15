@@ -853,47 +853,6 @@ float rmsdByRandomSplit(const vector<float>& zScorePerResidue, size_t nShuffles,
 
 // --------------------------------------------------------------------
 
-float rmsdByRandom(const vector<float>& zScorePerResidue, size_t nShuffles, std::random_device& rd)
-{
-	boost::thread_group t;
-	atomic<size_t> next(0);
-
-	vector<float> scores(nShuffles);
-
-	for (size_t ti = 0; ti < NTHREADS; ++ti)
-		t.create_thread([&zScorePerResidue, &scores, &next, seed = rd(), nShuffles]()
-		{
-			mt19937 g(seed);
-			DataTable& tbl = DataTable::instance();
-			size_t n = zScorePerResidue.size() / 2;
-
-			for (;;)
-			{
-				size_t i = next++;
-				
-				if (i + 1 >= nShuffles)
-					break;
-
-				vector<float> zs(n);
-				sample(zScorePerResidue.begin(), zScorePerResidue.end(), zs.begin(), n, g);
-				
-				auto a = accumulate(zs.begin(), zs.end(), 0.f) / n;
-				scores[i] = (a - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
-			}
-		});
-
-	t.join_all();
-
-	auto avg = accumulate(scores.begin(), scores.end(), 0.0) / scores.size();
-	auto sumD = accumulate(scores.begin(), scores.end(), 0.0,
-		[avg](float a, float z) { return a + (avg - z) * (avg - z); });
-	float rmsd = static_cast<float>(sqrt(sumD / scores.size()));
-
-	return rmsd;
-}
-
-// --------------------------------------------------------------------
-
 float jackknife(const vector<float>& zScorePerResidue)
 {
 	// jackknife variance estimate, see: https://en.wikipedia.org/wiki/Jackknife_resampling
@@ -932,15 +891,11 @@ float jackknife(const vector<float>& zScorePerResidue)
 	double sumD = accumulate(scores.begin(), scores.end(), 0.0, [avg](double a, double z) { return a + (z - avg) * (z - avg); });
 
 	return sqrt(sumD / (N - 1));
-	
-	// double result = (N - 1) * sumD / N;
-
-	// return sqrt(static_cast<float>(result));
 }
 
 // --------------------------------------------------------------------
 
-tuple<vector<float>,float> calculateZScores(const Structure& structure)
+json calculateZScores(const Structure& structure, size_t nShuffles)
 {
 	mmcif::DSSP dssp(structure);
 	auto& tbl = DataTable::instance();
@@ -1069,158 +1024,24 @@ tuple<vector<float>,float> calculateZScores(const Structure& structure)
 		}
 	}
 
-	return make_tuple(zScorePerResidue, torsZScoreSum / torsZScoreCount);
+	float ramaVsRand = ramaZScoreSum / ramaZScoreCount;
+	float torsVsRand = torsZScoreSum / torsZScoreCount;
+
+	random_device rd;
+
+	float rmsdRama = rmsdByRandomSplit(zScorePerResidue, nShuffles, rd);
+	float jackknifeRama = jackknife(zScorePerResidue);
+
+	return {
+		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
+		{ "avg-vs-random-rama", ramaVsRand },
+		// { "avg-for-rmsd", avgZScore },
+		{ "ramachandran-z-rmsd", rmsdRama },
+		{ "ramachandran-jackknife-sd", jackknifeRama },
+		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
+		{ "residues", residues },
+	};
 }
-
-// // --------------------------------------------------------------------
-
-// json calculateZScores(const Structure& structure, float fractionForMRSd, size_t sampleCount)
-// {
-// 	mmcif::DSSP dssp(structure);
-// 	auto& tbl = DataTable::instance();
-
-// 	double ramaZScoreSum = 0;
-// 	size_t ramaZScoreCount = 0;
-// 	double torsZScoreSum = 0;
-// 	size_t torsZScoreCount = 0;
-
-// 	json residues;
-// 	vector<float> zScorePerResidue;
-
-// 	for (auto& poly: structure.polymers())
-// 	{
-// 		for (size_t i = 1; i + 1 < poly.size(); ++i)
-// 		{
-// 			auto& res = poly[i];
-
-// 			tuple<string,int,string,string> pdbID = structure.MapLabelToPDB(res.asymID(), res.seqID(), res.compoundID(), res.authSeqID());
-
-// 			json residue = {
-// 				{ "asymID", res.asymID() },
-// 				{ "seqID", res.seqID() },
-// 				{ "compID", res.compoundID() },
-// 				{ "pdb", {
-// 					{ "strandID", get<0>(pdbID) },
-// 					{ "seqNum", get<1>(pdbID) },
-// 					{ "compID", get<2>(pdbID) },
-// 					{ "insCode", get<3>(pdbID) }
-// 				}}
-// 			};
-
-// 			auto phi = res.phi();
-// 			auto psi = res.psi();
-
-// 			string aa = res.compoundID();
-
-// 			// remap some common modified amino acids
-// 			if (aa == "MSE")
-// 			{
-// 				if (cif::VERBOSE > 1)
-// 					cerr << "Replacing MSE with MET" << endl;
-// 				aa = "MET";
-// 			}
-// 			else if (aa == "HYP")
-// 			{
-// 				if (cif::VERBOSE > 1)
-// 					cerr << "Replacing HYP with PRO" << endl;
-
-// 				aa = "PRO";
-// 			}
-
-// 			if (mmcif::kAAMap.find(aa) == mmcif::kAAMap.end())
-// 			{
-// 				if (cif::VERBOSE)
-// 					cerr << "Skipping unrecognized residue " << aa << endl;
-
-// 				continue;
-// 			}
-			
-// 			SecStrType tors_ss, rama_ss;
-
-// 			switch (dssp(res))
-// 			{
-// 				case mmcif::ssAlphahelix:	tors_ss = SecStrType::helix; break;
-// 				case mmcif::ssStrand:		tors_ss = SecStrType::strand; break;
-// 				default:					tors_ss = SecStrType::other; break;
-// 			}
-
-// 			if (aa != "PRO" and poly[i + 1].compoundID() == "PRO")
-// 				rama_ss = SecStrType::prepro;
-// 			else if (aa == "PRO" && res.isCis())
-// 				rama_ss = SecStrType::cis;
-// 			else
-// 				rama_ss = tors_ss;
-
-// 			auto& rd = tbl.loadRamachandranData(aa, rama_ss);
-
-// 			auto zr = rd.zscore(phi, psi);
-
-// 			residue["ramachandran"] =
-// 			{
-// 				{ "ss-type", boost::lexical_cast<string>(rama_ss) },
-// 				{ "z-score", zr }
-// 			};
-
-// 			zScorePerResidue.push_back(zr);
-
-// 			ramaZScoreSum += zr;
-// 			++ramaZScoreCount;
-
-// 			try
-// 			{
-// 				float zt = nan("1");
-
-// 				auto chiCount = res.nrOfChis();
-// 				if (chiCount)
-// 				{
-// 					float chi1 = res.chi(0);
-// 					float chi2 = chiCount > 1 ? res.chi(1) : 0;
-
-// 					auto& td = tbl.loadTorsionData(aa, tors_ss);
-
-// 					zt = td.zscore(chi1, chi2);
-
-// 					torsZScoreSum += zt;
-// 					++torsZScoreCount;
-
-// 					residue["torsion"] =
-// 					{
-// 						{ "ss-type", boost::lexical_cast<string>(tors_ss) },
-// 						{ "z-score", zt }
-// 					};
-// 				}
-// 			}
-// 			catch (const std::exception& e)
-// 			{
-// 				std::cerr << e.what() << '\n';
-// 			}
-
-// 			residues.push_back(residue);
-// 		}
-// 	}
-
-// 	const size_t N = zScorePerResidue.size();
-
-// 	float ramaVsRand = ramaZScoreSum / ramaZScoreCount;
-// 	float torsVsRand = torsZScoreSum / torsZScoreCount;
-
-//     random_device rd;
-
-
-
-
-// 	return {
-// 		{ "avg-vs-random-rama", ramaVsRand },
-// 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
-
-// 		// { "avg-for-rmsd", avgZScore },
-// 		{ "ramachandran-z-rmsd", ramaRMSd },
-// 		// { "ramachandran-jackknife-variance-estimate", estimateVar },
-// 		{ "ramachandran-jackknife-sd", stddev },
-// 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
-// 		{ "residues", residues },
-// 	};
-// }
 
 // --------------------------------------------------------------------
 
@@ -1239,8 +1060,7 @@ int pr_main(int argc, char* argv[])
 		("help,h",										"Display help message")
 		("version",										"Print version")
 
-		("rmsd-fraction",		po::value<float>(),		"fraction to use for RMSd")
-		("rmsd-count",			po::value<size_t>(),	"Samples to use for RMSd")
+		("rmsd-shuffles",		po::value<size_t>(),	"Shuffles to use for RMSd")
 		
 		("threads,a",			po::value<size_t>(),	"Max. nr. of threads")
 
@@ -1251,7 +1071,6 @@ int pr_main(int argc, char* argv[])
 	hidden_options.add_options()
 		("debug,d",				po::value<int>(),		"Debug level (for even more verbose output)")
 		("build",				po::value<string>(),	"Build a binary data table")
-		("test",										"Test mode, for comparison with Oleg")
 		;
 
 	po::options_description cmdline_options;
@@ -1339,207 +1158,24 @@ int pr_main(int argc, char* argv[])
 	mmcif::File f(vm["xyzin"].as<string>());
 	Structure structure(f);
 	
-	float fractionForRMSd = 0.5f;
-	if (vm.count("rmsd-fraction"))
-		fractionForRMSd = vm["rmsd-fraction"].as<float>();
-
-	size_t countForRMSd = 100;
-	if (vm.count("rmsd-count"))
-		countForRMSd = vm["rmsd-count"].as<size_t>();
+	size_t nShuffles = 100;
+	if (vm.count("rmsd-shuffles"))
+		nShuffles = vm["rmsd-shuffles"].as<size_t>();
 
 	// --------------------------------------------------------------------
 	
-	vector<float> zScorePerResidue;
-	float torsVsRand;
-	
-	tie(zScorePerResidue, torsVsRand) = calculateZScores(structure);
-
-	const size_t N = zScorePerResidue.size();
-
-	auto& tbl = DataTable::instance();
-	float ramaZScore = ((accumulate(zScorePerResidue.begin(), zScorePerResidue.end(), 0.0f) / zScorePerResidue.size()) - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
-
-	float torsZScore = (torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion();
-
-// 	json residues;
-// 	vector<float> zScorePerResidue;
-
-// 	for (auto& poly: structure.polymers())
-// 	{
-// 		for (size_t i = 1; i + 1 < poly.size(); ++i)
-// 		{
-// 			auto& res = poly[i];
-
-// 			tuple<string,int,string,string> pdbID = structure.MapLabelToPDB(res.asymID(), res.seqID(), res.compoundID(), res.authSeqID());
-
-// 			json residue = {
-// 				{ "asymID", res.asymID() },
-// 				{ "seqID", res.seqID() },
-// 				{ "compID", res.compoundID() },
-// 				{ "pdb", {
-// 					{ "strandID", get<0>(pdbID) },
-// 					{ "seqNum", get<1>(pdbID) },
-// 					{ "compID", get<2>(pdbID) },
-// 					{ "insCode", get<3>(pdbID) }
-// 				}}
-// 			};
-
-// 			auto phi = res.phi();
-// 			auto psi = res.psi();
-
-// 			string aa = res.compoundID();
-
-// 			// remap some common modified amino acids
-// 			if (aa == "MSE")
-// 			{
-// 				if (cif::VERBOSE > 1)
-// 					cerr << "Replacing MSE with MET" << endl;
-// 				aa = "MET";
-// 			}
-// 			else if (aa == "HYP")
-// 			{
-// 				if (cif::VERBOSE > 1)
-// 					cerr << "Replacing HYP with PRO" << endl;
-
-// 				aa = "PRO";
-// 			}
-
-// 			if (mmcif::kAAMap.find(aa) == mmcif::kAAMap.end())
-// 			{
-// 				if (cif::VERBOSE)
-// 					cerr << "Skipping unrecognized residue " << aa << endl;
-
-// 				continue;
-// 			}
-			
-// 			SecStrType tors_ss, rama_ss;
-
-// 			switch (dssp(res))
-// 			{
-// 				case mmcif::ssAlphahelix:	tors_ss = SecStrType::helix; break;
-// 				case mmcif::ssStrand:		tors_ss = SecStrType::strand; break;
-// 				default:					tors_ss = SecStrType::other; break;
-// 			}
-
-// 			if (aa != "PRO" and poly[i + 1].compoundID() == "PRO")
-// 				rama_ss = SecStrType::prepro;
-// 			else if (aa == "PRO" && res.isCis())
-// 				rama_ss = SecStrType::cis;
-// 			else
-// 				rama_ss = tors_ss;
-
-// 			auto& rd = tbl.loadRamachandranData(aa, rama_ss);
-
-// 			auto zr = rd.zscore(phi, psi);
-
-// 			residue["ramachandran"] =
-// 			{
-// 				{ "ss-type", boost::lexical_cast<string>(rama_ss) },
-// 				{ "z-score", zr }
-// 			};
-
-// 			zScorePerResidue.push_back(zr);
-
-// 			ramaZScoreSum += zr;
-// 			++ramaZScoreCount;
-
-// 			try
-// 			{
-// 				float zt = nan("1");
-
-// 				auto chiCount = res.nrOfChis();
-// 				if (chiCount)
-// 				{
-// 					float chi1 = res.chi(0);
-// 					float chi2 = chiCount > 1 ? res.chi(1) : 0;
-
-// 					auto& td = tbl.loadTorsionData(aa, tors_ss);
-
-// 					zt = td.zscore(chi1, chi2);
-
-// 					torsZScoreSum += zt;
-// 					++torsZScoreCount;
-
-// 					residue["torsion"] =
-// 					{
-// 						{ "ss-type", boost::lexical_cast<string>(tors_ss) },
-// 						{ "z-score", zt }
-// 					};
-// 				}
-// 			}
-// 			catch (const std::exception& e)
-// 			{
-// 				std::cerr << e.what() << '\n';
-// 			}
-
-// 			residues.push_back(residue);
-// 		}
-// 	}
-
-// 	const size_t N = zScorePerResidue.size();
-
-// 	float ramaVsRand = ramaZScoreSum / ramaZScoreCount;
-// 	float torsVsRand = torsZScoreSum / torsZScoreCount;
-
-//     random_device rd;
-
-    random_device rd;
-
-	// --------------------------------------------------------------------
-	
-	if (vm.count("test"))
+	if (vm.count("output"))
 	{
-		cout << "Rama-z-score: " << ramaZScore << endl;
-		cout << "jackknife: " << jackknife(zScorePerResidue) << endl;
-
-		cout << "shuffles       split    sample" << endl;
-
-		for (int i = 10; i < zScorePerResidue.size(); i += 10)
-			cout << setw(6) << i << "    "
-				 << fixed << setw(10) << setprecision(4) << rmsdByRandomSplit(zScorePerResidue, i, rd)
-				 << fixed << setw(10) << setprecision(4) << rmsdByRandom(zScorePerResidue, i, rd)
-				 << endl;
-		
-		exit(0);
+		ofstream of(vm["output"].as<string>());
+		if (not of.is_open())
+		{
+			cerr << "Could not open output file" << endl;
+			exit(1);
+		}
+		of << calculateZScores(structure, nShuffles);
 	}
-
-// 	const size_t N = zScorePerResidue.size();
-
-// 	float ramaVsRand = ramaZScoreSum / ramaZScoreCount;
-// 	float torsVsRand = torsZScoreSum / torsZScoreCount;
-
-
-
-
-// 	return {
-// 		{ "avg-vs-random-rama", ramaVsRand },
-// 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
-
-// 		// { "avg-for-rmsd", avgZScore },
-// 		{ "ramachandran-z-rmsd", ramaRMSd },
-// 		// { "ramachandran-jackknife-variance-estimate", estimateVar },
-// 		{ "ramachandran-jackknife-sd", stddev },
-// 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
-// 		{ "residues", residues },
-// 	};
-// }
-
-
-
-
-// 	if (vm.count("output"))
-// 	{
-// 		ofstream of(vm["output"].as<string>());
-// 		if (not of.is_open())
-// 		{
-// 			cerr << "Could not open output file" << endl;
-// 			exit(1);
-// 		}
-// 		of << calculateZScores(structure, fractionForRMSd, countForRMSd);
-// 	}
-// 	else
-// 		// cout << calculateZScores(structure).dump(2) << endl;
-// 		cout << calculateZScores(structure, fractionForRMSd, countForRMSd) << endl;
+	else
+		cout << calculateZScores(structure, nShuffles) << endl;
 	
 	return 0;
 }
