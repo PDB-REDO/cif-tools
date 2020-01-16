@@ -824,7 +824,7 @@ float rmsdByRandomSplit(const vector<float>& zScorePerResidue, size_t nShuffles,
 			{
 				size_t i = next += 2;
 				
-				if (i + 1 >= 2 * nShuffles)
+				if (i >= 2 * nShuffles)
 					break;
 
 				shuffle(zs.begin(), zs.end(), g);
@@ -872,7 +872,7 @@ float jackknife(const vector<float>& zScorePerResidue)
 			{
 				size_t i = next++;
 				
-				if (i + 1 >= N)
+				if (i >= N)
 					break;
 				
 				double sum = 0;
