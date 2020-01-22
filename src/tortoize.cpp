@@ -822,7 +822,7 @@ float jackknife(const vector<float>& zScorePerResidue)
 	double avg = scoreSum / N;
 	double sumD = accumulate(scores.begin(), scores.end(), 0.0, [avg](double a, double z) { return a + (z - avg) * (z - avg); });
 
-	return sqrt(sumD / (N - 1));
+	return sqrt((N - 1) * sumD / N);
 }
 
 // --------------------------------------------------------------------
