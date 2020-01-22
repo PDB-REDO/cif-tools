@@ -17,7 +17,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/thread.hpp>
 
 #include "cif++/Secondary.h"
 #include "cif++/Statistics.h"
@@ -48,8 +47,6 @@ using clipper::Coord_frac;
 using MapMaker = mmcif::MapMaker<float>;
 
 using json = zeep::el::element;
-
-size_t NTHREADS = boost::thread::hardware_concurrency();
 
 // --------------------------------------------------------------------
 // simple integer compression, based somewhat on MRS code
@@ -803,91 +800,26 @@ void DataTable::load(const char* name, vector<Data>& table, float& mean, float& 
 
 // --------------------------------------------------------------------
 
-float rmsdByRandomSplit(const vector<float>& zScorePerResidue, size_t nShuffles, std::random_device& rd)
-{
-	boost::thread_group t;
-	atomic<int> next(-2);
-
-	vector<float> scores(nShuffles * 2);
-
-	for (size_t ti = 0; ti < NTHREADS; ++ti)
-		t.create_thread([&zScorePerResidue, &scores, &next, seed = rd(), nShuffles]()
-		{
-			mt19937 g(seed);
-			DataTable& tbl = DataTable::instance();
-
-			vector<float> zs(zScorePerResidue);
-			size_t n1 = zs.size() / 2;
-			size_t n2 = zs.size() - n1;
-
-			for (;;)
-			{
-				size_t i = next += 2;
-				
-				if (i >= 2 * nShuffles)
-					break;
-
-				shuffle(zs.begin(), zs.end(), g);
-
-				auto m = accumulate(zs.begin(), zs.begin() + n1, 0.f) / n1;
-				auto z = (m - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
-				
-				scores[i] = z;
-
-				m = accumulate(zs.begin() + n1, zs.end(), 0.f) / n2;
-				z = (m - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
-				
-				scores[i + 1] = z;
-			}
-		});
-
-	t.join_all();
-
-	auto avg = accumulate(scores.begin(), scores.end(), 0.0) / scores.size();
-	auto sumD = accumulate(scores.begin(), scores.end(), 0.0,
-		[avg](float a, float z) { return a + (avg - z) * (avg - z); });
-	float rmsd = static_cast<float>(sqrt(sumD / scores.size()));
-
-	return rmsd;
-}
-
-// --------------------------------------------------------------------
-
 float jackknife(const vector<float>& zScorePerResidue)
 {
 	// jackknife variance estimate, see: https://en.wikipedia.org/wiki/Jackknife_resampling
 
 	const size_t N = zScorePerResidue.size();
+	double zScoreSum = accumulate(zScorePerResidue.begin(), zScorePerResidue.end(), 0.0);
 	vector<double> scores(N);
 
-	boost::thread_group t;
-	atomic<size_t> next(0);
+	DataTable& tbl = DataTable::instance();
 
-	for (size_t ti = 0; ti < NTHREADS; ++ti)
-		t.create_thread([N, &zScorePerResidue, &next, &scores]()
-		{
-			DataTable& tbl = DataTable::instance();
-			
-			for (;;)
-			{
-				size_t i = next++;
-				
-				if (i >= N)
-					break;
-				
-				double sum = 0;
-				for (size_t j = 0; j < N; ++j)
-					if (j != i)	sum += zScorePerResidue[j];
-				
-				auto a = sum / (N - 1);
-				scores[i] = (a - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
-			}
-		});
+	double scoreSum = 0;
+	for (size_t i = 0; i < zScorePerResidue.size(); ++i)
+	{
+		double score = (zScoreSum - zScorePerResidue[i]) / (N - 1);
+		score = (score - tbl.mean_ramachandran()) / tbl.sd_ramachandran();
+		scores[i] = score;
+		scoreSum += score;
+	}
 
-	t.join_all();
-
-	double avg = accumulate(scores.begin(), scores.end(), 0.0) / N;
-
+	double avg = scoreSum / N;
 	double sumD = accumulate(scores.begin(), scores.end(), 0.0, [avg](double a, double z) { return a + (z - avg) * (z - avg); });
 
 	return sqrt(sumD / (N - 1));
@@ -1028,15 +960,11 @@ json calculateZScores(const Structure& structure, size_t nShuffles)
 	float torsVsRand = torsZScoreSum / torsZScoreCount;
 
 	random_device rd;
-
-	float rmsdRama = rmsdByRandomSplit(zScorePerResidue, nShuffles, rd);
 	float jackknifeRama = jackknife(zScorePerResidue);
 
 	return {
 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
 		{ "avg-vs-random-rama", ramaVsRand },
-		// { "avg-for-rmsd", avgZScore },
-		{ "ramachandran-z-rmsd", rmsdRama },
 		{ "ramachandran-jackknife-sd", jackknifeRama },
 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
 		{ "residues", residues },
@@ -1062,8 +990,6 @@ int pr_main(int argc, char* argv[])
 
 		("rmsd-shuffles",		po::value<size_t>(),	"Shuffles to use for RMSd")
 		
-		("threads,a",			po::value<size_t>(),	"Max. nr. of threads")
-
 		("verbose,v",									"verbose output")
 		;
 	
@@ -1146,14 +1072,6 @@ int pr_main(int argc, char* argv[])
 		for (auto dict: vm["dict"].as<vector<string>>())
 			mmcif::CompoundFactory::instance().pushDictionary(dict);
 	}
-
-	if (vm.count("threads"))
-		NTHREADS = vm["threads"].as<size_t>();
-	if (NTHREADS > boost::thread::hardware_concurrency())
-		NTHREADS = boost::thread::hardware_concurrency();
-
-	if (NTHREADS < 1)
-		NTHREADS = 1;
 
 	mmcif::File f(vm["xyzin"].as<string>());
 	Structure structure(f);
