@@ -20,6 +20,7 @@
 #include "cif++/Cif++.h"
 #include "cif++/Compound.h"
 #include "cif++/Structure.h"
+#include "cif++/Symmetry.h"
 
 using namespace std;
 namespace po = boost::program_options;
@@ -127,9 +128,7 @@ int DropLink(cif::Datablock& db,
 	string fromAtomId, string fromAsymId, string fromCompId, string fromSeqId,
 	string toAtomId, string toAsymId, string toCompId, string toSeqId)
 {
-	int result = 0;
-	
-	for (auto r: db["struct_conn"].find(
+	return db["struct_conn"].erase(
 		(
 			cif::Key("ptnr1_label_asym_id") == fromAsymId and
 			cif::Key("ptnr1_label_comp_id") == fromCompId and
@@ -150,16 +149,10 @@ int DropLink(cif::Datablock& db,
 			cif::Key("ptnr2_label_comp_id") == fromCompId and
 			cif::Key("ptnr2_label_seq_id") == fromSeqId and
 			cif::Key("ptnr2_label_atom_id") == fromAtomId
-		)))
-	{
-		if (cif::VERBOSE)
-			cerr << "Stripping link " << r["id"].as<string>() << endl;
-		
-		db["struct_conn"].erase(r);
-		++result;
-	}
-	
-	return result;
+		), [](const cif::Row& r) {
+			if (cif::VERBOSE)
+				cerr << "Stripping link " << r["id"].as<string>() << endl;
+		});
 }
 
 tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile, cif::Datablock& dat)
@@ -436,6 +429,8 @@ void FixMatrix(cif::Datablock& db)
 	}
 }
 
+// --------------------------------------------------------------------
+
 int pr_main(int argc, char* argv[])
 {
 	int result = 0;
@@ -528,7 +523,6 @@ int pr_main(int argc, char* argv[])
 		}
 		return entityId;
 	};
-
 	
 	// Ready to do some work
 
@@ -540,7 +534,8 @@ int pr_main(int argc, char* argv[])
 		numOfAnisosDeleted = 0,
 		numOfBFactorsReset = 0,
 		numOfRenamedWaters = 0,
-		numOfReplacedDummies = 0;
+		numOfReplacedDummies = 0,
+		numOfHemHecRenamed = 0;
 
 	// Replace DUMmies with waters
 	// If the source file was PDB formatted, the dummies will have each a separate asym_id
@@ -632,53 +627,45 @@ int pr_main(int argc, char* argv[])
 		tie(numOfLinksDeleted, numOfLinksAdded) = HandlePDBCare(db, vm["pdb-care"].as<string>(), dat);
 	
 	// handle atoms with zero occupancy
+	numOfAtomsDeleted += atomSites.erase(cif::Key("occupancy") == 0.0 and cif::Key("label_comp_id") == "HOH",
+		[](const cif::Row& r) {
+			if (cif::VERBOSE)
+				cerr << "Deleted zero occupancy water atom: " << r["id"] << endl;
+		});
+
+
 	for (auto a: atomSites.find(cif::Key("occupancy") == 0.0))
 	{
 		string id, compId, atomId, altId;
 		cif::tie(id, compId, atomId, altId) = a.get("id", "label_comp_id", "label_atom_id", "label_alt_id");
-		
-		if (compId == "HOH")
+
+		assert(compId != "HOH");
+
+		auto compound = c::Compound::create(compId);
+		if (compound and (cif::iequals(compound->group(), "peptide") or cif::iequals(compound->group(), "P-peptide")))
 		{
 			if (cif::VERBOSE)
-				cerr << "Deleted zero occupancy water atom: " << a["id"] << endl;
+				cerr << "Changed occupancy to 1.00 for (hetero) atom: " << id << endl;
+			a["occupancy"] = 1.0;
 
-			atomSites.erase(a);
-			++numOfAtomsDeleted;
+			++numOfOccupanciesReset;
 		}
 		else
 		{
-			auto compound = c::Compound::create(compId);
-			if (compound and (cif::iequals(compound->group(), "peptide") or cif::iequals(compound->group(), "P-peptide")))
-			{
-				if (cif::VERBOSE)
-					cerr << "Changed occupancy to 1.00 for (hetero) atom: " << id << endl;
-				a["occupancy"] = 1.0;
-	
-				++numOfOccupanciesReset;
-			}
-			else
-			{
-				if (cif::VERBOSE)
-					cerr << "Changed occupancy to 0.01 for (hetero) atom: " << id << endl;
-				a["occupancy"] = 0.01;
-	
-				++numOfOccupanciesReset;
-			}
+			if (cif::VERBOSE)
+				cerr << "Changed occupancy to 0.01 for (hetero) atom: " << id << endl;
+			a["occupancy"] = 0.01;
+
+			++numOfOccupanciesReset;
 		}
 	}
 	
 	// handle atoms with negative occupancy
-	for (auto a: atomSites.find(cif::Key("occupancy") < 0.0))
-	{
-		string id, compId, atomId, altId;
-		cif::tie(id, compId, atomId, altId) = a.get("id", "label_comp_id", "label_atom_id", "label_alt_id");
-		
-		if (cif::VERBOSE)
-			cerr << "Deleted zero occupancy (hetero) atom: " << a["id"] << endl;
-
-		atomSites.erase(a);
-		++numOfAtomsDeleted;
-	}
+	numOfAtomsDeleted += atomSites.erase(cif::Key("occupancy") < 0.0,
+		[](const cif::Row& r) {
+			if (cif::VERBOSE)
+				cerr << "Deleted zero occupancy (hetero) atom: " << r["id"] << endl;
+		});
 	
 	// remove dubious links
 	for (auto l: dat["link_remove"])
@@ -686,7 +673,7 @@ int pr_main(int argc, char* argv[])
 		string atom[2], residue[2];
 		cif::tie(atom[0], residue[0], atom[1], residue[1]) = l.get("atom_1", "residue_1", "atom_2", "residue_2");
 		
-		auto ll = db["struct_conn"].find(
+		numOfLinksDeleted += db["struct_conn"].erase(
 			(
 				cif::Key("ptnr1_label_comp_id") == residue[0] and
 				cif::Key("ptnr1_label_atom_id") == atom[0] and
@@ -697,30 +684,20 @@ int pr_main(int argc, char* argv[])
 				cif::Key("ptnr2_label_atom_id") == atom[0] and
 				cif::Key("ptnr1_label_comp_id") == residue[1] and
 				cif::Key("ptnr1_label_atom_id") == atom[1]
-			)
+			),
+			[](const cif::Row& r) {
+				if (cif::VERBOSE)
+					cerr << "Deleted dubious LINK " << r["id"] << endl;
+			}
 		);
-		
-		for (auto lr: ll)
-		{
-			if (cif::VERBOSE)
-				cerr << "Deleted dubious LINK " << lr["id"] << endl;
-
-			db["struct_conn"].erase(lr);
-
-			++numOfLinksDeleted;
-		}
 	}
 	
 	// remove rediculously long LINKs
-	for (auto lr: db["struct_conn"].find(cif::Key("pdbx_dist_value") > 5.0))
-	{
-		if (cif::VERBOSE)
-			cerr << "Deleted extremely long LINK: " << lr["id"] << endl;
-
-		db["struct_conn"].erase(lr);
-
-		++numOfLinksDeleted;
-	}
+	numOfLinksDeleted += db["struct_conn"].erase(cif::Key("pdbx_dist_value") > 5.0,
+		[](const cif::Row& r) {
+			if (cif::VERBOSE)
+				cerr << "Deleted extremely long LINK: " << r["id"] << endl;
+		});
 	
 	// Flip ASN if glycosylated at OD1 (LINK part)
 	for (auto lr: db["struct_conn"].find(
@@ -928,15 +905,12 @@ int pr_main(int argc, char* argv[])
 	}
 
 	// Remove hydrogens and X
-	for (auto h: atomSites.find(cif::Key("type_symbol") == "H" or cif::Key("type_symbol") == "D" or cif::Key("type_symbol") == "X"))
-	{
-		if (cif::VERBOSE)
-			cerr << "Deleted (hetero) atom: " << h["id"] << endl;
-		
-		atomSites.erase(h);
-
-		++numOfAtomsDeleted;
-	}
+	numOfAtomsDeleted += atomSites.erase_nocascade(
+		cif::Key("type_symbol") == "H" or cif::Key("type_symbol") == "D" or cif::Key("type_symbol") == "X",
+		[](const cif::Row& r) {
+			if (cif::VERBOSE)
+				cerr << "Deleted (hetero) atom: " << r["id"] << endl;
+		});
 	
 	// Remove unknown ligands when running in database mode.
 	for (auto r: db["chem_comp"].find(cif::Key("id") == "UNL"))
@@ -956,11 +930,7 @@ int pr_main(int argc, char* argv[])
 		if (cif::VERBOSE)
 			cerr << "File contains UNL records but does not specify the residue in the dictionary, dropping" << endl;
 
-		auto unls = atomSites.find(cif::Key("label_comp_id") == "UNL");
-		numOfAtomsDeleted += unls.size();
-		
-		for (auto a: unls)
-			atomSites.erase(a);
+		numOfAtomsDeleted += atomSites.erase(cif::Key("label_comp_id") == "UNL");
 
 		db["pdbx_nonpoly_scheme"].erase(cif::Key("mon_id") == "UNL");
 		db["pdbx_entity_nonpoly"].erase(cif::Key("comp_id") == "UNL");
@@ -983,30 +953,27 @@ int pr_main(int argc, char* argv[])
 //		}
 //	}
 	
-	for (auto a: atomSites.find(cif::Key("label_comp_id") == "UNK"))
-	{
-		string atomId = a["label_atom_id"].as<string>();
-		
-		if (kBackBone.count(atomId) == 0 and atomId != "CB")
-		{
+	numOfAtomsDeleted += atomSites.erase(
+		cif::Key("label_comp_id") == "UNK" and
+		cif::Key("label_atom_id") != "N" and
+		cif::Key("label_atom_id") != "CA" and
+		cif::Key("label_atom_id") != "C" and
+		cif::Key("label_atom_id") != "O" and
+		cif::Key("label_atom_id") != "OXT" and
+		cif::Key("label_atom_id") != "CB",
+		[](const cif::Row& r) {
 			if (cif::VERBOSE)
-				cerr << "Deleted atom from unknown residue " << a["id"] << endl;
-			
-			atomSites.erase(a);		// We have a crazy atom in an unknown residue
-
-			++numOfAtomsDeleted;
+				cerr << "Deleted atom from unknown residue " << r["id"] << endl;
 		}
-	}
+	);
 	
-	for (auto a: atomSites.find(cif::Key("label_comp_id") == "GLY" and cif::Key("label_atom_id") == "CB"))
-	{
-		if (cif::VERBOSE)
-			cerr << "Deleted CB atom from GLY " << a["id"] << endl;
-		
-		atomSites.erase(a);
-		
-		++numOfAtomsDeleted;
-	}
+	numOfAtomsDeleted += atomSites.erase(
+		cif::Key("label_comp_id") == "GLY" and cif::Key("label_atom_id") == "CB",
+		[](const cif::Row& r) {
+			if (cif::VERBOSE)
+				cerr << "Deleted CB atom from GLY " << r["id"] << endl;
+		}
+	);
 	
 	// Fix occupancy for Se in MSE when other side chain atoms have full occupancy
 	for (auto a: atomSites.find(
@@ -1099,6 +1066,100 @@ int pr_main(int argc, char* argv[])
 
 		++numOfRenamedWaters;
 	}
+
+	// Rename HEM to HEC if needed
+	auto hem = db["pdbx_nonpoly_scheme"].find((cif::Key("mon_id") == "HEM"));
+	if (not hem.empty())
+	{
+		// this is the only spot in prepper where we need symmetry, and since this is 
+		// expensive, leave the code here
+
+		c::Structure structure(pdb);
+
+		string entryId = db["entry"].front()["id"].as<string>();
+		if (entryId.empty())
+			throw runtime_error("Missing _entry.id in coordinates file");
+
+		double a, b, c, alpha, beta, gamma;
+		cif::tie(a, b, c, alpha, beta, gamma) = db["cell"][cif::Key("entry_id") == entryId]
+			.get("length_a", "length_b", "length_c",
+				"angle_alpha", "angle_beta", "angle_gamma");
+
+		clipper::Cell cell(clipper::Cell_descr(a, b, c, alpha, beta, gamma));
+
+		string spacegroupName = db["symmetry"]
+			[cif::Key("entry_id") == entryId]
+			["space_group_name_H-M"].as<string>();
+
+		int spacegroupNr = mmcif::GetSpacegroupNumber(spacegroupName);
+
+		c::SymmetryAtomIteratorFactory saif(structure, spacegroupNr, cell);
+
+		for (auto h: hem)
+		{
+			try
+			{
+				bool near;
+
+				for (std::string hca: { "CAB", "CAC" })
+				{
+					near = false;
+
+					for (auto ca: atomSites.find(
+						cif::Key("auth_seq_id") == h["auth_seq_num"].as<int>() and
+						cif::Key("label_atom_id") == hca))
+					{
+						auto atom = structure.getAtomById(ca["id"].as<std::string>());
+
+						for (auto sg: atomSites.find(cif::Key("label_comp_id") == "CYS" and cif::Key("label_atom_id") == "SG"))
+						{
+							auto sgAtom = structure.getAtomById(sg["id"].as<std::string>());
+							auto d = c::Distance(atom, sgAtom);
+
+							cerr << "Distance " << hca << " to " << atom.id() << " is " << d << endl;
+
+							if (d <= 2.5)
+							{
+								near = true;
+								break;
+							}
+
+							// for (auto sgAtom: saif(structure.getAtomById(sg["id"].as<std::string>())))
+							// {
+							// 	auto d = c::Distance(atom, sgAtom);
+
+							// 	cerr << "Distance " << hca << " to " << atom.id() << " is " << d << endl;
+
+							// 	if (d <= 2.5)
+							// 	{
+							// 		near = true;
+							// 		break;
+							// 	}
+							// }
+						}
+
+						break;
+					}
+
+					if (not near)
+						break;
+				}
+
+				if (not near)
+					continue;
+				
+				std::cerr << "Rename HEM to HEC" << std::endl;
+
+			}
+			catch (const std::exception& ex)
+			{
+				if (cif::VERBOSE)
+					std::cerr << ex.what() << std::endl;
+			}
+		}
+	}
+
+
 
 	cout << endl
 		 << "Report" << endl
