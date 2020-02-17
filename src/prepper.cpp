@@ -1148,8 +1148,13 @@ int pr_main(int argc, char* argv[])
 				if (not near)
 					continue;
 				
-				std::cerr << "Rename HEM to HEC" << std::endl;
+				for (auto a: atomSites.find(cif::Key("label_asym_id") == h["asym_id"]))
+				{
+					a["label_comp_id"] = "HEC";
+					a["auth_comp_id"] = "HEC";
+				}
 
+				++numOfHemHecRenamed;
 			}
 			catch (const std::exception& ex)
 			{
@@ -1158,8 +1163,6 @@ int pr_main(int argc, char* argv[])
 			}
 		}
 	}
-
-
 
 	cout << endl
 		 << "Report" << endl
@@ -1172,6 +1175,7 @@ int pr_main(int argc, char* argv[])
 		 << "Fixed   LINK   records: " << numOfLinksFixed << endl
 		 << "Renamed water atoms   : " << numOfRenamedWaters << endl
 		 << "Replaced dummies      : " << numOfReplacedDummies << endl
+		 << "Renamed HEM to HEC    : " << numOfHemHecRenamed << endl
 		 ;
 		 
 	if (vm.count("output"))
