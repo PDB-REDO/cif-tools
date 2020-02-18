@@ -30,6 +30,8 @@ namespace io = boost::iostreams;
 namespace c = mmcif;
 namespace zx = zeep::xml;
 
+// --------------------------------------------------------------------
+
 const set<string> kStripperResidues = {
 	"GLY", "ALA", "VAL", "THR", "SER", "CYS", "TRP", "PHE", "TYR", "HIS", "ILE",
 	"LEU", "ASP", "ASN", "GLU", "GLN", "MET", "ARG", "LYS", "PRO", "MSE"
@@ -38,6 +40,17 @@ const set<string> kStripperResidues = {
 const set<string> kBackBone = {
 	"N", "CA", "C", "O", "OXT"
 };
+
+// --------------------------------------------------------------------
+
+ostream& operator<<(ostream& os, const c::Atom& a)
+{
+	os << a.labelAsymId() << ':' << a.labelSeqId() << '/' << a.labelAtomId();
+	
+	return os;
+}
+
+// --------------------------------------------------------------------
 
 void SwapFields(cif::Row& r, string fld1, string fld2)
 {
@@ -446,12 +459,16 @@ int pr_main(int argc, char* argv[])
 		("server",								"Server mode")
 		("pdb-redo-data", po::value<string>(),	"The PDB-REDO dat file" /*, default is the built in one"*/)
 		("dict",		po::value<string>(),	"Dictionary file containing restraints for residues in this specific target")
+
+		("cab-sg-distance",
+						po::value<float>(),		"Max distance between CAB/CAC and CYS-SG for disambiguating HEM/HEC")
 		;
 
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
 		("input,i",		po::value<string>(),	"Input files")
-		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
+		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)")
+		("test",								"Generic test option");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
@@ -1071,35 +1088,41 @@ int pr_main(int argc, char* argv[])
 	auto hem = db["pdbx_nonpoly_scheme"].find((cif::Key("mon_id") == "HEM"));
 	if (not hem.empty())
 	{
-		// this is the only spot in prepper where we need symmetry, and since this is 
-		// expensive, leave the code here
-
 		c::Structure structure(pdb);
 
-		string entryId = db["entry"].front()["id"].as<string>();
-		if (entryId.empty())
-			throw runtime_error("Missing _entry.id in coordinates file");
+		// string entryId = db["entry"].front()["id"].as<string>();
+		// if (entryId.empty())
+		// 	throw runtime_error("Missing _entry.id in coordinates file");
 
-		double a, b, c, alpha, beta, gamma;
-		cif::tie(a, b, c, alpha, beta, gamma) = db["cell"][cif::Key("entry_id") == entryId]
-			.get("length_a", "length_b", "length_c",
-				"angle_alpha", "angle_beta", "angle_gamma");
+		// double a, b, c, alpha, beta, gamma;
+		// cif::tie(a, b, c, alpha, beta, gamma) = db["cell"][cif::Key("entry_id") == entryId]
+		// 	.get("length_a", "length_b", "length_c",
+		// 		"angle_alpha", "angle_beta", "angle_gamma");
 
-		clipper::Cell cell(clipper::Cell_descr(a, b, c, alpha, beta, gamma));
+		// clipper::Cell cell(clipper::Cell_descr(a, b, c, alpha, beta, gamma));
 
-		string spacegroupName = db["symmetry"]
-			[cif::Key("entry_id") == entryId]
-			["space_group_name_H-M"].as<string>();
+		// string spacegroupName = db["symmetry"]
+		// 	[cif::Key("entry_id") == entryId]
+		// 	["space_group_name_H-M"].as<string>();
 
-		int spacegroupNr = mmcif::GetSpacegroupNumber(spacegroupName);
+		// int spacegroupNr = mmcif::GetSpacegroupNumber(spacegroupName);
 
-		c::SymmetryAtomIteratorFactory saif(structure, spacegroupNr, cell);
+		// c::SymmetryAtomIteratorFactory saif(structure, spacegroupNr, cell);
+
+		float maxCabSgDistance = 2.5;
+		if (vm.count("cab-sg-distance"))
+			maxCabSgDistance = vm["cab-sg-distance"].as<float>();
+
+		bool testHemHec = vm.count("test");
 
 		for (auto h: hem)
 		{
+			auto asym = h["asym_id"].as<string>();
+
 			try
 			{
 				bool near;
+				std::unique_ptr<c::Atom> cabSg, cacSg;
 
 				for (std::string hca: { "CAB", "CAC" })
 				{
@@ -1116,11 +1139,18 @@ int pr_main(int argc, char* argv[])
 							auto sgAtom = structure.getAtomById(sg["id"].as<std::string>());
 							auto d = c::Distance(atom, sgAtom);
 
-							cerr << "Distance " << hca << " to " << atom.id() << " is " << d << endl;
+							if (testHemHec and d < 5)
+								cerr << "Distance " << hca << " " << atom << " to " << sgAtom << " is " << d << endl;
 
-							if (d <= 2.5)
+							if (d <= maxCabSgDistance)
 							{
 								near = true;
+
+								if (hca == "CAB")
+									cabSg.reset(new c::Atom(sgAtom));
+								else
+									cacSg.reset(new c::Atom(sgAtom));
+
 								break;
 							}
 
@@ -1148,7 +1178,24 @@ int pr_main(int argc, char* argv[])
 				if (not near)
 					continue;
 				
-				for (auto a: atomSites.find(cif::Key("label_asym_id") == h["asym_id"]))
+				if (testHemHec or cif::VERBOSE)
+					std::cerr << "Renaming HEM to HEC " << asym << " (" << h["pdb_strand_id"] << ':' << h["pdb_seq_num"] << ')' << std::endl;
+
+				// see if chem_comp is available
+				auto hemc = db["chem_comp"].find(cif::Key("id") == "HEC");
+				if (hemc.empty())
+				{
+					db["chem_comp"].emplace({
+						{ "id", "HEC" },
+						{ "type", "NON-POLYMER" },
+						{ "name", "HEME C" },
+						{ "formula", "C34 H34 Fe N4 O4" },
+						{ "formula_weight", "618.503" }
+					});
+				}
+
+//				h["mon_id"] = "HEC";
+				for (auto a: atomSites.find(cif::Key("label_asym_id") == asym))
 				{
 					a["label_comp_id"] = "HEC";
 					a["auth_comp_id"] = "HEC";
