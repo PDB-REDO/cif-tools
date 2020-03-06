@@ -838,7 +838,7 @@ json calculateZScores(const Structure& structure, size_t nShuffles)
 	size_t torsZScoreCount = 0;
 
 	json residues;
-	vector<float> zScorePerResidue;
+	vector<float> ramaZScorePerResidue, torsZScorePerResidue;
 
 	for (auto& poly: structure.polymers())
 	{
@@ -917,7 +917,7 @@ json calculateZScores(const Structure& structure, size_t nShuffles)
 				{ "z-score", zr }
 			};
 
-			zScorePerResidue.push_back(zr);
+			ramaZScorePerResidue.push_back(zr);
 
 			ramaZScoreSum += zr;
 			++ramaZScoreCount;
@@ -938,6 +938,8 @@ json calculateZScores(const Structure& structure, size_t nShuffles)
 
 					torsZScoreSum += zt;
 					++torsZScoreCount;
+
+					torsZScorePerResidue.push_back(zt);
 
 					residue["torsion"] =
 					{
@@ -960,13 +962,15 @@ json calculateZScores(const Structure& structure, size_t nShuffles)
 	float torsVsRand = torsZScoreSum / torsZScoreCount;
 
 	random_device rd;
-	float jackknifeRama = jackknife(zScorePerResidue);
+	float jackknifeRama = jackknife(ramaZScorePerResidue);
+	float jackknifeTors = jackknife(torsZScorePerResidue);
 
 	return {
 		{ "ramachandran-z", ((ramaVsRand - tbl.mean_ramachandran()) / tbl.sd_ramachandran()) },
 		{ "avg-vs-random-rama", ramaVsRand },
 		{ "ramachandran-jackknife-sd", jackknifeRama },
 		{ "torsion-z", ((torsVsRand - tbl.mean_torsion()) / tbl.sd_torsion()) },
+		{ "torsion-jackknife-sd", jackknifeTors },
 		{ "residues", residues },
 	};
 }
