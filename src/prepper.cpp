@@ -1129,7 +1129,7 @@ int pr_main(int argc, char* argv[])
 					near = false;
 
 					for (auto ca: atomSites.find(
-						cif::Key("auth_seq_id") == h["auth_seq_num"].as<int>() and
+						cif::Key("auth_seq_id") == h["pdb_seq_num"].as<int>() and
 						cif::Key("label_atom_id") == hca))
 					{
 						auto atom = structure.getAtomById(ca["id"].as<std::string>());
