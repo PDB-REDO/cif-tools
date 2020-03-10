@@ -16,8 +16,8 @@ class NotAHBondSet
 
 	static NotAHBondSet* Create();
 
-	void Save(zeep::xml::container& inNode);
-	static NotAHBondSet* Load(zeep::xml::container& inNode);
+	void Save(zeep::xml::element& inNode);
+	static NotAHBondSet* Load(zeep::xml::element& inNode);
 	
 	bool IsHBondDonorOrAcceptor(const std::string& inMonomer,
 		const std::string& inAtomID) const
