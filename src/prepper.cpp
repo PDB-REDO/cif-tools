@@ -830,7 +830,7 @@ int pr_main(int argc, char* argv[])
 			cif::Key("label_seq_id") == seqId[1] and
 			cif::Key("label_atom_id") == "O1"))
 		{
-			a.setCascadeUpdate(false);
+			a.setCascading(false);
 
 			a["label_atom_id"] = atomId[0];
 			a["label_comp_id"] = compId[0];
