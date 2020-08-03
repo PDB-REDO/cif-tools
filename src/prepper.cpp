@@ -7,8 +7,8 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
+
+
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -170,7 +170,7 @@ int DropLink(cif::Datablock& db,
 
 tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile, cif::Datablock& dat)
 {
-	fs::ifstream file(pdbCareFile);
+	std::ifstream file(pdbCareFile);
 	if (not file.is_open())
 		throw runtime_error("Could not open pdb-care file " + pdbCareFile.string());
 	
@@ -486,7 +486,7 @@ int pr_main(int argc, char* argv[])
 	
 	if (fs::exists(configFile))
 	{
-		fs::ifstream cfgFile(configFile);
+		std::ifstream cfgFile(configFile);
 		if (cfgFile.is_open())
 			po::store(po::parse_config_file(cfgFile, visible_options), vm);
 	}
@@ -508,7 +508,7 @@ int pr_main(int argc, char* argv[])
 	fs::path pdbRedoDataFile = "pdb-redo-data.cif";
 	if (vm.count("pdb-redo-data"))
 		pdbRedoDataFile = vm["pdb-redo-data"].as<string>();
-	fs::ifstream pdbRedoData(pdbRedoDataFile);
+	std::ifstream pdbRedoData(pdbRedoDataFile);
 	if (not pdbRedoData.is_open())
 		throw runtime_error("Could not open pdb-redo-data file");
 	cif::File pdbRedoDataCif(pdbRedoData);

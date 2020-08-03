@@ -1419,7 +1419,7 @@ int centrifugePredict(int argc, char* argv[])
 		cif::VERBOSE = vm["debug"].as<int>();
 	
 	// Read the model
-	fs::ifstream modelFile(vm["model"].as<string>());
+	std::ifstream modelFile(vm["model"].as<string>());
 	if (not modelFile.is_open())
 		throw runtime_error("no such model file");
 	

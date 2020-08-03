@@ -34,7 +34,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
+
 
 #include "cif++/CifUtils.h"
 #include "cif++/Structure.h"

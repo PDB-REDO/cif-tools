@@ -727,6 +727,7 @@ with_boost_thread
 with_boost_regex
 with_boost_program_options
 with_cif__
+with_newuoa
 with_zeep
 with_clipper
 '
@@ -1407,6 +1408,8 @@ Optional Packages:
                           e.g.
                           --with-boost-program-options=boost_program_options-gcc-mt-1_33_1
   --with-cif++=[location] Use the cif++ library as specified.
+  --with-newuoa=[location]
+                          Use the newuoa library as specified.
   --with-zeep=[location]  Use the zeep library as specified.
   --with-clipper=[location]
                           Use the clipper library as specified.
@@ -6784,6 +6787,16 @@ fi
 
 
 
+# Check whether --with-newuoa was given.
+if test "${with_newuoa+set}" = set; then :
+  withval=$with_newuoa;
+			CPPFLAGS="$CPPFLAGS -I ${withval}/include"
+			CXXFLAGS="$CXXFLAGS -I ${withval}/include"
+			LDFLAGS="$LDFLAGS -L${withval}/lib"
+
+fi
+
+
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -7341,6 +7354,21 @@ $as_echo "#define HAVE_LIBCLIPPER 1" >>confdefs.h
 else
   as_fn_error $? "libclipper not found - cannot continue" "$LINENO" 5
 fi
+
+
+ac_fn_cxx_check_header_mongrel "$LINENO" "newuoa.h" "ac_cv_header_newuoa_h" "$ac_includes_default"
+if test "x$ac_cv_header_newuoa_h" = xyes; then :
+
+		LIBS="$LIBS -lnewuoa"
+
+else
+  as_fn_error $? "
+Can't find the newuoa include file newuoa.h. Please install this
+library and specify its location with --with-newuoa=<path>.
+You can find newuoa at https://github.com/elsid/newuoa-cpp.git
+" "$LINENO" 5
+fi
+
 
 
 

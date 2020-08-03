@@ -48,6 +48,14 @@ AC_ARG_WITH([cif++],
 			AC_SUBST([CIFPP_LIB], [${withval}/.libs/libcif++.la]) 
 		])
 
+AC_ARG_WITH([newuoa],
+	AS_HELP_STRING([--with-newuoa=@<:@location@:>@],
+		[Use the newuoa library as specified.]),
+		[
+			CPPFLAGS="$CPPFLAGS -I ${withval}/include"
+			CXXFLAGS="$CXXFLAGS -I ${withval}/include"
+			LDFLAGS="$LDFLAGS -L${withval}/lib"
+		])
 
 AX_CHECK_LIBRARY([LIBCIFPP], [cif++/Config.hpp], [cif++],
 	[],
@@ -102,6 +110,17 @@ AX_CHECK_LIBRARY([LIBCLIPPER], [clipper/clipper.h], [clipper-core],
 		LIBS="$LIBS -lclipper-ccp4 -lclipper-minimol -lclipper-mmdb -lclipper-cns -lclipper-phs -lclipper-contrib -lclipper-core"
 	],
 	[AC_MSG_ERROR([libclipper not found - cannot continue])])
+
+AC_CHECK_HEADER(
+	[newuoa.h],
+	[
+		LIBS="$LIBS -lnewuoa"
+	],
+	[AC_MSG_ERROR([
+Can't find the newuoa include file newuoa.h. Please install this
+library and specify its location with --with-newuoa=<path>.
+You can find newuoa at https://github.com/elsid/newuoa-cpp.git
+])])
 
 AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
 				 [ LIBS="$LIBS -lz" ],

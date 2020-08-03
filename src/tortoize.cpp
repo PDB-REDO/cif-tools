@@ -14,8 +14,8 @@
 #include <mutex>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
+
+
 #include <boost/algorithm/string.hpp>
 
 #include "cif++/Secondary.h"
@@ -573,7 +573,7 @@ void buildDataFile(fs::path dir)
 
 	float mean_torsion, sd_torsion, mean_ramachandran, sd_ramachandran;
 
-	fs::ifstream in(dir / "zscores_proteins.txt");
+	std::ifstream in(dir / "zscores_proteins.txt");
 	string line;
 	const regex krx(R"((Rama|Rota): average ([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?), sd ([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?))");
 
@@ -610,7 +610,7 @@ void buildDataFile(fs::path dir)
 			if (not fs::exists(p))
 				continue;
 			
-			fs::ifstream f(p);
+			std::ifstream f(p);
 			Data d("rama", aa.first, ss.first, f);
 
 			StoredData sd = { };
@@ -629,7 +629,7 @@ void buildDataFile(fs::path dir)
 		if (not fs::exists(p))
 			continue;
 		
-		fs::ifstream f(p);
+		std::ifstream f(p);
 		Data d("rama", get<1>(ss), get<0>(ss), f);
 
 		StoredData sd = { };
@@ -665,7 +665,7 @@ void buildDataFile(fs::path dir)
 			if (not fs::exists(p))
 				continue;
 			
-			fs::ifstream f(p);
+			std::ifstream f(p);
 			Data d("torsion", aa.first, ss.first, f);
 
 			StoredData sd = { };
@@ -1019,7 +1019,7 @@ int pr_main(int argc, char* argv[])
 	
 	if (fs::exists(configFile))
 	{
-		fs::ifstream cfgFile(configFile);
+		std::ifstream cfgFile(configFile);
 		if (cfgFile.is_open())
 			po::store(po::parse_config_file(cfgFile, visible_options), vm);
 	}

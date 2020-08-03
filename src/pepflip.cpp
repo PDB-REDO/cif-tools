@@ -14,8 +14,8 @@
 #include <future>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
+
+
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 
@@ -1052,7 +1052,7 @@ int pr_main(int argc, char* argv[])
 	
 	if (fs::exists(configFile))
 	{
-		fs::ifstream cfgFile(configFile);
+		std::ifstream cfgFile(configFile);
 		if (cfgFile.is_open())
 			po::store(po::parse_config_file(cfgFile, visible_options), vm);
 	}

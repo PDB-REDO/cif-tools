@@ -4,11 +4,10 @@
 
 #include <fstream>
 #include <chrono>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -17,14 +16,14 @@
 
 #include <zeep/xml/document.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Compound.h"
-#include "cif++/Structure.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Compound.hpp"
+#include "cif++/Structure.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 namespace zx = zeep::xml;
@@ -119,7 +118,7 @@ int pr_main(int argc, char* argv[])
 {
 	int result = 0;
 	
-	po::options_description visible_options("flipper " + VERSION + " [options] file]" );
+	po::options_description visible_options("flipper " + VERSION_STRING + " [options] file]" );
 	visible_options.add_options()
 		("output,o",	po::value<string>(),	"The output file")
 		("help,h",								"Display help message")
@@ -148,7 +147,7 @@ int pr_main(int argc, char* argv[])
 	
 	if (fs::exists(configFile))
 	{
-		fs::ifstream cfgFile(configFile);
+		std::ifstream cfgFile(configFile);
 		if (cfgFile.is_open())
 			po::store(po::parse_config_file(cfgFile, visible_options), vm);
 	}

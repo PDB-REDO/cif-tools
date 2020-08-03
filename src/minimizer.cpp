@@ -11,7 +11,7 @@
 #include <random>
 
 #include <boost/format.hpp>
-#include <boost/filesystem/path.hpp>
+
 #include <boost/thread.hpp>
 
 #include "minimizer.h"

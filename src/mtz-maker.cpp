@@ -3,7 +3,7 @@
 #include "pdb-redo.h"
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/fstream.hpp>
+
 
 #include "cif++/MapMaker.h"
 

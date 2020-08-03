@@ -8,8 +8,8 @@
 #include <zeep/http/webapp.hpp>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
+
+
 #include <boost/algorithm/string.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -40,11 +40,11 @@ const char* PID_FILE = "/var/run/map-maker.pid";
 
 // --------------------------------------------------------------------
 
-class self_destructing_file : public fs::ifstream
+class self_destructing_file : public std::ifstream
 {
   public:
 	self_destructing_file(fs::path p)
-		: fs::ifstream(p, ios::binary), m_path(p) {}
+		: std::ifstream(p, ios::binary), m_path(p) {}
 	
 	virtual ~self_destructing_file()
 	{

@@ -10,8 +10,8 @@
 #include <iomanip>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
+
+
 
 #include "cif++/Statistics.h"
 
@@ -84,7 +84,7 @@ int pr_main(int argc, char* argv[])
 	
 	if (fs::exists("re-ref.cfg"))
 	{
-		fs::ifstream cfgFile("re-ref.cfg");
+		std::ifstream cfgFile("re-ref.cfg");
 		if (cfgFile.is_open())
 			po::store(po::parse_config_file(cfgFile, visible_options), vm);
 	}

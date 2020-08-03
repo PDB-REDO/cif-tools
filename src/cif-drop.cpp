@@ -5,9 +5,6 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -108,7 +105,7 @@ int cif_drop(int argc, char* argv[])
 	}
 	
 	fs::path file = vm["input"].as<string>();
-	fs::ifstream is(file);
+	std::ifstream is(file);
 	if (not is.is_open())
 	{
 		cerr << "Could not open input file" << endl;

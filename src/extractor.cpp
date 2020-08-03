@@ -8,8 +8,8 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
+
+
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -99,7 +99,7 @@ int pr_main(int argc, char* argv[])
 	fs::path pdbRedoDataFile = "pdb-redo-data.cif";
 	if (vm.count("pdb-redo-data"))
 		pdbRedoDataFile = vm["pdb-redo-data"].as<string>();
-	fs::ifstream pdbRedoData(pdbRedoDataFile);
+	std::ifstream pdbRedoData(pdbRedoDataFile);
 	if (not pdbRedoData.is_open())
 		throw runtime_error("Could not open pdb-redo-data file");
 	cif::File pdbRedoDataCif(pdbRedoData);

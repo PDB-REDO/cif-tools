@@ -5,7 +5,7 @@
 
 #include "cif++/Config.h"
 
-#include <boost/filesystem/fstream.hpp>
+
 
 #include <zeep/xml/serialize.hpp>
 #include <zeep/xml/document.hpp>
@@ -133,7 +133,7 @@ SkipListInitializer sInitSkipListTypes;
 
 SkipList readSkipList(const fs::path& file, const mmcif::Structure& structure)
 {
-	fs::ifstream is(file);
+	std::ifstream is(file);
 	if (not is.is_open())
 		throw runtime_error("Could not open skip list file " + file.string());
 	

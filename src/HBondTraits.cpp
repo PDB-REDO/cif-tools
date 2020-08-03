@@ -3,8 +3,8 @@
 #include <set>
 #include <regex>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
+
+
 #include <boost/algorithm/string.hpp>
 
 #include "cif++/Cif++.h"
@@ -36,7 +36,7 @@ NotAHBondSet* NotAHBondSet::Create()
 			if (e->path().extension().string() != ".cif")
 				continue;
 			
-			fs::ifstream file(e->path());
+			std::ifstream file(e->path());
 			if (not file.is_open())
 				throw runtime_error("Could not open file: " + e->path().string());
 			
