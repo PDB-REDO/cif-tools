@@ -11,3 +11,5 @@ obj/
 docroot/scripts/
 autom4te.cache/
 .vscode/
+.gdb_history
+pdb2cif
