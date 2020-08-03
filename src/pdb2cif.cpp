@@ -5,21 +5,21 @@
 #include <fstream>
 #include <chrono>
 #include <stdexcept>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/PDB2Cif.h"
-#include "cif++/Structure.h"
-#include "cif++/Compound.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/PDB2Cif.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/Compound.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 
@@ -29,7 +29,7 @@ int pr_main(int argc, char* argv[])
 	
 	try
 	{
-		po::options_description desc("pdb2cif " + VERSION + " options");
+		po::options_description desc("pdb2cif " + VERSION_STRING + " options");
 		desc.add_options()
 			("input,i",		po::value<string>(),	"Input file")
 			("output,o",	po::value<string>(),	"Output file, default stdout")
@@ -51,7 +51,7 @@ int pr_main(int argc, char* argv[])
 	
 		if (vm.count("version"))
 		{
-			cout << argv[0] << " version " << VERSION << endl;
+			cout << argv[0] << " version " << VERSION_STRING << endl;
 			exit(0);
 		}
 	
@@ -74,8 +74,9 @@ int pr_main(int argc, char* argv[])
 		regex pdbIdRx(R"(\d\w{3})");
 		
 		fs::path file = input;
-		if (not fs::exists(file) and regex_match(input, pdbIdRx))
-			file = fs::path(PDB_DIR) / "pdb" / input.substr(1, 2) / ("pdb" + input + ".ent.gz");
+#warning "compile time PDB_DIR?"
+		// if (not fs::exists(file) and regex_match(input, pdbIdRx))
+		// 	file = fs::path(PDB_DIR) / "pdb" / input.substr(1, 2) / ("pdb" + input + ".ent.gz");
 		
 		ifstream infile(file.c_str(), ios_base::in | ios_base::binary);
 		if (not infile.is_open())

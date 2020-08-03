@@ -10,12 +10,12 @@
 #include <cmath>
 #include <regex>
 
-#include "cif++/mrsrc.h"
-#include "cif++/Cif++.h"
+#include "mrsrc.h"
+#include "cif++/Cif++.hpp"
 
 using namespace std;
 
-string VERSION;
+string VERSION_STRING;
 
 int pr_main(int argc, char* argv[]);
 
@@ -115,7 +115,7 @@ void load_version_info()
 {
 	mrsrc::rsrc version("version.txt");
 	if (not version)
-		VERSION = "unknown version, version resource is missing";
+		VERSION_STRING = "unknown version, version resource is missing";
 	else
 	{
 		struct membuf : public streambuf
@@ -146,7 +146,7 @@ void load_version_info()
 			}
 		}
 
-		VERSION = gVersionNr + " " + gVersionDate;
+		VERSION_STRING = gVersionNr + " " + gVersionDate;
 	}
 }
 

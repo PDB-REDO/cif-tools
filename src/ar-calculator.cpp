@@ -6,10 +6,9 @@
 #include "pdb-redo.h"
 
 #include <iostream>
+#include <filesystem>s
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
 
 #include "mmcif/structure.h"
 
@@ -18,7 +17,7 @@
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace c = mmcif;
 
 int cif::VERBOSE = 0;

@@ -23,7 +23,7 @@ namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description desc("cif2pdb " + VERSION + " options");
+	po::options_description desc("cif2pdb " + VERSION_STRING + " options");
 	desc.add_options()
 		("input,i",		po::value<string>(),	"Input file")
 		("output,o",	po::value<string>(),	"Output file, default stdout")
@@ -44,7 +44,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 

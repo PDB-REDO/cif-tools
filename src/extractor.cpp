@@ -56,7 +56,7 @@ int pr_main(int argc, char* argv[])
 {
 	int result = 0;
 	
-	po::options_description visible_options("extractor " + VERSION + " options coordinatesfile structurefile" );
+	po::options_description visible_options("extractor " + VERSION_STRING + " options coordinatesfile structurefile" );
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
@@ -86,7 +86,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 

@@ -1,0 +1,13 @@
+node_modules
+core
+config.log
+config.status
+rama-angles.conf
+rama-angles
+version*.txt
+rsrc/version-info.txt
+obj.dbg/
+obj/
+docroot/scripts/
+autom4te.cache/
+.vscode/

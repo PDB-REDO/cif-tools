@@ -16,7 +16,7 @@ namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("make-mtz " + VERSION + " options");
+	po::options_description visible_options("make-mtz " + VERSION_STRING + " options");
 	visible_options.add_options()
 		("help,h",										"Display help message")
 		("hklin",			po::value<string>(),		"Input file (either mtz or cif reflections file)")
@@ -50,7 +50,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 

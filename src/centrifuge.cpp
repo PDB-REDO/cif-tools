@@ -15,10 +15,9 @@
 #include <iomanip>
 #include <atomic>
 #include <numeric>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
@@ -34,14 +33,14 @@
 #include <zeep/xml/serialize.hpp>
 #include <zeep/xml/writer.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Structure.h"
-#include "cif++/Compound.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/Compound.hpp"
 //#include "cif++/Edia.h"
-#include "cif++/CifUtils.h"
-#include "cif++/DistanceMap.h"
-#include "cif++/BondMap.h"
-#include "cif++/MapMaker.h"
+#include "cif++/CifUtils.hpp"
+#include "cif++/DistanceMap.hpp"
+#include "cif++/BondMap.hpp"
+#include "cif++/MapMaker.hpp"
 
 #include "HBondTraits.h"
 
@@ -804,7 +803,7 @@ FeatureScoreArray CalculateScoresForWater(const c::Atom& water, const c::Structu
 
 int centrifugeLearn(int argc, char* argv[])
 {
-	po::options_description desc("centrifuge-learn " + VERSION + " options");
+	po::options_description desc("centrifuge-learn " + VERSION_STRING + " options");
 	desc.add_options()
 		("output,o",	po::value<string>(),	"Output file for the calculated model")
 		("input,i",		po::value<vector<string>>(),
@@ -870,7 +869,7 @@ int centrifugeLearn(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -1377,7 +1376,7 @@ int centrifugeLearn(int argc, char* argv[])
 
 int centrifugePredict(int argc, char* argv[])
 {
-	po::options_description desc("centrifuge-predict " + VERSION + " options");
+	po::options_description desc("centrifuge-predict " + VERSION_STRING + " options");
 	desc.add_options()
 		("model,m",		po::value<string>(),	"Model file")
 		("input-coordinates,i",
@@ -1406,7 +1405,7 @@ int centrifugePredict(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -1581,7 +1580,7 @@ int centrifugePredict(int argc, char* argv[])
 
 int edia_test(int argc, char* argv[])
 {
-	po::options_description desc("centrifuge-predict " + VERSION + " options");
+	po::options_description desc("centrifuge-predict " + VERSION_STRING + " options");
 	desc.add_options()
 		("pdb",			po::value<string>(),	"Input PDB file")
 		("mtz",			po::value<string>(),	"Input MTZ or CCP4MAP file")
@@ -1607,7 +1606,7 @@ int edia_test(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 
