@@ -63,10 +63,8 @@ MRC					= @MRC@
 CIFPP_RSRC			= @CIFPP_RSRC@
 
 ifneq "$(MRC)" ""
-ifneq "$(DEBUG)" "1"
 USE_RSRC	?= 1
 DEFINES		+= USE_RSRC
-endif
 endif
 
 # targets
@@ -91,12 +89,9 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 
 else
 
-$(OBJDIR)/%.o: %.cpp | src/mrsrc.h $(OBJDIR)
+$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
-
-src/mrsrc.h:
-	$(MRC) --header > $@
 
 REVISION = $(shell git log --pretty=format:%h --max-count=1)
 REVISION_FILE = version-info-$(REVISION).txt
@@ -145,14 +140,14 @@ $$(OBJDIR)/$(1)_rsrc.o: @CIFPP_RSRC@/dictionaries $$($(1)_RSRC) $$(COMMON_RSRC)
 	$(MRC) -o $$@ $$^
 endif
 
-$(1): $(OBJDIR)/$(1).o $(COMMON_OBJECTS:%=$(OBJDIR)/%) $$($(1)_OBJECTS:%=$(OBJDIR)/%) $(LIBS)
+$(1): $(OBJDIR)/$(1).o $(COMMON_OBJECTS:%=$(OBJDIR)/%) $$($(1)_OBJECTS:%=$(OBJDIR)/%)
 endef
 
 $(foreach program,$(PROGRAMS),$(eval $(call PROGRAM_template,$(program))))
 
 $(PROGRAMS):
 	@ echo '->' $@
-	@ $(CXX) -o $@ $^ $(LDFLAGS)
+	@ $(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 OBJECTS = $(sort $(foreach program,$(PROGRAMS),$($(program)_OBJECTS)))
 OBJECTS := $(OBJECTS:%=$(OBJDIR)/%.o)

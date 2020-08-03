@@ -21,12 +21,11 @@
 
 #include "cif++/Secondary.h"
 #include "cif++/Statistics.h"
+#include "cif++/CifUtils.hpp"
 
 #include "minimizer.h"
 #include "ramachandran.h"
 #include "skiplist.h"
-
-#include "cif++/mrsrc.h"
 
 using namespace std;
 

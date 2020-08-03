@@ -17,7 +17,7 @@
 
 #include "minimizer.h"
 
-#include "cif++/mrsrc.h"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 

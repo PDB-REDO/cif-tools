@@ -44,7 +44,6 @@
 
 #include "HBondTraits.h"
 
-#include "cif++/mrsrc.h"
 #include "svm++.h"
 
 using namespace std;

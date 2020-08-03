@@ -23,7 +23,7 @@
 
 #include <zeep/el/element.hpp>
 
-#include "cif++/mrsrc.h"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 
@@ -778,7 +778,7 @@ const Data& DataTable::loadRamachandranData(const string& aa, SecStrType ss) con
 
 void DataTable::load(const char* name, vector<Data>& table, float& mean, float& sd)
 {
-	mrsrc::rsrc rd(name);
+	cif::rsrc::rsrc rd(name);
 	if (not rd)
 		throw runtime_error("Missing resource "s + name);
 

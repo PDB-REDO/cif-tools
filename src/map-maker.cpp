@@ -16,8 +16,8 @@
 #include <boost/date_time/local_time/local_time.hpp>
 
 #include "cif++/MapMaker.h"
+#include "cif++/CifUtils.hpp"
 
-#include "cif++/mrsrc.h"
 #include "pr-server.hpp"
 
 using namespace std;
@@ -276,7 +276,7 @@ void MapMakerServer::handle_map_request(const zh::request& request, const el::sc
 
 void MapMakerServer::load_template(const std::string& file, zeep::xml::document& doc)
 {
-	mrsrc::rsrc rsrc(file);
+	cif::rsrc::rsrc rsrc(file);
 	if (not rsrc)
 		throw runtime_error("missing template");
 	
@@ -291,7 +291,7 @@ void MapMakerServer::handle_file(const zh::request& request, const el::scope& sc
 
 	fs::path file = scope["baseuri"].as<string>();
 
-	mrsrc::rsrc rsrc(file.string());
+	cif::rsrc::rsrc rsrc(file.string());
 
 	if (not rsrc)
 		create_error_reply(request, zh::not_found, "The requested file was not found on this 'server'", reply);

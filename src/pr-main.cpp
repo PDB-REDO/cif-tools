@@ -10,8 +10,8 @@
 #include <cmath>
 #include <regex>
 
-#include "mrsrc.h"
 #include "cif++/Cif++.hpp"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 
@@ -113,7 +113,7 @@ static string gVersionNr, gVersionDate;
 
 void load_version_info()
 {
-	mrsrc::rsrc version("version.txt");
+	auto version = cif::rsrc_loader::load("version.txt");
 	if (not version)
 		VERSION_STRING = "unknown version, version resource is missing";
 	else
@@ -185,6 +185,13 @@ int main(int argc, char* argv[])
 	
 	try
 	{
+		cif::rsrc_loader::init({
+#if USE_RSRC
+			{ cif::rsrc_loader_type::mrsrc, "", { gResourceIndex, gResourceData, gResourceName } },
+#endif
+			{ cif::rsrc_loader_type::file, "." }
+		});
+
 		load_version_info();
 		
 		result = pr_main(argc, argv);

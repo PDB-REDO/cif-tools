@@ -4,9 +4,8 @@
 
 #include <boost/program_options.hpp>
 
-#include "cif++/mrsrc.h"
-
 #include "cif++/Cif++.h"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
