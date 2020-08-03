@@ -7,19 +7,19 @@
 
 #include <fstream>
 #include <iomanip>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 
+#include "zeep/json/element.hpp"
 
-#include "zeep/el/element.hpp"
-
-#include "cif++/BondMap.h"
-#include "cif++/Statistics.h"
+#include "cif++/BondMap.hpp"
+#include "cif++/Statistics.hpp"
 
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace c = mmcif;
 
 // --------------------------------------------------------------------
@@ -183,7 +183,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("output-format") and vm["output-format"].as<string>() == "json")
 	{
-		using object = zeep::el::element;
+		using object = zeep::json::element;
 		
 		// vector<object> rs;
 		

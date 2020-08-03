@@ -11,9 +11,9 @@
 firstTarget: all
 
 CXX					= @CXX@
-CXXFLAGS			= @CXXFLAGS@ @CPPFLAGS@ @BOOST_CPPFLAGS@ @LIBZEEP_CPPFLAGS@ @PTHREAD_CFLAGS@ @LIBCLIPPER_CPPFLAGS@
+CXXFLAGS			= @CXXFLAGS@ @CPPFLAGS@ @BOOST_CPPFLAGS@ @LIBZEEP_CPPFLAGS@ @PTHREAD_CFLAGS@ @LIBCLIPPER_CPPFLAGS@ @GSL_CFLAGS@
 LDFLAGS				= @LDFLAGS@ @BOOST_LDFLAGS@ @LIBZEEP_LDFLAGS@ @PTHREAD_CFLAGS@ @LIBCLIPPER_LDFLAGS@
-LIBS				= @LIBS@ \
+LIBS				= @LIBS@ @GSL_LIBS@ \
 					  @BOOST_IOSTREAMS_LIB@ \
 					  @BOOST_THREAD_LIB@ \
 					  @BOOST_REGEX_LIB@ \
@@ -117,10 +117,12 @@ endif
 
 # The program rules
 
+# disabled for now: centrifuge map-maker
 PROGRAMS = \
-	pdb2cif cif2pdb mtz-maker cif-diff cif-grep cif-merge centrifuge extractor \
-	map-maker prepper tls-interpreter stats isomers chiron re-ref cif-validate \
+	pdb2cif cif2pdb mtz-maker cif-diff cif-grep cif-merge extractor \
+	prepper tls-interpreter stats isomers chiron re-ref cif-validate \
 	pepflip compref tortoize flipper mmCQL
+
 
 centrifuge_OBJECTS = HBondTraits.o svm++.o
 map-maker_OBJECTS = pr-server.o

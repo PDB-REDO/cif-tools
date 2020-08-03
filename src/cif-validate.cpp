@@ -4,7 +4,7 @@
 
 #include <boost/program_options.hpp>
 
-#include "cif++/Cif++.h"
+#include "cif++/Cif++.hpp"
 #include "cif++/CifUtils.hpp"
 
 using namespace std;

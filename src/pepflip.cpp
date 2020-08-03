@@ -9,18 +9,17 @@
 
 #include <fcntl.h>
 
+#include <fstream>
 #include <iomanip>
 #include <numeric>
 #include <future>
 
 #include <boost/program_options.hpp>
-
-
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 
-#include "cif++/Secondary.h"
-#include "cif++/Statistics.h"
+#include "cif++/Secondary.hpp"
+#include "cif++/Statistics.hpp"
 #include "cif++/CifUtils.hpp"
 
 #include "minimizer.h"
@@ -30,7 +29,7 @@
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 
 using mmcif::Atom;
@@ -116,7 +115,7 @@ class AtomLocationSaver
 	{
 		for (auto& a: s.atoms())
 		{
-			if (a.labelAsymId() != asymID or a.labelSeqId() < seqFirst or a.labelSeqId() > seqLast)
+			if (a.labelAsymID() != asymID or a.labelSeqID() < seqFirst or a.labelSeqID() > seqLast)
 				continue;
 			
 			mAtoms.emplace_back(make_pair(a, a.location()));
@@ -977,7 +976,7 @@ void FlipPeptides(Structure& structure, const string& asymID,
 					   << score.c.mX << ' ' << score.c.mY << ' ' << score.c.mZ << " )" << endl;
 		
 		for (auto a: score.atoms)
-			structure.getAtomById(a.first).location(a.second);
+			structure.getAtomByID(a.first).location(a.second);
 		
 		flippedIDs.push_back(score.id);
 	}
@@ -1166,9 +1165,9 @@ int pr_main(int argc, char* argv[])
 		xyzout = xyzout.parent_path() / (xyzout.filename().stem().string() + "-flipped.cif");
 	}
 	
-	xyzout = fs::system_complete(xyzout);
+	xyzout = fs::canonical(xyzout);
 	
-	fs::ofstream cootScript;
+	std::ofstream cootScript;
 	if (vm.count("coot-script"))
 	{
 		fs::path cs = xyzout.extension() == ".gz" ?

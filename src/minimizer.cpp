@@ -9,16 +9,16 @@
 #include <regex>
 #include <iomanip>
 #include <random>
+#include <filesystem>
 
 #include <boost/format.hpp>
-
 #include <boost/thread.hpp>
 
 #include "minimizer.h"
 
 using namespace std;
 using namespace mmcif;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
@@ -27,15 +27,6 @@ const uint32_t kRefSentinel = numeric_limits<uint32_t>::max();
 const double
 	kNonBondedContactDistanceSq = 11.0 * 11.0,
 	kMaxPeptideBondLengthSq = 3.5 * 3.5;
-
-// --------------------------------------------------------------------
-
-ostream& operator<<(ostream& os, const Atom& a)
-{
-	os << a.labelAsymId() << ':' << a.labelSeqId() << '/' << a.labelAtomId();
-	
-	return os;
-}
 
 // --------------------------------------------------------------------
 
@@ -60,7 +51,7 @@ string AtomLocationProvider::atom(AtomRef atomID) const
 	if (atomID >= mAtoms.size())
 		throw range_error("Unknown atom " + to_string(atomID));
 	auto& a = mAtoms[atomID];
-	return to_string(a.labelSeqId()) + ' ' + a.labelAtomId();
+	return to_string(a.labelSeqID()) + ' ' + a.labelAtomID();
 }
 
 // --------------------------------------------------------------------
@@ -144,8 +135,8 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 		{
 			try
 			{
-				if (compound.getAtomById(b.atomID[0]).typeSymbol == H or
-					compound.getAtomById(b.atomID[1]).typeSymbol == H)
+				if (compound.getAtomByID(b.atomID[0]).typeSymbol == H or
+					compound.getAtomByID(b.atomID[1]).typeSymbol == H)
 				{
 					continue;
 				}
@@ -167,9 +158,9 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 		{
 			try
 			{
-				if (compound.getAtomById(a.atomID[0]).typeSymbol == H or
-					compound.getAtomById(a.atomID[1]).typeSymbol == H or
-					compound.getAtomById(a.atomID[2]).typeSymbol == H)
+				if (compound.getAtomByID(a.atomID[0]).typeSymbol == H or
+					compound.getAtomByID(a.atomID[1]).typeSymbol == H or
+					compound.getAtomByID(a.atomID[2]).typeSymbol == H)
 				{
 					continue;
 				}
@@ -196,10 +187,10 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 //		
 //			try
 //			{
-//				if (compound.getAtomById(a.atomID[0]).typeSymbol == H or
-//					compound.getAtomById(a.atomID[1]).typeSymbol == H or
-//					compound.getAtomById(a.atomID[2]).typeSymbol == H or
-//					compound.getAtomById(a.atomID[3]).typeSymbol == H)
+//				if (compound.getAtomByID(a.atomID[0]).typeSymbol == H or
+//					compound.getAtomByID(a.atomID[1]).typeSymbol == H or
+//					compound.getAtomByID(a.atomID[2]).typeSymbol == H or
+//					compound.getAtomByID(a.atomID[3]).typeSymbol == H)
 //				{
 //					continue;
 //				}
@@ -223,9 +214,9 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 		{
 			try
 			{
-				if (compound.getAtomById(cv.atomID[0]).typeSymbol == H or
-					compound.getAtomById(cv.atomID[1]).typeSymbol == H or
-					compound.getAtomById(cv.atomID[2]).typeSymbol == H)
+				if (compound.getAtomByID(cv.atomID[0]).typeSymbol == H or
+					compound.getAtomByID(cv.atomID[1]).typeSymbol == H or
+					compound.getAtomByID(cv.atomID[2]).typeSymbol == H)
 				{
 					continue;
 				}
@@ -256,7 +247,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 				
 				for (auto a: p.atomID)
 				{
-					if (compound.getAtomById(a).typeSymbol == H)
+					if (compound.getAtomByID(a).typeSymbol == H)
 						continue;
 					
 					atoms.push_back(ref(r.atomByID(a)));
@@ -319,28 +310,28 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 				[&](auto& ar) { return (ar.mA == ra1 and ar.mC == ra2) or (ar.mA == ra2 and ar.mC == ra1); }) != mAngleRestraints.end())
 				continue;
 
-			if ((a1.labelCompId() == "PRO" or a1.labelCompId() == "HYP") and
-				a1.labelSeqId() == a2.labelSeqId() + 1 and
-				a1.labelAtomId() == "CD")
+			if ((a1.labelCompID() == "PRO" or a1.labelCompID() == "HYP") and
+				a1.labelSeqID() == a2.labelSeqID() + 1 and
+				a1.labelAtomID() == "CD")
 			{
 				continue;
 			}
 
-			if ((a2.labelCompId() == "PRO" or a2.labelCompId() == "HYP") and
-				a2.labelSeqId() == a1.labelSeqId() + 1 and
-				a2.labelAtomId() == "CD")
+			if ((a2.labelCompID() == "PRO" or a2.labelCompID() == "HYP") and
+				a2.labelSeqID() == a1.labelSeqID() + 1 and
+				a2.labelAtomID() == "CD")
 			{
 				continue;
 			}
 			
-			if ((a1.labelCompId() == "ASN" or a2.labelCompId() == "NAG") and
-				a1.labelAtomId() == "OD1" and a2.labelAtomId() == "C1")
+			if ((a1.labelCompID() == "ASN" or a2.labelCompID() == "NAG") and
+				a1.labelAtomID() == "OD1" and a2.labelAtomID() == "C1")
 			{
 				continue;
 			}
 
-			if ((a1.labelCompId() == "NAG" or a2.labelCompId() == "ASN") and
-				a1.labelAtomId() == "C1" and a2.labelAtomId() == "OD1")
+			if ((a1.labelCompID() == "NAG" or a2.labelCompID() == "ASN") and
+				a1.labelAtomID() == "C1" and a2.labelAtomID() == "OD1")
 			{
 				continue;
 			}
@@ -353,8 +344,8 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 					cerr << "1_4 for " << a1 << " and " << a2 << endl;
 				minDist = 2.64;
 			}
-			else if ((a1.labelSeqId() + 1 == a2.labelSeqId() and a1.labelAtomId() == "O" and a2.labelAtomId() == "C") or
-					 (a2.labelSeqId() + 1 == a1.labelSeqId() and a2.labelAtomId() == "O" and a1.labelAtomId() == "C"))
+			else if ((a1.labelSeqID() + 1 == a2.labelSeqID() and a1.labelAtomID() == "O" and a2.labelAtomID() == "C") or
+					 (a2.labelSeqID() + 1 == a1.labelSeqID() and a2.labelAtomID() == "O" and a1.labelAtomID() == "C"))
 			{
 				minDist = 2.84;
 			}
@@ -384,7 +375,7 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 
 							// OK, now that we're here, see if the atoms are in the same residue...
 							
-							if (a1.labelAsymId() == a2.labelAsymId() and a1.labelSeqId() == a2.labelSeqId())
+							if (a1.labelAsymID() == a2.labelAsymID() and a1.labelSeqID() == a2.labelSeqID())
 								minDist *= 0.84;
 							
 							string hbType1 = r1.front()["hb_type"].as<string>(),
@@ -410,23 +401,23 @@ Minimizer::Minimizer(const mmcif::Polymer& poly, int first, int last,
 					
 					if (find(mAtoms.begin(), mAtoms.end(), a2) == mAtoms.end())
 					{
-						switch (abs(a1.labelSeqId() - a2.labelSeqId()))
+						switch (abs(a1.labelSeqID() - a2.labelSeqID()))
 						{
 							case 1:
-								if ((a1.labelAtomId() == "O" and a2.labelAtomId() == "CA") or
-									(a1.labelAtomId() == "CA" and a2.labelAtomId() == "O") or
-									(a1.labelAtomId() == "N" and a2.labelAtomId() == "CB") or
-									(a1.labelAtomId() == "CB" and a2.labelAtomId() == "N") or
-									(a1.labelAtomId() == "C" and a2.labelAtomId() == "CB") or
-									(a1.labelAtomId() == "CB" and a2.labelAtomId() == "C"))
+								if ((a1.labelAtomID() == "O" and a2.labelAtomID() == "CA") or
+									(a1.labelAtomID() == "CA" and a2.labelAtomID() == "O") or
+									(a1.labelAtomID() == "N" and a2.labelAtomID() == "CB") or
+									(a1.labelAtomID() == "CB" and a2.labelAtomID() == "N") or
+									(a1.labelAtomID() == "C" and a2.labelAtomID() == "CB") or
+									(a1.labelAtomID() == "CB" and a2.labelAtomID() == "C"))
 								{
 									minDist = 2.7;
 								}
 								break;
 
 							case 2:
-								if ((a1.labelAtomId() == "C" and a2.labelAtomId() == "N") or
-									(a1.labelAtomId() == "N" and a2.labelAtomId() == "C"))
+								if ((a1.labelAtomID() == "C" and a2.labelAtomID() == "N") or
+									(a1.labelAtomID() == "N" and a2.labelAtomID() == "C"))
 								{
 									minDist = 2.7;
 								}
@@ -531,7 +522,7 @@ void Minimizer::addLinkRestraints(const Monomer& a, const Monomer& b, const Link
 	
 	auto getCompoundAtom = [&](const LinkAtom& la)
 	{
-		return la.compID == 1 ? c1.getAtomById(la.atomID) : c2.getAtomById(la.atomID);
+		return la.compID == 1 ? c1.getAtomByID(la.atomID) : c2.getAtomByID(la.atomID);
 	};
 	
 	auto getAtom = [&](const LinkAtom& la)
@@ -818,9 +809,9 @@ class GSLDFCollector : public DFCollector
 	// for debugging
 	string label(AtomRef atom) const
 	{
-		string atomName = " " + mAtoms[atom].labelAtomId();
+		string atomName = " " + mAtoms[atom].labelAtomID();
 		atomName += string(5 - atomName.length(), ' ');
-		return to_string(mAtoms[atom].labelSeqId()) + atomName;
+		return to_string(mAtoms[atom].labelSeqID()) + atomName;
 	}
 
 	const vector<mmcif::Atom>& mAtoms;

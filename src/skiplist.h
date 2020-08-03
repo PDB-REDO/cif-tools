@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
-#include "cif++/Structure.h"
+#include "cif++/Structure.hpp"
 
 struct SkipResidue
 {
@@ -27,9 +27,9 @@ enum SkipListNumberingScheme
 
 // --------------------------------------------------------------------
 
-SkipList readSkipList(const boost::filesystem::path& file,
+SkipList readSkipList(const std::filesystem::path& file,
 	const mmcif::Structure& structure);
 
-void writeSkipList(const boost::filesystem::path& file,
+void writeSkipList(const std::filesystem::path& file,
 	const mmcif::Structure& structure, const SkipList& list,
 	SkipListNumberingScheme scheme = sl_Label);

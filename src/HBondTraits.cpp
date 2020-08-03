@@ -7,12 +7,12 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "cif++/Cif++.h"
+#include "cif++/Cif++.hpp"
 
 #include "HBondTraits.h"
 
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 
 NotAHBondSet* NotAHBondSet::Create()

@@ -16,6 +16,7 @@ AC_PROG_INSTALL
 AC_ARG_VAR([DEBUG], [Build a debug version of the application])
 
 AC_PATH_PROG([PKG_CONFIG], [pkg-config])
+AX_PKG_CHECK_MODULES([GSL], [gsl], [], [], [AC_MSG_ERROR([the required package gsl-dev is not installed])])
 
 AC_ARG_VAR([MRC], [Specify a location for the mrc executable])
 

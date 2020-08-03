@@ -10,25 +10,23 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <random>
-
+#include <fstream>
+#include <filesystem>
 #include <mutex>
 
 #include <boost/program_options.hpp>
-
-
 #include <boost/algorithm/string.hpp>
 
-#include "cif++/Secondary.h"
-#include "cif++/Statistics.h"
-
-#include <zeep/el/element.hpp>
-
+#include "cif++/Secondary.hpp"
+#include "cif++/Statistics.hpp"
 #include "cif++/CifUtils.hpp"
+
+#include <zeep/json/element.hpp>
 
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 
 using mmcif::Atom;
@@ -46,7 +44,7 @@ using clipper::Coord_frac;
 
 using MapMaker = mmcif::MapMaker<float>;
 
-using json = zeep::el::element;
+using json = zeep::json::element;
 
 // --------------------------------------------------------------------
 // simple integer compression, based somewhat on MRS code
@@ -641,7 +639,7 @@ void buildDataFile(fs::path dir)
 
 	if (fs::exists("rama-data.bin"))
 		fs::remove("rama-data.bin");
-	fs::ofstream out("rama-data.bin", ios::binary);
+	std::ofstream out("rama-data.bin", ios::binary);
 	if (not out.is_open())
 		throw runtime_error("Could not create rama-data.bin file");
 	out.write(reinterpret_cast<char*>(&mean_ramachandran), sizeof(mean_ramachandran));
@@ -778,7 +776,7 @@ const Data& DataTable::loadRamachandranData(const string& aa, SecStrType ss) con
 
 void DataTable::load(const char* name, vector<Data>& table, float& mean, float& sd)
 {
-	cif::rsrc::rsrc rd(name);
+	auto rd = cif::rsrc_loader::load(name);
 	if (not rd)
 		throw runtime_error("Missing resource "s + name);
 

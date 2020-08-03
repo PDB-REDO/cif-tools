@@ -4,7 +4,7 @@
 
 #include <clipper/clipper-ccp4.h>
 
-#include <zeep/el/element.hpp>
+#include <zeep/json/element.hpp>
 #include <zeep/http/webapp.hpp>
 
 #include <boost/program_options.hpp>
@@ -15,14 +15,14 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 
-#include "cif++/MapMaker.h"
+#include "cif++/MapMaker.hpp"
 #include "cif++/CifUtils.hpp"
 
 #include "pr-server.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace c = mmcif;
 namespace zh = zeep::http;
 namespace el = zeep::el;
@@ -350,7 +350,7 @@ void MapMakerServer::handle_file(const zh::request& request, const el::scope& sc
 		stringstream s;
 		s.imbue(std::locale(std::cout.getloc(), lf));
 		
-		ptime pt = from_time_t(boost::filesystem::last_write_time(gExePath));
+		ptime pt = from_time_t(std::filesystem::last_write_time(gExePath));
 		local_date_time t2(pt, time_zone_ptr());
 		s << t2;
 	
@@ -540,7 +540,7 @@ int pr_main(int argc, char* argv[])
 	
 	string type = vm["type"].as<string>();
 	fs::path mapout = vm["mapout"].as<string>();
-	fs::ofstream mapFile(mapout, ios_base::binary);
+	std::ofstream mapFile(mapout, ios_base::binary);
 	if (not mapFile.is_open())
 		throw runtime_error("Could not open map file " + mapout.string());
 

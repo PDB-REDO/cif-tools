@@ -4,10 +4,10 @@
 
 #include <fstream>
 #include <chrono>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-
 
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -17,15 +17,15 @@
 
 #include <zeep/xml/document.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Compound.h"
-#include "cif++/Structure.h"
-#include "cif++/Symmetry.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Compound.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/Symmetry.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 namespace zx = zeep::xml;
@@ -40,15 +40,6 @@ const set<string> kStripperResidues = {
 const set<string> kBackBone = {
 	"N", "CA", "C", "O", "OXT"
 };
-
-// --------------------------------------------------------------------
-
-ostream& operator<<(ostream& os, const c::Atom& a)
-{
-	os << a.labelAsymId() << ':' << a.labelSeqId() << '/' << a.labelAtomId();
-	
-	return os;
-}
 
 // --------------------------------------------------------------------
 
@@ -183,11 +174,11 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		string fromAtomId, fromAsymId, fromCompId, fromSeqId;
 		tie(fromAtomId, fromAsymId, fromCompId, fromSeqId)
-			= MapAtom(db, e->attr("from"));
+			= MapAtom(db, e->get_attribute("from"));
 
 		string toAtomId, toAsymId, toCompId, toSeqId;
 		tie(toAtomId, toAsymId, toCompId, toSeqId)
-			= MapAtom(db, e->attr("to"));
+			= MapAtom(db, e->get_attribute("to"));
 		
 		deletedLinkCount += DropLink(db, fromAtomId, fromAsymId, fromCompId, fromSeqId,
 			toAtomId, toAsymId, toCompId, toSeqId);
@@ -198,11 +189,11 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		string fromAtomId, fromAsymId, fromCompId, fromSeqId;
 		tie(fromAtomId, fromAsymId, fromCompId, fromSeqId)
-			= MapAtom(db, e->attr("from"));
+			= MapAtom(db, e->get_attribute("from"));
 
 		string toAtomId, toAsymId, toCompId, toSeqId;
 		tie(toAtomId, toAsymId, toCompId, toSeqId)
-			= MapAtom(db, e->attr("to"));
+			= MapAtom(db, e->get_attribute("to"));
 		
 		deletedLinkCount += DropLink(db, fromAtomId, fromAsymId, fromCompId, fromSeqId,
 			toAtomId, toAsymId, toCompId, toSeqId);
@@ -214,11 +205,11 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 	{
 		string fromAtomId, fromAsymId, fromCompId, fromSeqId;
 		tie(fromAtomId, fromAsymId, fromCompId, fromSeqId)
-			= MapAtom(db, e->attr("from"));
+			= MapAtom(db, e->get_attribute("from"));
 
 		string toAtomId, toAsymId, toCompId, toSeqId;
 		tie(toAtomId, toAsymId, toCompId, toSeqId)
-			= MapAtom(db, e->attr("to"));
+			= MapAtom(db, e->get_attribute("to"));
 		
 		db["struct_conn"].emplace({
 			{ "id", "covale_s" + to_string(linkID++) },
@@ -245,7 +236,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 		if (not rename)
 			continue;
 		
-		string pdbResname = e->attr("pdb_resname");
+		string pdbResname = e->get_attribute("pdb_resname");
 		
 		string resname = pdbResname.substr(0, 3);
 		string chainID = pdbResname.substr(4, 1);
@@ -256,7 +247,7 @@ tuple<uint32_t,uint32_t> HandlePDBCare(cif::Datablock& db, fs::path pdbCareFile,
 			iCode.clear();
 		
 		// see if we need to skip this pair
-		string newName = rename->attr("new_name");
+		string newName = rename->get_attribute("new_name");
 		if (not dat["carb_rename_ignore"].find(cif::Key("from_comp_id") == resname and cif::Key("to_comp_id") == newName).empty())
 		{
 			if (cif::VERBOSE)
@@ -448,7 +439,7 @@ int pr_main(int argc, char* argv[])
 {
 	int result = 0;
 	
-	po::options_description visible_options("prepper " + VERSION + " options file]" );
+	po::options_description visible_options("prepper " + VERSION_STRING + " options file]" );
 	visible_options.add_options()
 		("output,o",	po::value<string>(),	"The output file, default is stdout")
 		("pdb-care",	po::value<string>(),	"pdb-care file")
@@ -1132,11 +1123,11 @@ int pr_main(int argc, char* argv[])
 						cif::Key("auth_seq_id") == h["pdb_seq_num"].as<int>() and
 						cif::Key("label_atom_id") == hca))
 					{
-						auto atom = structure.getAtomById(ca["id"].as<std::string>());
+						auto atom = structure.getAtomByID(ca["id"].as<std::string>());
 
 						for (auto sg: atomSites.find(cif::Key("label_comp_id") == "CYS" and cif::Key("label_atom_id") == "SG"))
 						{
-							auto sgAtom = structure.getAtomById(sg["id"].as<std::string>());
+							auto sgAtom = structure.getAtomByID(sg["id"].as<std::string>());
 							auto d = c::Distance(atom, sgAtom);
 
 							if (testHemHec and d < 5)

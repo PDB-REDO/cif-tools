@@ -28,16 +28,16 @@
 
 #include <zeep/xml/document.hpp>
 #include <zeep/xml/serialize.hpp>
-#include <zeep/xml/writer.hpp>
+// #include <zeep/xml/writer.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Structure.h"
-#include "cif++/Compound.h"
-#include "cif++/AtomShape.h"
-#include "cif++/CifUtils.h"
-#include "cif++/BondMap.h"
-#include "cif++/MapMaker.h"
-#include "cif++/ResolutionCalculator.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/Compound.hpp"
+#include "cif++/AtomShape.hpp"
+#include "cif++/CifUtils.hpp"
+#include "cif++/BondMap.hpp"
+#include "cif++/MapMaker.hpp"
+#include "cif++/ResolutionCalculator.hpp"
 
 #include "HBondTraits.h"
 
@@ -52,7 +52,7 @@ using data32::Phi_fom;
 using mmcif::kPI;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 namespace io = boost::iostreams;
 namespace zx = zeep::xml;

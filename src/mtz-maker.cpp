@@ -2,14 +2,15 @@
 
 #include "pdb-redo.h"
 
+#include <filesystem>
+
 #include <boost/program_options.hpp>
 
-
-#include "cif++/MapMaker.h"
+#include "cif++/MapMaker.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace c = mmcif;
 
 // --------------------------------------------------------------------

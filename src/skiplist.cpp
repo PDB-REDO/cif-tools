@@ -3,9 +3,10 @@
    Date: maandag 07 januari, 2019
 */
 
-#include "cif++/Config.h"
+#include "cif++/Config.hpp"
 
-
+#include <fstream>
+#include <filesystem>
 
 #include <zeep/xml/serialize.hpp>
 #include <zeep/xml/document.hpp>
@@ -13,7 +14,7 @@
 #include "skiplist.h"
 
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace zx = zeep::xml;
 
 // --------------------------------------------------------------------
@@ -121,10 +122,10 @@ class SkipListInitializer
 
 SkipListInitializer::SkipListInitializer()
 {
-	zeep::xml::enum_map<SkipListNumberingScheme>::instance("SkipListNumberingScheme").add_enum()
-		( "label", sl_Label )
-		( "pdb", sl_PDB )
-		;
+	zeep::value_serializer<SkipListNumberingScheme>::init("SkipListNumberingScheme", {
+		{ sl_Label, "label" },
+		{ sl_PDB, "pdb" }
+	});
 }
 
 SkipListInitializer sInitSkipListTypes;

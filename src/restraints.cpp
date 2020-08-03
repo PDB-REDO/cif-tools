@@ -9,8 +9,8 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "cif++/Structure.h"
-#include "cif++/CifUtils.h"
+#include "cif++/Structure.hpp"
+#include "cif++/CifUtils.hpp"
 
 #include "restraints.h"
 #include "minimizer.h"
@@ -30,14 +30,6 @@ using clipper::Coord_grid;
 using clipper::Coord_orth;
 using clipper::Coord_map;
 using clipper::Coord_frac;
-
-// --------------------------------------------------------------------
-
-inline ostream& operator<<(ostream& os, const Atom& a)
-{
-	os << a.labelSeqId() << " " << a.labelAtomId();
-	return os;
-}
 
 // --------------------------------------------------------------------
 

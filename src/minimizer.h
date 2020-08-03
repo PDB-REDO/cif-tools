@@ -7,9 +7,9 @@
 
 #include <boost/optional.hpp>
 
-#include "cif++/Structure.h"
-#include "cif++/MapMaker.h"
-#include "cif++/BondMap.h"
+#include "cif++/Structure.hpp"
+#include "cif++/MapMaker.hpp"
+#include "cif++/BondMap.hpp"
 
 #include "restraints.h"
 

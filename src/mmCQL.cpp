@@ -1,32 +1,24 @@
 #include "pdb-redo.h"
 
 #include <fstream>
+#include <filesystem>
 #include <functional>
 #include <unordered_set>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-// #include <boost/filesystem/path.hpp>
-// #include <boost/filesystem/fstream.hpp>
-// #include <boost/iostreams/device/file_descriptor.hpp>
-// #include <boost/iostreams/filter/bzip2.hpp>
-// #include <boost/iostreams/filter/gzip.hpp>
-// #include <boost/iostreams/filtering_stream.hpp>
-// #include <boost/iostreams/copy.hpp>
 
-#include <zeep/xml/unicode_support.hpp>
+#include <zeep/unicode-support.hpp>
 
-#include "cif++/Cif++.h"
-// #include "cif++/Cif2PDB.h"
-#include "cif++/Structure.h"
-// #include "cif++/CifParser.h"
-#include "cif++/CifValidator.h"
-#include "cif++/CifUtils.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/CifValidator.hpp"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 // namespace io = boost::iostreams;
 namespace c = mmcif;
 
@@ -137,7 +129,7 @@ class DeleteStatement : public Statement
 		for (auto r: mCategory)
 		{
 			if (mWhere(mCategory, r))
-				remove.push_back(r);
+				remove.insert(remove.end(), r);
 		}
 
 		for (auto r: remove)
@@ -380,7 +372,7 @@ unicode Parser::GetNextChar()
 		if (result >= 0x080)
 		{
 			if (result == 0x0ffff or result == 0x0fffe)
-				throw runtime_error("character " + zeep::xml::to_hex(result) + " is not allowed");
+				throw runtime_error("character " + zeep::to_hex(result) + " is not allowed");
 
 			// surrogate support
 			else if (result >= 0x0D800 and result <= 0x0DBFF)
@@ -431,7 +423,7 @@ unicode Parser::GetNextChar()
 void Parser::Retract()
 {
 	assert(not mToken.empty());
-	mBuffer.push(zeep::xml::pop_last_char(mToken));
+	mBuffer.push(zeep::pop_last_char(mToken));
 }
 
 bool is_name_start_char(unicode uc)
@@ -572,7 +564,7 @@ Parser::Token Parser::GetNextToken()
 				else if (is_name_start_char(ch))
 					state = State::Literal;
 				else
-					throw runtime_error("invalid character (" + zeep::xml::to_hex(ch) + "/'" + (isprint(ch) ? static_cast<char>(ch) : '.') + "') in command");
+					throw runtime_error("invalid character (" + zeep::to_hex(ch) + "/'" + (isprint(ch) ? static_cast<char>(ch) : '.') + "') in command");
 			}
 			break;
 		
@@ -804,7 +796,7 @@ Parser::Token Parser::GetNextToken()
 			else 
 				throw runtime_error("Invalid hex sequence in command");
 			mToken.pop_back();
-			zeep::xml::append(mToken, hx);
+			zeep::append(mToken, hx);
 			state = State::String;
 			break;
 		}

@@ -7,8 +7,8 @@
 
 #include <set>
 
-#include "cif++/Point.h"
-#include "cif++/MapMaker.h"
+#include "cif++/Point.hpp"
+#include "cif++/MapMaker.hpp"
 
 // --------------------------------------------------------------------
 

@@ -4,7 +4,7 @@
 
 #include <zeep/xml/serialize.hpp>
 
-#include "cif++/Structure.h"
+#include "cif++/Structure.hpp"
 
 class NotAHBondSet
 {
@@ -28,7 +28,7 @@ class NotAHBondSet
 	bool operator()(const mmcif::Atom& atom) const
 	{
 		return atom.type() == mmcif::N and
-			IsHBondDonorOrAcceptor(atom.comp().id(), atom.labelAtomId());
+			IsHBondDonorOrAcceptor(atom.comp().id(), atom.labelAtomID());
 	}
   
   private:

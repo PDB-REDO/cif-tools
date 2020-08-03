@@ -5,10 +5,10 @@
 #include <fstream>
 #include <chrono>
 #include <iomanip>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-
 
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -16,18 +16,18 @@
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/copy.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/PDB2Cif.h"
-#include "cif++/Cif2PDB.h"
-#include "cif++/CifUtils.h"
-#include "cif++/Structure.h"
-#include "cif++/TlsParser.h"
-#include "cif++/ResolutionCalculator.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/PDB2Cif.hpp"
+#include "cif++/Cif2PDB.hpp"
+#include "cif++/CifUtils.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/TlsParser.hpp"
+#include "cif++/ResolutionCalculator.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 
@@ -146,7 +146,7 @@ int pr_main(int argc, char* argv[])
 	
 	fs::path output = outputStem;
 	output += ".extracted";
-	fs::ofstream outputFile(output);
+	std::ofstream outputFile(output);
 	
 	fs::path tlsout = outputStem;
 	tlsout += ".tls";
@@ -154,7 +154,7 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("tls-out"))
 		tlsout = vm["tls-out"].as<string>();
 	
-	fs::ofstream tlsoutFile(tlsout);
+	std::ofstream tlsoutFile(tlsout);
 	
 	cif::File extractedFile;
 	extractedFile.append(new cif::Datablock(entryId));

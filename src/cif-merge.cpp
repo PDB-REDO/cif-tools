@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <functional>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
@@ -13,17 +14,17 @@
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/copy.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Cif2PDB.h"
-#include "cif++/Structure.h"
-#include "cif++/CifParser.h"
-#include "cif++/CifValidator.h"
-#include "cif++/CifUtils.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Cif2PDB.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/CifParser.hpp"
+#include "cif++/CifValidator.hpp"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 
@@ -184,7 +185,7 @@ void transplant(cif::File& target, cif::File& donor)
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-merge " + VERSION + " [options] inputFile donorFile ");
+	po::options_description visible_options("cif-merge " + VERSION_STRING + " [options] inputFile donorFile ");
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")

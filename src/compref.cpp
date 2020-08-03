@@ -10,23 +10,22 @@
 #include <iomanip>
 #include <numeric>
 #include <future>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
-
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 
-#include "cif++/Secondary.h"
+#include "cif++/Secondary.hpp"
+#include "cif++/CifUtils.hpp"
 
 #include "minimizer.h"
 #include "ramachandran.h"
 
-#include "cif++/CifUtils.hpp"
-
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 
 using mmcif::Atom;

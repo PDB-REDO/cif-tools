@@ -3,6 +3,7 @@
 #include <fstream>
 #include <functional>
 #include <regex>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
@@ -10,15 +11,15 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Structure.h"
-#include "cif++/CifParser.h"
-#include "cif++/CifUtils.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/CifParser.hpp"
+#include "cif++/CifUtils.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 
 class grepParser : public cif::SacParser
@@ -199,7 +200,7 @@ int pr_main(int argc, char* argv[])
 						i != fs::recursive_directory_iterator(); ++i)
 					{
 						fs::path p = i->path();
-						if (fs::is_regular(p))
+						if (fs::is_regular_file(p))
 							expanded.push_back(p.string());
 					}
 				}
@@ -232,13 +233,13 @@ int pr_main(int argc, char* argv[])
 			size_t size;
 			tie(size, f) = file;
 
-			if (not fs::is_regular(f))
+			if (not fs::is_regular_file(f))
 				continue;
 			
 			if (cif::VERBOSE)
 				cerr << f << endl;
 
-			ifstream infile(f.c_str(), ios_base::in | ios_base::binary);
+			ifstream infile(f, ios_base::in | ios_base::binary);
 			if (not infile.is_open())
 				throw runtime_error("Could not open file " + f.string());
 	

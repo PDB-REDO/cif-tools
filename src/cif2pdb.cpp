@@ -4,19 +4,20 @@
 
 #include <fstream>
 #include <chrono>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-#include "cif++/Cif++.h"
-#include "cif++/Cif2PDB.h"
-#include "cif++/Structure.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Cif2PDB.hpp"
+#include "cif++/Structure.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 
@@ -61,8 +62,9 @@ int pr_main(int argc, char* argv[])
 	regex pdbIdRx(R"(\d\w{3})");
 	
 	fs::path file = input;
-	if (not fs::exists(file) and regex_match(input, pdbIdRx))
-		file = fs::path(PDB_DIR) / "mmCIF" / input.substr(1, 2) / (input + ".cif.gz");
+#warning "compile time PDB_DIR?"
+	// if (not fs::exists(file) and regex_match(input, pdbIdRx))
+	// 	file = fs::path(PDB_DIR) / "mmCIF" / input.substr(1, 2) / (input + ".cif.gz");
 	
 	cif::File f;
 	

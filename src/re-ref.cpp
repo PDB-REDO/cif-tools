@@ -8,21 +8,20 @@
 #include "pdb-redo.h"
 
 #include <iomanip>
+#include <fstream>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 
-
-
-#include "cif++/Statistics.h"
+#include "cif++/Statistics.hpp"
+#include "cif++/CifUtils.hpp"
 
 #include "minimizer.h"
-
-#include "cif++/CifUtils.hpp"
 
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 using mmcif::Atom;
 using mmcif::Point;

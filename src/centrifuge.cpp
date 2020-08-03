@@ -31,12 +31,12 @@
 
 #include <zeep/xml/document.hpp>
 #include <zeep/xml/serialize.hpp>
-#include <zeep/xml/writer.hpp>
+// #include <zeep/xml/writer.hpp>
 
 #include "cif++/Cif++.hpp"
 #include "cif++/Structure.hpp"
 #include "cif++/Compound.hpp"
-//#include "cif++/Edia.h"
+//#include "cif++/Edia.hpp"
 #include "cif++/CifUtils.hpp"
 #include "cif++/DistanceMap.hpp"
 #include "cif++/BondMap.hpp"
@@ -49,7 +49,7 @@
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace ba = boost::algorithm;
 namespace io = boost::iostreams;
 namespace zx = zeep::xml;
@@ -1361,7 +1361,7 @@ int centrifugeLearn(int argc, char* argv[])
 	
 	notAHBond->Save(*doc.child());
 	
-	fs::ofstream modelFile(vm["output"].as<string>());
+	std::ofstream modelFile(vm["output"].as<string>());
 	if (not modelFile.is_open())
 		throw runtime_error("Could not write to model file");
 	
@@ -1454,7 +1454,7 @@ int centrifugePredict(int argc, char* argv[])
 		cout << string(cif::get_terminal_width(), '=') << endl
 			 << "Processing file: " << file << endl;
 	
-	fs::ofstream cootScript;
+	std::ofstream cootScript;
 	if (vm.count("coot-script"))
 	{
 		cootScript.open(vm["coot-script"].as<string>());

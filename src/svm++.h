@@ -391,7 +391,7 @@ class Model<K, C_SVC> : public ModelBase
 	Model(zeep::xml::element& config)
 		: ModelBase(config)
 	{
-		zeep::xml::deserializer sr(&config);
+		zeep::xml::deserializer sr(config);
 		sr.deserialize_element("params", m_params);
 		sr.deserialize_element("probA", m_probA);
 		sr.deserialize_element("probB", m_probB);

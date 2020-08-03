@@ -24,7 +24,7 @@
 using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace c = mmcif;
 
@@ -352,7 +352,7 @@ int pdb_diff_test(int argc, char* argv[])
 		("version",								"Print version")
 		("verbose,v",							"Verbose output")
 		("input,i",		po::value<string>(),	"PDB ID")
-		("data_dir",	po::value<string>(),	"Directory containing both mmCIF and pdb directories, default is " PDB_DIR);
+		("data_dir",	po::value<string>(),	"Directory containing both mmCIF and pdb directories");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
@@ -384,7 +384,8 @@ int pdb_diff_test(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
-	fs::path baseDir = PDB_DIR;
+#warning "compile time PDB_DIR?"
+	fs::path baseDir;// = PDB_DIR;
 	if (vm.count("data_dir"))
 		baseDir = vm["data_dir"].as<string>();
 	if (not fs::exists(baseDir))
@@ -491,7 +492,7 @@ int pdb2pdb_diff_test(int argc, char* argv[])
 		("input,i",		po::value<string>(),	"PDB ID or file")
 		("icase",								"Ignore case (vimdiff option)")
 		("iwhite",								"Ignore whitespace (vimdiff option)")
-		("data_dir",	po::value<string>(),	"Directory containing both mmCIF and pdb directories, default is " PDB_DIR);
+		("data_dir",	po::value<string>(),	"Directory containing both mmCIF and pdb directories");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
@@ -523,7 +524,8 @@ int pdb2pdb_diff_test(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
-	fs::path baseDir = PDB_DIR;
+#warning "compile time PDB_DIR?"
+	fs::path baseDir;// = PDB_DIR;
 	if (vm.count("data_dir"))
 		baseDir = vm["data_dir"].as<string>();
 	if (not fs::exists(baseDir))

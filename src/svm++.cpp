@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <memory>
 
-#include "cif++/Config.h"
+#include "cif++/Config.hpp"
 #include "svm++.h"
 
 using namespace std;

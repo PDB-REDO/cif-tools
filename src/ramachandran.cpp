@@ -3,7 +3,7 @@
    Date: dinsdag 19 juni, 2018
 */
 
-#include "cif++/Config.h"
+#include "cif++/Config.hpp"
 
 #include <cmath>
 #include <cassert>
@@ -13,7 +13,7 @@
 
 #include <clipper/clipper.h>
 
-#include "cif++/Point.h"
+#include "cif++/Point.hpp"
 
 #include "ramachandran.h"
 
