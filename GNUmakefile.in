@@ -25,7 +25,7 @@ exec_prefix			= @exec_prefix@
 libdir				= @libdir@
 includedir			= @includedir@
 
-GNUmakefile src/pdb-redo.h: config.status GNUmakefile.in
+GNUmakefile: config.status GNUmakefile.in
 	$(SHELL) ./config.status
 
 config.status: configure
@@ -46,9 +46,6 @@ endif
 
 # Use the DEBUG flag to build debug versions of the code
 DEBUG               = @DEBUG@
-
-VERSION				= @PACKAGE_VERSION@
-DEFINES				+= VERSION='"$(VERSION)"'
 
 ifeq "$(DEBUG)" "1"
 DEFINES				+= DEBUG
@@ -93,27 +90,10 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 
-REVISION = $(shell git log --pretty=format:%h --max-count=1)
-REVISION_FILE = version-info-$(REVISION).txt
-
-$(REVISION_FILE):
-	rm -f version-info-*.txt
-	git log --pretty=fuller -1 > $@
-
-rsrc:
-	@ mkdir -p $@
-
-rsrc/version.txt: $(REVISION_FILE) | rsrc
-	cp $? $@
-
-RSRC = rsrc/version.txt $(CIFPP_RSRC)/dictionaries
-
 COMMON_OBJECTS = pr-main.o
-COMMON_RSRC = @CIFPP_RSRC@/dictionaries @CIFPP_RSRC@/isomers.txt rsrc/version.txt
+COMMON_RSRC = @CIFPP_RSRC@/dictionaries @CIFPP_RSRC@/isomers.txt rsrc/version.txt @CIFPP_RSRC@/lib-version.txt
 
 endif
-
--include $(OBJECTS:%.o=%.d) $(PROGRAMS:%=$(OBJDIR)/%.d)
 
 # The program rules
 
@@ -135,14 +115,18 @@ map-maker_RSRC = $(DOCROOT_FILES)
 rama-angles_RSRC = $(DOCROOT_FILES)
 
 define PROGRAM_template =
+
+$(1)_OBJECTS += $(1).o $(COMMON_OBJECTS)
+
 ifneq "$(MRC)" ""
-$(1)_OBJECTS += $(1)_rsrc.o
+$(1)_OBJECTS += $(1).o $(1)_rsrc.o
 
 $$(OBJDIR)/$(1)_rsrc.o: @CIFPP_RSRC@/dictionaries $$($(1)_RSRC) $$(COMMON_RSRC)
 	$(MRC) -o $$@ $$^
 endif
 
-$(1): $(OBJDIR)/$(1).o $(COMMON_OBJECTS:%=$(OBJDIR)/%) $$($(1)_OBJECTS:%=$(OBJDIR)/%)
+$(1): $$($(1)_OBJECTS:%=$(OBJDIR)/%)
+
 endef
 
 $(foreach program,$(PROGRAMS),$(eval $(call PROGRAM_template,$(program))))
@@ -152,9 +136,10 @@ $(PROGRAMS):
 	@ $(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 OBJECTS = $(sort $(foreach program,$(PROGRAMS),$($(program)_OBJECTS)))
-OBJECTS := $(OBJECTS:%=$(OBJDIR)/%.o)
 
--include $(OBJECTS:%.o=%.d)
+$(OBJDIR)/%.d: $(OBJDIR)/%.o
+
+-include $(OBJECTS:%.o=$(OBJDIR)/%.d)
 
 .PHONY: clean all
 clean:
@@ -162,9 +147,24 @@ clean:
 
 all: $(PROGRAMS)
 
+REVISION = $(shell git log --pretty=format:%h --max-count=1)
+REVISION_FILE = version-info-$(REVISION).txt
+
+$(REVISION_FILE): $(OBJDIR) src
+	rm -f version-info-*.txt
+	git describe --match=build --dirty > $@
+	git log --pretty=medium --date=iso8601 -1 >> $@
+
+rsrc:
+	@ mkdir -p $@
+
+rsrc/version.txt: $(REVISION_FILE) | rsrc
+	cp $? $@
+
+
 .PHONY: FORCE
 FORCE:
 
 .PHONY: test
 test:
-	echo $(wildcard $(CIFPP_RSRC)/dictionaries/*)
+	@ echo $(OBJECTS)

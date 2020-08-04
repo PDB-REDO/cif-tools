@@ -10,6 +10,8 @@
 #include <cmath>
 #include <regex>
 
+#include <zeep/streambuf.hpp>
+
 #include "cif++/Cif++.hpp"
 #include "cif++/CifUtils.hpp"
 
@@ -109,25 +111,24 @@ class RUsage
 
 // --------------------------------------------------------------------
 
-static string gVersionNr, gVersionDate;
+namespace {
+	std::string gVersionNr, gVersionDate;
+}
 
 void load_version_info()
 {
+	const regex
+		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
+		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)");
+
 	auto version = cif::rsrc_loader::load("version.txt");
 	if (not version)
 		VERSION_STRING = "unknown version, version resource is missing";
 	else
 	{
-		struct membuf : public streambuf
-		{
-			membuf(char* data, size_t length)		{ this->setg(data, data, data + length); }
-		} buffer(const_cast<char*>(version.data()), version.size());
-		
+		zeep::char_streambuf buffer(version.data(), version.size());
 		istream is(&buffer);
 		string line;
-		regex
-			rxVersionNr(R"(Last Changed Rev: (\d+))"),
-			rxVersionDate(R"(Last Changed Date: (\d{4}-\d{2}-\d{2}).*)");
 
 		while (getline(is, line))
 		{
@@ -136,6 +137,8 @@ void load_version_info()
 			if (regex_match(line, m, rxVersionNr))
 			{
 				gVersionNr = m[1];
+				if (m[2].matched)
+					gVersionNr += '*';
 				continue;
 			}
 
@@ -146,7 +149,9 @@ void load_version_info()
 			}
 		}
 
-		VERSION_STRING = gVersionNr + " " + gVersionDate;
+		if (not VERSION_STRING.empty())
+			VERSION_STRING += "\n";
+		VERSION_STRING += gVersionNr + " " + gVersionDate;
 	}
 }
 

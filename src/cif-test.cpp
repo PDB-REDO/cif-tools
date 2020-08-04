@@ -30,7 +30,7 @@ namespace c = mmcif;
 
 int cif_test(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-test " + VERSION + " options file1 [file2...]" );
+	po::options_description visible_options("cif-test " + VERSION_STRING + " options file1 [file2...]" );
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
@@ -76,7 +76,7 @@ const char s[] = R"(1. HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS.
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " VERSION << endl;
+		cout << argv[0] << " version " VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -178,7 +178,7 @@ const char s[] = R"(1. HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS.
 
 int pdb2cif_test(int argc, char* argv[])
 {
-	po::options_description desc("pdb2cif-test " + VERSION + " options");
+	po::options_description desc("pdb2cif-test " + VERSION_STRING + " options");
 	desc.add_options()
 		("input,i",		po::value<string>(),	"Input file")
 		("output,o",	po::value<string>(),	"Output file, default stdout")
@@ -199,7 +199,7 @@ int pdb2cif_test(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " VERSION << endl;
+		cout << argv[0] << " version " VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -266,7 +266,7 @@ int pdb2cif_test(int argc, char* argv[])
 
 int cif2pdb_test(int argc, char* argv[])
 {
-	po::options_description desc("cif2pdb-test " + VERSION + " options");
+	po::options_description desc("cif2pdb-test " + VERSION_STRING + " options");
 	desc.add_options()
 		("input,i",		po::value<string>(),	"Input file")
 		("output,o",	po::value<string>(),	"Output file, default stdout")
@@ -285,7 +285,7 @@ int cif2pdb_test(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " VERSION << endl;
+		cout << argv[0] << " version " VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -346,7 +346,7 @@ int cif2pdb_test(int argc, char* argv[])
 
 int pdb_diff_test(int argc, char* argv[])
 {
-	po::options_description visible_options("cif2pdb-diff " + VERSION + " [options] PDB-ID");
+	po::options_description visible_options("cif2pdb-diff " + VERSION_STRING + " [options] PDB-ID");
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
@@ -370,7 +370,7 @@ int pdb_diff_test(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " VERSION << endl;
+		cout << argv[0] << " version " VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -484,7 +484,7 @@ int pdb_diff_test(int argc, char* argv[])
 
 int pdb2pdb_diff_test(int argc, char* argv[])
 {
-	po::options_description visible_options("cif2pdb-diff " + VERSION + " [options] PDB-ID");
+	po::options_description visible_options("cif2pdb-diff " + VERSION_STRING + " [options] PDB-ID");
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
@@ -510,7 +510,7 @@ int pdb2pdb_diff_test(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 

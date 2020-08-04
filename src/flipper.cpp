@@ -156,7 +156,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 
@@ -236,8 +236,6 @@ int pr_main(int argc, char* argv[])
 	}
 
 	// done, write out
-
-
 	db.add_software("flipper", "other", get_version_nr(), get_version_date());
 
 	// structure.sortAtoms();

@@ -46,7 +46,7 @@ int drop(istream& is, set<string>& columns)
 
 int cif_drop(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-diff " + VERSION + " options file1 file2");
+	po::options_description visible_options("cif-diff " + VERSION_STRING + " options file1 file2");
 	visible_options.add_options()
 		("help,h",										"Display help message")
 		("version",										"Print version")
@@ -71,7 +71,7 @@ int cif_drop(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 

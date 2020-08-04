@@ -31,6 +31,8 @@ fi
 
 AX_PTHREAD
 
+AC_CHECK_HEADER([filesystem], [], [AC_MSG_ERROR([The file <filesystem> is missing, perhaps you should install a more recent libstdc++ implementation.])])
+
 AX_BOOST_BASE([1.65.1], [], [AC_MSG_ERROR([Could not find a recent version of boost])])
 AX_BOOST_IOSTREAMS
 AX_BOOST_THREAD
@@ -79,6 +81,25 @@ AX_CHECK_LIBRARY([LIBZEEP], [zeep/config.hpp], [zeep-xml],
 
 AC_ARG_VAR([CCP4], [The location where CCP4 is installed])
 
+dnl check if we need stdc++fs as library
+AC_TRY_LINK(
+	[#include <filesystem>],
+	[(void)std::filesystem::current_path();],
+	[],
+	[
+		LIBS="$LIBS -lstdc++fs"
+
+		AC_TRY_LINK(
+			[#include <filesystem>],
+			[(void)std::filesystem::current_path();],
+			[],
+			[
+				AC_MSG_ERROR([Could not link filesystem])
+			]
+		)
+	]
+)
+
 AS_IF([test x"$CCP4" != x""],
 	  [
 		CPPFLAGS="$CPPFLAGS -I ${CCP4}/include"
@@ -108,7 +129,7 @@ clipper using --with-clipper=<path>
 
 AX_CHECK_LIBRARY([LIBCLIPPER], [clipper/clipper.h], [clipper-core],
 	[
-		LIBS="$LIBS -lclipper-ccp4 -lclipper-minimol -lclipper-mmdb -lclipper-cns -lclipper-phs -lclipper-contrib -lclipper-core"
+		LIBS="$LIBS -lclipper-ccp4 -lclipper-minimol -lclipper-mmdb -lclipper-cns -lclipper-phs -lclipper-contrib -lclipper-core -lrfftw -lfftw -lccp4c"
 	],
 	[AC_MSG_ERROR([libclipper not found - cannot continue])])
 

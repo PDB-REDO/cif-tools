@@ -120,7 +120,7 @@ void ar_calculator(fs::path file)
 
 int main(int argc, char* argv[])
 {
-	po::options_description desc("ar_calculator " + VERSION + " options");
+	po::options_description desc("ar_calculator " + VERSION_STRING + " options");
 	desc.add_options()
 		("input,i",		po::value<string>(),	"Input file or directory")
 		("recursive,r",							"Process recusively on directory")
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION << endl;
+		cout << argv[0] << " version " << VERSION_STRING << endl;
 		exit(0);
 	}
 
