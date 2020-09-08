@@ -827,7 +827,7 @@ float jackknife(const vector<float>& zScorePerResidue)
 
 json calculateZScores(const Structure& structure, size_t nShuffles)
 {
-	mmcif::DSSP dssp(structure);
+	mmcif::DSSP dssp(structure, 3, false);
 	auto& tbl = DataTable::instance();
 
 	double ramaZScoreSum = 0;
