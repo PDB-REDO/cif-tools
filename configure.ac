@@ -27,6 +27,8 @@ fi
 
 if test "x$MRC" = "x"; then
 	AC_MSG_ERROR([mrc not found, the application will be built without resources])
+else
+	AC_DEFINE([USE_RSRC], [1])
 fi
 
 AX_PTHREAD

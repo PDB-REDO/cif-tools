@@ -13,3 +13,10 @@ extern std::string VERSION_STRING;
 
 std::string get_version_nr();
 std::string get_version_date();
+
+
+#undef PACKAGE_VERSION
+
+#undef PACKAGE_NAME
+
+#undef USE_RSRC

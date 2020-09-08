@@ -4100,6 +4100,9 @@ fi
 
 if test "x$MRC" = "x"; then
 	as_fn_error $? "mrc not found, the application will be built without resources" "$LINENO" 5
+else
+	$as_echo "#define USE_RSRC 1" >>confdefs.h
+
 fi
 
 # Make sure we can run config.sub.

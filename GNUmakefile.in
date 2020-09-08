@@ -60,7 +60,7 @@ MRC					= @MRC@
 CIFPP_RSRC			= @CIFPP_RSRC@
 
 ifneq "$(MRC)" ""
-USE_RSRC	?= 1
+USE_RSRC	?= @USE_RSRC@
 DEFINES		+= USE_RSRC
 endif
 
