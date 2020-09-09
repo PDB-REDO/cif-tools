@@ -1035,13 +1035,26 @@ int pr_main(int argc, char* argv[])
 	{
 		cout << visible_options << endl
 			 << endl
-			 << "Tortoize validates protein structure models by checking the Ramachandran plot and side-chain rotamer distributions. Quality Z-scores are given at the residue level and at the model level (ramachandran-z and torsions-z). Higher scores are better." << endl
-			 << "To compare models or to describe the reliability of the model Z-scores jackknife-based standard deviations are also reported (ramachandran-jackknife-sd and torsion-jackknife-sd)." << endl
-			 << endl
-			 << "References:" << endl
-			 << "- Sobolev et al. A Global Ramachandran Score Identifies Protein Structures with Unlikely Stereochemistry, Structure (2020), DOI: https://doi.org/10.1016/j.str.2020.08.005" << endl
-			 << "- Van Beusekom et al. Homology-based loop modeling yields more complete crystallographic protein structures, IUCrJ (2018), DOI: https://doi.org/10.1107/S2052252518010552" << endl
-			 << "- Hooft et al. Objectively judging the quality of a protein structure from a Ramachandran plot, CABIOS (1993), DOI: https://doi.org/10.1093/bioinformatics/13.4.425" << endl
+			 << R"(Tortoize validates protein structure models by checking the 
+Ramachandran plot and side-chain rotamer distributions. Quality
+Z-scores are given at the residue level and at the model level 
+(ramachandran-z and torsions-z). Higher scores are better. To compare 
+models or to describe the reliability of the model Z-scores jackknife-
+based standard deviations are also reported (ramachandran-jackknife-sd 
+and torsion-jackknife-sd).
+
+
+References: 
+- Sobolev et al. A Global Ramachandran Score Identifies Protein 
+  Structures with Unlikely Stereochemistry, Structure (2020),
+  DOI: https://doi.org/10.1016/j.str.2020.08.005
+- Van Beusekom et al. Homology-based loop modeling yields more complete
+  crystallographic  protein structures, IUCrJ (2018),
+  DOI: https://doi.org/10.1107/S2052252518010552
+- Hooft et al. Objectively judging the quality of a protein structure
+  from a Ramachandran plot, CABIOS (1993),
+  DOI: https://doi.org/10.1093/bioinformatics/13.4.425 
+)" << endl
 			 << endl;
 		exit(0);
 	}
