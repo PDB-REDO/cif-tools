@@ -149,7 +149,7 @@ class AtomLocationSaver
 
 void TrustBasedOnSS(Structure& structure, vector<PFRes>& residues)
 {
-	mmcif::DSSP dssp(structure);
+	mmcif::DSSP dssp(structure, 3, false);
 	
 	const set<mmcif::SecondaryStructureType> kTrustedDSSPTypes = {
 			mmcif::ssAlphahelix, mmcif::ssHelix_3, mmcif::ssHelix_5, mmcif::ssStrand };
