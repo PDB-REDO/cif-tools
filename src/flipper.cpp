@@ -121,6 +121,10 @@ int pr_main(int argc, char* argv[])
 	po::options_description visible_options("flipper " + VERSION_STRING + " [options] file]" );
 	visible_options.add_options()
 		("output,o",	po::value<string>(),	"The output file")
+
+		("dict",		po::value<std::vector<std::string>>(),
+												"Dictionary file containing restraints for residues in this specific target, can be specified multiple times.")
+
 		("help,h",								"Display help message")
 		("version",								"Print version")
 		("verbose,v",							"Verbose output")
@@ -170,8 +174,16 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
-	//
+	// --------------------------------------------------------------------
 	
+	if (vm.count("dict"))
+	{
+		for (auto dict: vm["dict"].as<std::vector<std::string>>())
+			mmcif::CompoundFactory::instance().pushDictionary(dict);
+	}
+
+	// --------------------------------------------------------------------
+
 	fs::path input = vm["input"].as<string>();
 	c::File pdb(input);
 	c::Structure structure(pdb);

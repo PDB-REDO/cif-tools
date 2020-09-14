@@ -1043,7 +1043,6 @@ models or to describe the reliability of the model Z-scores jackknife-
 based standard deviations are also reported (ramachandran-jackknife-sd 
 and torsion-jackknife-sd).
 
-
 References: 
 - Sobolev et al. A Global Ramachandran Score Identifies Protein 
   Structures with Unlikely Stereochemistry, Structure (2020),
