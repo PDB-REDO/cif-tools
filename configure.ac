@@ -15,6 +15,8 @@ AC_PROG_INSTALL
 
 AC_ARG_VAR([DEBUG], [Build a debug version of the application])
 
+AX_CHECK_COMPILE_FLAG([-fstandalone-debug], , , [-Werror])
+
 AC_PATH_PROG([PKG_CONFIG], [pkg-config])
 
 AC_CHECK_LIB([m], [sin])
@@ -42,6 +44,7 @@ AX_BOOST_IOSTREAMS
 AX_BOOST_THREAD
 AX_BOOST_REGEX
 AX_BOOST_PROGRAM_OPTIONS
+AX_BOOST_DATE_TIME
 
 AC_ARG_WITH([cif++],
 	AS_HELP_STRING([--with-cif++=@<:@location@:>@],

@@ -18,6 +18,7 @@ LIBS				= @LIBS@ -Wl,-Bstatic -lgsl -lgslcblas -Wl,-Bdynamic -lm \
 					  @BOOST_THREAD_LIB@ \
 					  @BOOST_REGEX_LIB@ \
 					  @BOOST_PROGRAM_OPTIONS_LIB@ \
+					  @BOOST_DATE_TIME_LIB@ \
 					  -lboost_timer -lboost_chrono \
 					  -static-libstdc++
 
@@ -50,7 +51,7 @@ DEBUG               = @DEBUG@
 
 ifeq "$(DEBUG)" "1"
 DEFINES				+= DEBUG
-CXXFLAGS            += -g -O0 -fstandalone-debug
+CXXFLAGS            += -g -O0
 LDFLAGS				+= -g
 else
 CXXFLAGS			+= -O2
