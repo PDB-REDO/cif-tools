@@ -1011,11 +1011,11 @@ int pr_main(int argc, char* argv[])
 		}
 	}
 
-	// delete aniso records when B factor < 2	
-	for (auto a: atomSites.find(cif::Key("B_iso_or_equiv") < 2.0))
+	// delete aniso records when B factor < 2
+	for (auto& a: atomSites.find(cif::Key("B_iso_or_equiv") < 2.0))
 	{
 		string id = a["id"].as<string>();
-		
+
 		for (auto aa: db["atom_site_anisotrop"].find(cif::Key("id") == id))
 		{
 			db["atom_site_anisotrop"].erase(aa);
@@ -1027,6 +1027,8 @@ int pr_main(int argc, char* argv[])
 			
 			a["B_iso_or_equiv"] = 2.0;
 			++numOfBFactorsReset;
+
+			break;
 		}
 	}
 	
