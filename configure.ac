@@ -1,13 +1,17 @@
+AC_PREREQ([2.69])
+
 AC_INIT([cif-tools], 1.0, [m.hekkelman@nki.nl])
 
 dnl Switch to a decent C++ compiler, and check if it works.
 AC_LANG(C++)
 AX_CXX_COMPILE_STDCXX_17([noext])
 
+AX_CHECK_COMPILE_FLAG([-fstandalone-debug], [ CXXFLAGS="$CXXFLAGS -fstandalone-debug" ], , [-Werror])
+
 AC_CONFIG_SRCDIR([src/pr-main.cpp])
 AC_CONFIG_AUX_DIR(config)
-AC_CONFIG_HEADERS([src/config.hpp])
 AC_CONFIG_MACRO_DIR([config/m4])
+AC_CONFIG_HEADERS([src/config.hpp])
 
 AC_PREFIX_DEFAULT(/usr/local)
 
@@ -16,11 +20,6 @@ AC_PROG_INSTALL
 AX_PTHREAD
 
 AC_ARG_VAR([DEBUG], [Build debug versions of the applications])
-
-dnl This is for clang:
-AX_CHECK_COMPILE_FLAG([-fstandalone-debug], [ CXXFLAGS="$CXXFLAGS -fstandalone-debug" ], , [-Werror])
-
-AC_CHECK_LIB([m], [sin])
 
 AC_ARG_VAR([MRC], [Specify a location for the mrc executable])
 
@@ -83,19 +82,9 @@ AC_ARG_WITH([cif++],
 			AC_SUBST([CIFPP_LIB], [${withval}/.libs/libcif++.la]) 
 		])
 
-AC_ARG_WITH([newuoa],
-	AS_HELP_STRING([--with-newuoa=@<:@location@:>@],
-		[Use the newuoa library as specified.]),
-		[
-			CPPFLAGS="$CPPFLAGS -I ${withval}/include"
-			CXXFLAGS="$CXXFLAGS -I ${withval}/include"
-			LDFLAGS="$LDFLAGS -L${withval}/lib"
-		])
-
 AX_CHECK_LIBRARY([LIBCIFPP], [cif++/Config.hpp], [cif++],
 	[],
 	[AC_MSG_ERROR([libcif++ not found - cannot continue])])
-
 
 AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
 				 [ LIBS="$LIBS -lz" ],
