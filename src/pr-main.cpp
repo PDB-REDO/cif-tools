@@ -144,22 +144,6 @@ void load_version_info()
 		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
 		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)");
 
-#if USE_RSRC
-
-	auto version = cif::rsrc_loader::load("version.txt");
-	if (not version)
-	{
-		VERSION_STRING = "unknown version, version resource is missing";
-		return;
-	}
-
-	struct membuf : public std::streambuf
-	{
-		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
-	} buffer(const_cast<char*>(version.data()), version.size());
-
-#else
-
 #include "revision.hpp"
 
 	struct membuf : public std::streambuf
@@ -167,7 +151,6 @@ void load_version_info()
 		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
 	} buffer(const_cast<char*>(kRevision), sizeof(kRevision));
 
-#endif
 	std::istream is(&buffer);
 
 	std::string line;
