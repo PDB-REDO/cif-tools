@@ -57,7 +57,7 @@ using unicode = uint32_t;
 using cif::iequals;
 
 class Statement;
-typedef shared_ptr<Statement> StatementPtr;
+typedef std::shared_ptr<Statement> StatementPtr;
 
 // -----------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ class StatementList : public Statement
 	}
 
   private:
-	vector<StatementPtr> mStatements;
+	std::vector<StatementPtr> mStatements;
 };
 
 // -----------------------------------------------------------------------
@@ -102,29 +102,29 @@ class StatementList : public Statement
 class SelectStatement : public Statement
 {
   public:
-	SelectStatement(cif::Category& category, bool distinct, vector<string>&& items, cif::Condition&& where)
-		: mCategory(category), mDistinct(distinct), mItems(move(items)), mWhere(move(where)) {}
+	SelectStatement(cif::Category& category, bool distinct, std::vector<std::string>&& items, cif::Condition&& where)
+		: mCategory(category), mDistinct(distinct), mItems(std::move(items)), mWhere(std::move(where)) {}
 
 	virtual void Execute()
 	{
-		vector<string> fields(mItems.size());
-		unordered_set<string> seen;
+		std::vector<std::string> fields(mItems.size());
+		std::unordered_set<std::string> seen;
 
-		cout << ba::join(mItems, "\t") << endl;
+		std::cout << ba::join(mItems, "\t") << std::endl;
 
-		for (auto r: mCategory.find(move(mWhere)))
+		for (auto r: mCategory.find(std::move(mWhere)))
 		{
 			transform(mItems.begin(), mItems.end(), fields.begin(),
 				[r](auto item) {
 					cif::detail::ItemReference ref = r[item];
-					return ref.as<string>();
+					return ref.as<std::string>();
 					});
 
-			string line = ba::join(fields, "\t");
+			std::string line = ba::join(fields, "\t");
 			bool seenLine = seen.count(line);
 
 			if (not mDistinct or not seenLine)
-				cout << line << endl;
+				std::cout << line << std::endl;
 
 			if (mDistinct and not seenLine)
 				seen.insert(line);
@@ -134,7 +134,7 @@ class SelectStatement : public Statement
   private:
 	cif::Category& mCategory;
 	bool mDistinct;
-	vector<string> mItems;
+	std::vector<std::string> mItems;
 	cif::Condition mWhere;
 };
 
@@ -144,7 +144,7 @@ class DeleteStatement : public Statement
 {
   public:
 	DeleteStatement(cif::Category& category, cif::Condition&& where)
-		: mCategory(category), mWhere(move(where)) {}
+		: mCategory(category), mWhere(std::move(where)) {}
 
 	virtual void Execute()
 	{
@@ -161,7 +161,7 @@ class DeleteStatement : public Statement
 		for (auto r: remove)
 			mCategory.erase(r);
 
-		cout << "Number of removed rows " << remove.size() << endl;
+		std::cout << "Number of removed rows " << remove.size() << std::endl;
 	}
 
   private:
@@ -174,8 +174,8 @@ class DeleteStatement : public Statement
 class UpdateStatement : public Statement
 {
   public:
-	UpdateStatement(cif::Category& category, vector<pair<string,string>>&& itemValuePairs, cif::Condition&& where)
-		: mCategory(category), mItemValuePairs(move(itemValuePairs)), mWhere(move(where)) {}
+	UpdateStatement(cif::Category& category, std::vector<std::pair<std::string,std::string>>&& itemValuePairs, cif::Condition&& where)
+		: mCategory(category), mItemValuePairs(std::move(itemValuePairs)), mWhere(std::move(where)) {}
 
 	virtual void Execute()
 	{
@@ -194,12 +194,12 @@ class UpdateStatement : public Statement
 			}
 		}
 
-		cout << "Number of updated rows: " << updated << endl;
+		std::cout << "Number of updated rows: " << updated << std::endl;
 	}
 
   private:
 	cif::Category& mCategory;
-	vector<pair<string,string>> mItemValuePairs;
+	std::vector<std::pair<std::string,std::string>> mItemValuePairs;
 	cif::Condition mWhere;
 };
 
@@ -211,7 +211,7 @@ class Parser
 	Parser(cif::Datablock& db)
 		: mDb(db) {}
 
-	StatementPtr Parse(streambuf* is);
+	StatementPtr Parse(std::streambuf* is);
 
   private:
 
@@ -258,7 +258,7 @@ class Parser
 		values,
 	};
 
-	string Describe(Token token)
+	std::string Describe(Token token)
 	{
 		switch (token)
 		{
@@ -316,16 +316,16 @@ class Parser
 	StatementPtr ParseSelect();
 	StatementPtr ParseDelete();
 	StatementPtr ParseUpdate();
-	vector<string> ParseItemList();
+	std::vector<std::string> ParseItemList();
 
 	cif::Condition ParseWhereClause(cif::Category& cat);
 	cif::Condition ParseNotWhereClause(cif::Category& cat);
 
 	cif::Datablock& mDb;
-	streambuf* mIs;
+	std::streambuf* mIs;
 	Token mLookahead;
-	stack<unicode> mBuffer;
-	string mToken;
+	std::stack<unicode> mBuffer;
+	std::string mToken;
 	double mTokenFloat;
 	int64_t mTokenInteger;
 };
@@ -336,7 +336,7 @@ uint8_t Parser::GetNextByte()
 {
 	int result = mIs->sbumpc();
 
-	if (result == streambuf::traits_type::eof())
+	if (result == std::streambuf::traits_type::eof())
 		result = 0;
 
 	return static_cast<uint8_t>(result);
@@ -354,7 +354,7 @@ unicode Parser::GetNextUnicode()
 		{
 			ch[0] = GetNextByte();
 			if ((ch[0] & 0x0c0) != 0x080)
-				throw runtime_error("Invalid utf-8");
+				throw std::runtime_error("Invalid utf-8");
 			result = ((result & 0x01F) << 6) | (ch[0] & 0x03F);
 		}
 		else if ((result & 0x0F0) == 0x0E0)
@@ -362,7 +362,7 @@ unicode Parser::GetNextUnicode()
 			ch[0] = GetNextByte();
 			ch[1] = GetNextByte();
 			if ((ch[0] & 0x0c0) != 0x080 or (ch[1] & 0x0c0) != 0x080)
-				throw runtime_error("Invalid utf-8");
+				throw std::runtime_error("Invalid utf-8");
 			result = ((result & 0x00F) << 12) | ((ch[0] & 0x03F) << 6) | (ch[1] & 0x03F);
 		}
 		else if ((result & 0x0F8) == 0x0F0)
@@ -371,11 +371,11 @@ unicode Parser::GetNextUnicode()
 			ch[1] = GetNextByte();
 			ch[2] = GetNextByte();
 			if ((ch[0] & 0x0c0) != 0x080 or (ch[1] & 0x0c0) != 0x080 or (ch[2] & 0x0c0) != 0x080)
-				throw runtime_error("Invalid utf-8");
+				throw std::runtime_error("Invalid utf-8");
 			result = ((result & 0x007) << 18) | ((ch[0] & 0x03F) << 12) | ((ch[1] & 0x03F) << 6) | (ch[2] & 0x03F);
 
 			if (result > 0x10ffff)
-				throw runtime_error("invalid utf-8 character (out of range)");
+				throw std::runtime_error("invalid utf-8 character (out of range)");
 		}
 	}
 
@@ -398,7 +398,7 @@ unicode Parser::GetNextChar()
 		if (result >= 0x080)
 		{
 			if (result == 0x0ffff or result == 0x0fffe)
-				throw runtime_error("character " + zeep::to_hex(result) + " is not allowed");
+				throw std::runtime_error("character " + zeep::to_hex(result) + " is not allowed");
 
 			// surrogate support
 			else if (result >= 0x0D800 and result <= 0x0DBFF)
@@ -407,10 +407,10 @@ unicode Parser::GetNextChar()
 				if (uc2 >= 0x0DC00 and uc2 <= 0x0DFFF)
 					result = (result - 0x0D800) * 0x400 + (uc2 - 0x0DC00) + 0x010000;
 				else
-					throw runtime_error("leading surrogate character without trailing surrogate character");
+					throw std::runtime_error("leading surrogate character without trailing surrogate character");
 			}
 			else if (result >= 0x0DC00 and result <= 0x0DFFF)
-				throw runtime_error("trailing surrogate character without a leading surrogate");
+				throw std::runtime_error("trailing surrogate character without a leading surrogate");
 		}
 	}
 
@@ -590,7 +590,7 @@ Parser::Token Parser::GetNextToken()
 				else if (is_name_start_char(ch))
 					state = State::Literal;
 				else
-					throw runtime_error("invalid character (" + zeep::to_hex(ch) + "/'" + (isprint(ch) ? static_cast<char>(ch) : '.') + "') in command");
+					throw std::runtime_error("invalid character (" + zeep::to_hex(ch) + "/'" + (isprint(ch) ? static_cast<char>(ch) : '.') + "') in command");
 			}
 			break;
 		
@@ -626,18 +626,18 @@ Parser::Token Parser::GetNextToken()
 				negative = true;
 			}
 			else
-				throw runtime_error("invalid character '-' in command");
+				throw std::runtime_error("invalid character '-' in command");
 			break;
 
 		case State::NegativeZero:
 			if (ch >= '0' or ch <= '9')
-				throw runtime_error("invalid number in command, should not start with zero");
+				throw std::runtime_error("invalid number in command, should not start with zero");
 			token = Token::number;
 			break;
 
 		case State::Zero:
 			if (ch >= '0' or ch <= '9')
-				throw runtime_error("invalid number in command, should not start with zero");
+				throw std::runtime_error("invalid number in command, should not start with zero");
 			token = Token::number;
 			break;
 
@@ -694,7 +694,7 @@ Parser::Token Parser::GetNextToken()
 				state = State::NumberExpDigit2;
 			}
 			else
-				throw runtime_error("invalid floating point format in command");
+				throw std::runtime_error("invalid floating point format in command");
 			break;
 
 		case State::NumberExpDigit2:
@@ -739,7 +739,7 @@ Parser::Token Parser::GetNextToken()
 				mToken.pop_back();
 			}
 			else if (ch == 0)
-				throw runtime_error("Invalid unterminated string in command");
+				throw std::runtime_error("Invalid unterminated std::string in command");
 			else if (ch == '\\')
 			{
 				state = State::Escape;
@@ -767,7 +767,7 @@ Parser::Token Parser::GetNextToken()
 					break;
 
 				default:
-					throw runtime_error("Invalid escape sequence in command (\\" + string{static_cast<char>(ch)} + ')');
+					throw std::runtime_error("Invalid escape sequence in command (\\" + std::string{static_cast<char>(ch)} + ')');
 			}
 			if (state == State::Escape)
 				state = State::String;
@@ -781,7 +781,7 @@ Parser::Token Parser::GetNextToken()
 			else if (ch >= 'A' and ch <= 'F')
 				hx = 10 + ch - 'A';
 			else 
-				throw runtime_error("Invalid hex sequence in command");
+				throw std::runtime_error("Invalid hex sequence in command");
 			mToken.pop_back();
 			state = State::EscapeHex2;
 			break;
@@ -794,7 +794,7 @@ Parser::Token Parser::GetNextToken()
 			else if (ch >= 'A' and ch <= 'F')
 				hx = 16 * hx + 10 + ch - 'A';
 			else 
-				throw runtime_error("Invalid hex sequence in command");
+				throw std::runtime_error("Invalid hex sequence in command");
 			mToken.pop_back();
 			state = State::EscapeHex3;
 			break;
@@ -807,7 +807,7 @@ Parser::Token Parser::GetNextToken()
 			else if (ch >= 'A' and ch <= 'F')
 				hx = 16 * hx + 10 + ch - 'A';
 			else 
-				throw runtime_error("Invalid hex sequence in command");
+				throw std::runtime_error("Invalid hex sequence in command");
 			mToken.pop_back();
 			state = State::EscapeHex4;
 			break;
@@ -820,7 +820,7 @@ Parser::Token Parser::GetNextToken()
 			else if (ch >= 'A' and ch <= 'F')
 				hx = 16 * hx + 10 + ch - 'A';
 			else 
-				throw runtime_error("Invalid hex sequence in command");
+				throw std::runtime_error("Invalid hex sequence in command");
 			mToken.pop_back();
 			zeep::append(mToken, hx);
 			state = State::String;
@@ -834,17 +834,17 @@ Parser::Token Parser::GetNextToken()
 void Parser::Match(Token expected)
 {
 	if (mLookahead != expected)
-		throw runtime_error("Syntax error in command, expected " + Describe(expected) + " but found " + Describe(mLookahead) + " (" + mToken + ")");
+		throw std::runtime_error("Syntax error in command, expected " + Describe(expected) + " but found " + Describe(mLookahead) + " (" + mToken + ")");
 	
 	mLookahead = GetNextToken();
 }
 
-StatementPtr Parser::Parse(streambuf* is)
+StatementPtr Parser::Parse(std::streambuf* is)
 {
 	mIs = is;
 
 	mLookahead = GetNextToken();
-	shared_ptr<StatementList> result(new StatementList());
+	std::shared_ptr<StatementList> result(new StatementList());
 
 	while (mLookahead != Token::eoln)
 	{
@@ -903,17 +903,17 @@ StatementPtr Parser::ParseSelect()
 
 	Match(Token::from);
 
-	string cat = mToken;
+	std::string cat = mToken;
 	Match(Token::ident);
 
 	auto category = mDb.get(cat);
 	if (category == nullptr)
-		throw runtime_error("Category " + cat + " is not defined in this file");
+		throw std::runtime_error("Category " + cat + " is not defined in this file");
 
 	auto cv = category->getCatValidator();
 	if (cv != nullptr)
 	{
-		vector<string> nItems;
+		std::vector<std::string> nItems;
 
 		for (auto item: items)
 		{
@@ -932,17 +932,17 @@ StatementPtr Parser::ParseSelect()
 		{
 			auto iv = cv->getValidatorForItem(item);
 			if (iv == nullptr)
-				throw runtime_error("Item " + item + " is not defined in the PDBx dictionary for category " + cat);
+				throw std::runtime_error("Item " + item + " is not defined in the PDBx dictionary for category " + cat);
 		}	
 	}
 
 	if (mLookahead == Token::where)
 	{
 		Match(Token::where);
-		return StatementPtr{ new SelectStatement(*category, distinct, move(items), ParseNotWhereClause(*category)) };
+		return StatementPtr{ new SelectStatement(*category, distinct, std::move(items), ParseNotWhereClause(*category)) };
 	}
 	else
-		return StatementPtr{ new SelectStatement(*category, distinct, move(items), cif::All()) };
+		return StatementPtr{ new SelectStatement(*category, distinct, std::move(items), cif::All()) };
 }
 
 // -----------------------------------------------------------------------
@@ -951,12 +951,12 @@ StatementPtr Parser::ParseDelete()
 {
 	Match(Token::from);
 
-	string cat = mToken;
+	std::string cat = mToken;
 	Match(Token::ident);
 
 	auto category = mDb.get(cat);
 	if (category == nullptr)
-		throw runtime_error("Category " + cat + " is not defined in this file");
+		throw std::runtime_error("Category " + cat + " is not defined in this file");
 
 	if (mLookahead == Token::where)
 	{
@@ -971,30 +971,30 @@ StatementPtr Parser::ParseDelete()
 
 StatementPtr Parser::ParseUpdate()
 {
-	string cat = mToken;
+	std::string cat = mToken;
 	Match(Token::ident);
 
 	auto category = mDb.get(cat);
 	if (category == nullptr)
-		throw runtime_error("Category " + cat + " is not defined in this file");
+		throw std::runtime_error("Category " + cat + " is not defined in this file");
 
 	auto cv = category->getCatValidator();
 
 	Match(Token::set);
 
-	vector<pair<string,string>> itemValuePairs;
+	std::vector<std::pair<std::string,std::string>> itemValuePairs;
 	for (;;)
 	{
-		string item = mToken;
+		std::string item = mToken;
 		Match(Token::ident);
 
 		auto iv = cv ? cv->getValidatorForItem(item) : nullptr;
 		if (cv and iv == nullptr)
-			throw runtime_error("Invalid item '" + item + "' for category '" + cat + '\'');
+			throw std::runtime_error("Invalid item '" + item + "' for category '" + cat + '\'');
 		
 		Match(Token::eq_);
 
-		string value = mToken;
+		std::string value = mToken;
 		switch (mLookahead)
 		{
 			case Token::integer:
@@ -1023,17 +1023,17 @@ StatementPtr Parser::ParseUpdate()
 	if (mLookahead == Token::where)
 	{
 		Match(Token::where);
-		return StatementPtr{ new UpdateStatement(*category, move(itemValuePairs), ParseNotWhereClause(*category)) };
+		return StatementPtr{ new UpdateStatement(*category, std::move(itemValuePairs), ParseNotWhereClause(*category)) };
 	}
 	else
-		return StatementPtr{ new UpdateStatement(*category, move(itemValuePairs), cif::All()) };
+		return StatementPtr{ new UpdateStatement(*category, std::move(itemValuePairs), cif::All()) };
 }
 
 // -----------------------------------------------------------------------
 
-vector<string> Parser::ParseItemList()
+std::vector<std::string> Parser::ParseItemList()
 {
-	vector<string> items;
+	std::vector<std::string> items;
 
 	for (;;)
 	{
@@ -1086,14 +1086,14 @@ cif::Condition Parser::ParseNotWhereClause(cif::Category& cat)
 			if (mLookahead == Token::and_)
 			{
 				Match(Token::and_);
-				result = move(result) and ParseNotWhereClause(cat);
+				result = std::move(result) and ParseNotWhereClause(cat);
 				continue;
 			}
 
 			if (mLookahead == Token::or_)
 			{
 				Match(Token::or_);
-				result = move(result) or ParseNotWhereClause(cat);
+				result = std::move(result) or ParseNotWhereClause(cat);
 				continue;
 			}
 
@@ -1107,13 +1107,13 @@ cif::Condition Parser::ParseNotWhereClause(cif::Category& cat)
 
 cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 {
-	string item = mToken;
+	std::string item = mToken;
 	Match(Token::ident);
 
 	auto cv = cat.getCatValidator();
 	if (cv != nullptr and cv->getValidatorForItem(item) == nullptr)
 	{
-		throw runtime_error("Invalid item '" + item + "' for category '" + cat.name() + "' in where clause");
+		throw std::runtime_error("Invalid item '" + item + "' for category '" + cat.name() + "' in where clause");
 	}
 
 	if (mLookahead < Token::eq_ or mLookahead > Token::ne_)
@@ -1123,7 +1123,7 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 	Match(mLookahead);
 	
 	cif::Condition c;
-	string value = mToken;
+	std::string value = mToken;
 
 	switch (mLookahead)
 	{
@@ -1144,7 +1144,7 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 		case Token::gt_:	return cif::Key(item) >  value;
 		case Token::ge_:	return cif::Key(item) >= value;
 		case Token::ne_:	return cif::Key(item) != value;
-		default:			throw logic_error("should never happen");
+		default:			throw std::logic_error("should never happen");
 	}
 }
 
@@ -1162,12 +1162,12 @@ int pr_main(int argc, char* argv[])
 
 		("force",										"Force writing of output file, even if it is the same as the input file")
 
-		("script,f",     po::value<string>(),   		"Read commands from script");
+		("script,f",     po::value<std::string>(),   		"Read commands from script");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input,i",		po::value<string>(),			"Input file")
-		("output,o",	po::value<string>(),			"Output file")
+		("input,i",		po::value<std::string>(),			"Input file")
+		("output,o",	po::value<std::string>(),			"Output file")
 		("debug,d",		po::value<int>(),				"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
@@ -1183,19 +1183,19 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION_STRING << endl;
+		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
 		exit(0);
 	}
 
 	if (vm.count("help") or not vm.count("input"))
 	{
-		cerr << visible_options << endl;
+		std::cerr << visible_options << std::endl;
 		exit(vm.count("help") != 0);
 	}
 
-	if (vm.count("output") and vm["output"].as<string>() == vm["input"].as<string>() and vm.count("force") == 0)
+	if (vm.count("output") and vm["output"].as<std::string>() == vm["input"].as<std::string>() and vm.count("force") == 0)
 	{
-		cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)" << endl;
+		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)" << std::endl;
 		exit(1);
 	}
 
@@ -1203,16 +1203,16 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 	
-	auto input = vm["input"].as<string>();
+	auto input = vm["input"].as<std::string>();
 	c::File file{fs::path(input)};
 
 	cql::Parser parser(file.data());
 
 	if (vm.count("script"))
 	{
-		ifstream cmdFile(vm["script"].as<string>());
+		std::ifstream cmdFile(vm["script"].as<std::string>());
 		if (not cmdFile.is_open())
-			throw runtime_error("Failed to open command file " + vm["script"].as<string>());
+			throw std::runtime_error("Failed to open command file " + vm["script"].as<std::string>());
 
 		auto stmt = parser.Parse(cmdFile.rdbuf());
 		if (stmt)
@@ -1220,26 +1220,26 @@ int pr_main(int argc, char* argv[])
 	}
 	else
 	{
-		string cmd;
-		while (getline(cin, cmd))
+		std::string cmd;
+		while (std::getline(std::cin, cmd))
 		{
 			try
 			{
-				istringstream is(cmd);
+				std::istringstream is(cmd);
 
 				auto stmt = parser.Parse(is.rdbuf());
 				if (stmt)
 					stmt->Execute();
 			}
-			catch(const exception& e)
+			catch(const std::exception& e)
 			{
-				cerr << e.what() << endl;
+				std::cerr << e.what() << std::endl;
 			}
 		}
 	}
 
 	if (vm.count("output"))
-		file.save(vm["output"].as<string>());
+		file.save(vm["output"].as<std::string>());
 
 	return 0;	
 }

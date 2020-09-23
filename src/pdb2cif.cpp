@@ -51,20 +51,20 @@ namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
 {
-	string input;
+	std::string input;
 	
 	try
 	{
-		po::options_description desc("pdb2cif "s + VERSION_STRING + " options");
+		po::options_description desc("pdb2cif " + VERSION_STRING + " options");
 		desc.add_options()
-			("input,i",		po::value<string>(),	"Input file")
-			("output,o",	po::value<string>(),	"Output file, default stdout")
+			("input,i",		po::value<std::string>(),	"Input file")
+			("output,o",	po::value<std::string>(),	"Output file, default stdout")
 			("help,h",								"Display help message")
 			("version",								"Print version")
 			("verbose,v",							"Verbose output")
 			("validate",							"Validate output file before writing")
 			("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)")
-			("dict",		po::value<string>(),	"Dictionary file containing restraints for residues in this specific target")
+			("dict",		po::value<std::string>(),	"Dictionary file containing restraints for residues in this specific target")
 			;
 	
 		po::positional_options_description p;
@@ -77,13 +77,13 @@ int pr_main(int argc, char* argv[])
 	
 		if (vm.count("version"))
 		{
-			cout << argv[0] << " version " << VERSION_STRING << endl;
+			std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
 			exit(0);
 		}
 	
 		if (vm.count("help") or vm.count("input") == 0)
 		{
-			cerr << desc << endl;
+			std::cerr << desc << std::endl;
 			exit(1);
 		}
 	
@@ -94,19 +94,19 @@ int pr_main(int argc, char* argv[])
 		// Load dict, if any
 		
 		if (vm.count("dict"))
-			c::CompoundFactory::instance().pushDictionary(vm["dict"].as<string>());
+			c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
 	
-		input = vm["input"].as<string>();
-		regex pdbIdRx(R"(\d\w{3})");
+		input = vm["input"].as<std::string>();
+		std::regex pdbIdRx(R"(\d\w{3})");
 		
 		fs::path file = input;
 // #warning "compile time PDB_DIR?"
 		// if (not fs::exists(file) and regex_match(input, pdbIdRx))
 		// 	file = fs::path(PDB_DIR) / "pdb" / input.substr(1, 2) / ("pdb" + input + ".ent.gz");
 		
-		ifstream infile(file.c_str(), ios_base::in | ios_base::binary);
+		std::ifstream infile(file, std::ios_base::in | std::ios_base::binary);
 		if (not infile.is_open())
-			throw runtime_error("Could not open file " + file.string());
+			throw std::runtime_error("Could not open file " + file.string());
 	
 		io::filtering_stream<io::input> in;
 	
@@ -127,13 +127,13 @@ int pr_main(int argc, char* argv[])
 		ReadPDBFile(in, f);
 		
 		if (vm.count("validate") and not f.isValid())
-			throw runtime_error("The resulting mmCIF is not valid");
+			throw std::runtime_error("The resulting mmCIF is not valid");
 		
 		if (vm.count("output"))
 		{
-			file = vm["output"].as<string>();
+			file = vm["output"].as<std::string>();
 			
-			ofstream outfile(file.c_str(), ios_base::out | ios_base::binary);
+			std::ofstream outfile(file, std::ios_base::out | std::ios_base::binary);
 			io::filtering_stream<io::output> out;
 			
 			if (file.extension() == ".gz")
@@ -146,12 +146,12 @@ int pr_main(int argc, char* argv[])
 			f.save(out);
 		}
 		else
-			f.save(cout);
+			f.save(std::cout);
 	}
-	catch (const exception& ex)
+	catch (const std::exception& ex)
 	{
 		if (not input.empty())
-			cerr << "Error converting '" << input << '\'' << endl;
+			std::cerr << "Error converting '" << input << '\'' << std::endl;
 		throw;
 	}
 

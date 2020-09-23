@@ -40,13 +40,13 @@
 #include "cif++/Cif++.hpp"
 #include "cif++/CifUtils.hpp"
 
-string VERSION_STRING;
+std::string VERSION_STRING;
 
 int pr_main(int argc, char* argv[]);
 
 // --------------------------------------------------------------------
 
-ostream& operator<<(ostream& os, const struct timeval& t)
+std::ostream& operator<<(std::ostream& os, const struct timeval& t)
 {
 	uint64_t s = t.tv_sec;
 	if (s > 24 * 60 * 60)
@@ -72,14 +72,14 @@ ostream& operator<<(ostream& os, const struct timeval& t)
 	
 	double ss = s + 1e-6 * t.tv_usec;
 	
-	os << fixed << setprecision(1) << ss << 's';
+	os << std::fixed << std::setprecision(1) << ss << 's';
 
 	return os;
 }
 
-ostream& operator<<(ostream& os, const chrono::duration<double>& t)
+std::ostream& operator<<(std::ostream& os, const std::chrono::duration<double>& t)
 {
-	uint64_t s = static_cast<uint64_t>(trunc(t.count()));
+	uint64_t s = static_cast<uint64_t>(std::trunc(t.count()));
 	if (s > 24 * 60 * 60)
 	{
 		uint32_t days = s / (24 * 60 * 60);
@@ -103,7 +103,7 @@ ostream& operator<<(ostream& os, const chrono::duration<double>& t)
 	
 	double ss = s + 1e-6 * (t.count() - s);
 	
-	os << fixed << setprecision(1) << ss << 's';
+	os << std::fixed << std::setprecision(1) << ss << 's';
 
 	return os;
 }
@@ -117,19 +117,19 @@ class RUsage
 		{
 			struct rusage u;
 			auto end = std::chrono::system_clock::now();
-			chrono::duration<double> diff = end - start;
+			std::chrono::duration<double> diff = end - start;
 			
 			if (getrusage(RUSAGE_SELF, &u) == 0)
-				cerr << "CPU usage: "
+				std::cerr << "CPU usage: "
 					<< u.ru_utime << " user, "
 					<< u.ru_stime << " system, "
-					<< diff << " wall" << endl;
+					<< diff << " wall" << std::endl;
 			else
 				perror("Failed to get rusage");
 		}
 	}
 
-	chrono::time_point<chrono::system_clock>	start = std::chrono::system_clock::now();
+	std::chrono::time_point<std::chrono::system_clock>	start = std::chrono::system_clock::now();
 };
 
 // --------------------------------------------------------------------
@@ -140,7 +140,7 @@ namespace {
 
 void load_version_info()
 {
-	const regex
+	const std::regex
 		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
 		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)");
 
@@ -153,7 +153,7 @@ void load_version_info()
 		return;
 	}
 
-	struct membuf : public streambuf
+	struct membuf : public std::streambuf
 	{
 		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
 	} buffer(const_cast<char*>(version.data()), version.size());
@@ -162,21 +162,21 @@ void load_version_info()
 
 #include "revision.hpp"
 
-	struct membuf : public streambuf
+	struct membuf : public std::streambuf
 	{
 		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
 	} buffer(const_cast<char*>(kRevision), sizeof(kRevision));
 
 #endif
-	istream is(&buffer);
+	std::istream is(&buffer);
 
-	string line;
+	std::string line;
 
 	while (getline(is, line))
 	{
-		smatch m;
+		std::smatch m;
 
-		if (regex_match(line, m, rxVersionNr))
+		if (std::regex_match(line, m, rxVersionNr))
 		{
 			gVersionNr = m[1];
 			if (m[2].matched)
@@ -184,7 +184,7 @@ void load_version_info()
 			continue;
 		}
 
-		if (regex_match(line, m, rxVersionDate))
+		if (std::regex_match(line, m, rxVersionDate))
 		{
 			gVersionDate = m[1];
 			continue;
@@ -196,12 +196,12 @@ void load_version_info()
 	VERSION_STRING += gVersionNr + " " + gVersionDate;
 }
 
-string get_version_nr()
+std::string get_version_nr()
 {
 	return gVersionNr;
 }
 
-string get_version_date()
+std::string get_version_date()
 {
 	return gVersionDate;
 }
@@ -209,16 +209,16 @@ string get_version_date()
 // --------------------------------------------------------------------
 
 // recursively print exception whats:
-void print_what (const exception& e)
+void print_what (const std::exception& e)
 {
-	cerr << e.what() << endl;
+	std::cerr << e.what() << std::endl;
 	try
 	{
-		rethrow_if_nested(e);
+		std::rethrow_if_nested(e);
 	}
-	catch (const exception& nested)
+	catch (const std::exception& nested)
 	{
-		cerr << " >> ";
+		std::cerr << " >> ";
 		print_what(nested);
 	}
 }
@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
 		
 		result = pr_main(argc, argv);
 	}
-	catch (exception& ex)
+	catch (std::exception& ex)
 	{
 		print_what(ex);
 		exit(1);

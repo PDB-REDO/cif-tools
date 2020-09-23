@@ -51,24 +51,24 @@ namespace io = boost::iostreams;
 class grepParser : public cif::SacParser
 {
   public:
-	grepParser(const string& file, istream& is, const string& pattern, bool quiet, bool printLineNr)
+	grepParser(const std::string& file, std::istream& is, const std::string& pattern, bool quiet, bool printLineNr)
 		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet), mLineNr(printLineNr)
 	{
 	}
 	
-	grepParser(const string& file, istream& is, const string& tag, const string& pattern, bool quiet, bool printLineNr)
+	grepParser(const std::string& file, std::istream& is, const std::string& tag, const std::string& pattern, bool quiet, bool printLineNr)
 		: grepParser(file, is, pattern, quiet, printLineNr)
 	{
-		tie(mCat, mItem) = cif::splitTagName(tag);
+		std::tie(mCat, mItem) = cif::splitTagName(tag);
 	}
 	
 	size_t getMatches() const			{ return mMatches; }
 	
-	virtual void produceDatablock(const string& name)
+	virtual void produceDatablock(const std::string& name)
 	{
 	}
 	
-	virtual void produceCategory(const string& name)
+	virtual void produceCategory(const std::string& name)
 	{
 	}
 	
@@ -76,33 +76,33 @@ class grepParser : public cif::SacParser
 	{
 	}
 	
-	virtual void produceItem(const string& category, const string& item, const string& value)
+	virtual void produceItem(const std::string& category, const std::string& item, const std::string& value)
 	{
 		if ((mCat.empty() or cif::iequals(category, mCat)) and
 			(mItem.empty() or cif::iequals(item, mItem)) and
-			regex_search(value, mRx))
+			std::regex_search(value, mRx))
 		{
 			++mMatches;
 			
 			if (not mQuiet)
 			{
 				if (not mFile.empty())
-					cout << mFile << ':';
+					std::cout << mFile << ':';
 				if (mLineNr)
-					cout << mLineNr << ':';
-				cout << value << endl;
+					std::cout << mLineNr << ':';
+				std::cout << value << std::endl;
 			}
 		}
 	}
 	
-	string	mFile;
-	string	mCat, mItem;
-	regex	mRx;
+	std::string	mFile;
+	std::string	mCat, mItem;
+	std::regex	mRx;
 	size_t	mMatches = 0;
 	bool	mQuiet, mLineNr;
 };
 
-size_t cifGrep(const string& pattern, const string& tag, const string& file, istream& is, bool quiet, bool printLineNr)
+size_t cifGrep(const std::string& pattern, const std::string& tag, const std::string& file, std::istream& is, bool quiet, bool printLineNr)
 {
 	size_t result = 0;
 	
@@ -128,7 +128,7 @@ int pr_main(int argc, char* argv[])
 {
 	po::options_description visible_options("cif-grep [option...] pattern [file ...]");
 	visible_options.add_options()
-		("item,i",	po::value<string>(),		"Item tag to scan, default is all item values")
+		("item,i",	po::value<std::string>(),		"Item tag to scan, default is all item values")
 		("help",								"Display help message")
 		("version",								"Print version")
 		("quiet,q",								"Only print files matching pattern")
@@ -142,8 +142,8 @@ int pr_main(int argc, char* argv[])
 
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("pattern",	po::value<string>(),		"Pattern")
-		("input",	po::value<vector<string>>(),"Input files")
+		("pattern",	po::value<std::string>(),		"Pattern")
+		("input",	po::value<std::vector<std::string>>(),"Input files")
 		("debug,d",	po::value<int>(),			"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
@@ -159,13 +159,13 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION_STRING << endl;
+		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
 		exit(0);
 	}
 
 	if (vm.count("help") or vm.count("pattern") == 0)
 	{
-		cerr << visible_options << endl;
+		std::cerr << visible_options << std::endl;
 		exit(vm.count("help") ? 0 : 1);
 	}
 
@@ -183,41 +183,41 @@ int pr_main(int argc, char* argv[])
 
 	quiet = quiet or countOnly;
 
-	string pattern = vm["pattern"].as<string>();
-	string tag;
+	std::string pattern = vm["pattern"].as<std::string>();
+	std::string tag;
 	if (vm.count("item"))
 	{
-		tag = vm["item"].as<string>();
+		tag = vm["item"].as<std::string>();
 
-		string cat, item;
-		tie(cat, item) = cif::splitTagName(tag);
+		std::string cat, item;
+		std::tie(cat, item) = cif::splitTagName(tag);
 		
 		if (cat.empty())
-			throw runtime_error("Invalid category in tag: '" + cat + '\'');
+			throw std::runtime_error("Invalid category in tag: '" + cat + '\'');
 		
 		if (item.empty())
-			throw runtime_error("Invalid item: '" + item + '\''); 
+			throw std::runtime_error("Invalid item: '" + item + '\''); 
 		
 		if (cif::VERBOSE)
-			cerr << "matching only for category: " << cat << " and item " << item << endl;
+			std::cerr << "matching only for category: " << cat << " and item " << item << std::endl;
 	}
 	
 	size_t result = false;
 	if (vm.count("input") == 0)
 	{
-		result = cifGrep(pattern, tag, "stdin", cin, quiet or filenamesOnly, lineNumbers);
+		result = cifGrep(pattern, tag, "stdin", std::cin, quiet or filenamesOnly, lineNumbers);
 		if (doFileNames or (filenamesOnly and result != 0))
-			cout << "stdin" << endl;
+			std::cout << "stdin" << std::endl;
 		if (countOnly)
-			cout << result << endl;
+			std::cout << result << std::endl;
 	}
 	else
 	{
-		auto files = vm["input"].as<vector<string>>();
+		auto files = vm["input"].as<std::vector<std::string>>();
 		
 		if (vm.count("recursive"))
 		{
-			vector<string> expanded;
+			std::vector<std::string> expanded;
 			for (auto file: files)
 			{
 				if (fs::is_directory(file))
@@ -237,15 +237,15 @@ int pr_main(int argc, char* argv[])
 			files = expanded;
 		}
 		
-		vector<tuple<size_t,string>> filesWithSizes;
+		std::vector<std::tuple<size_t,std::string>> filesWithSizes;
 		size_t totalSize = 0;
 		
 		transform(files.begin(), files.end(), back_inserter(filesWithSizes),
-			[&totalSize](const string& f) -> tuple<size_t, string>
+			[&totalSize](const std::string& f) -> std::tuple<size_t, std::string>
 			{
 				size_t size = fs::file_size(f);
 				totalSize += size;
-				return make_tuple(size, f);
+				return std::make_tuple(size, f);
 			});
 		
 			if (doFileNames)
@@ -257,17 +257,17 @@ int pr_main(int argc, char* argv[])
 		{
 			fs::path f;
 			size_t size;
-			tie(size, f) = file;
+			std::tie(size, f) = file;
 
 			if (not fs::is_regular_file(f))
 				continue;
 			
 			if (cif::VERBOSE)
-				cerr << f << endl;
+				std::cerr << f << std::endl;
 
-			ifstream infile(f, ios_base::in | ios_base::binary);
+			std::ifstream infile(f, std::ios_base::in | std::ios_base::binary);
 			if (not infile.is_open())
-				throw runtime_error("Could not open file " + f.string());
+				throw std::runtime_error("Could not open file " + f.string());
 	
 			io::filtering_stream<io::input> in;
 		
@@ -280,27 +280,27 @@ int pr_main(int argc, char* argv[])
 	
 			try
 			{
-				size_t r = cifGrep(pattern, tag, noFileNames ? ""s : f.filename().string(), in, quiet or filenamesOnly, lineNumbers);
+				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), in, quiet or filenamesOnly, lineNumbers);
 
 				count += r;
 
 				if (cif::VERBOSE or (countOnly and not noFileNames))
-					cout << f << ':' << r << endl;
+					std::cout << f << ':' << r << std::endl;
 
 				if (r > 0)
 					result = true;
 			}
-			catch (const exception& e)
+			catch (const std::exception& e)
 			{
-				cerr << endl
-						<< "exception for " << f << endl
-						<< " => " << e.what() << endl;
+				std::cerr << std::endl
+						<< "exception for " << f << std::endl
+						<< " => " << e.what() << std::endl;
 			}
 		}
 	}
 
 	if (noFileNames and countOnly)
-		cout << count << endl;
+		std::cout << count << std::endl;
 
 	return result ? 0 : 1;
 }

@@ -42,13 +42,13 @@ int pr_main(int argc, char* argv[])
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
-		("dict",	po::value<string>(),		"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
+		("dict",	po::value<std::string>(),		"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
 		("validate-links",						"Validate all links")
 		("verbose,v",							"Verbose output");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input",	po::value<string>(),		"Input file")
+		("input",	po::value<std::string>(),		"Input file")
 		("debug,d",	po::value<int>(),			"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
@@ -63,13 +63,13 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION_STRING << endl;
+		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
 		exit(0);
 	}
 
 	if (vm.count("help"))
 	{
-		cerr << visible_options << endl;
+		std::cerr << visible_options << std::endl;
 		exit(vm.count("help") ? 0 : 1);
 	}
 
@@ -81,14 +81,14 @@ int pr_main(int argc, char* argv[])
 	
 	if (vm.count("dict"))
 	{
-		string dict = vm["dict"].as<string>();
+		std::string dict = vm["dict"].as<std::string>();
 		f.loadDictionary(dict.c_str());
 	}
 	
 	if (vm.count("input") == 0)
-		f.load(cin);
+		f.load(std::cin);
 	else
-		f.load(vm["input"].as<string>());
+		f.load(vm["input"].as<std::string>());
 
 	int result = f.isValid() ? 0 : 1;
 
