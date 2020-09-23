@@ -30,7 +30,6 @@ LDFLAGS				= @LDFLAGS@ @BOOST_LDFLAGS@ @PTHREAD_CFLAGS@
 LIBS				= @LIBS@ \
 					  @BOOST_IOSTREAMS_LIB@ \
 					  @BOOST_PROGRAM_OPTIONS_LIB@ \
-					  @BOOST_TIMER_LIB@ \
 					  @BOOST_DATE_TIME_LIB@
 
 prefix				= @prefix@
@@ -38,6 +37,8 @@ exec_prefix			= @exec_prefix@
 bindir				= @bindir@
 datarootdir			= @datarootdir@
 datadir				= @datadir@
+
+ifneq "$(CHECK_CONFIG)" ""
 
 GNUmakefile: config.status GNUmakefile.in
 	$(SHELL) ./config.status
@@ -47,6 +48,8 @@ config.status: configure
 
 configure: configure.ac
 	autoconf
+
+endif
 
 # main build variables
 CXXFLAGS            += -Wall -Wno-multichar
