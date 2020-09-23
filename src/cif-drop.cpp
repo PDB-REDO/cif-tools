@@ -1,7 +1,35 @@
-#include "libpr.h"
+/* include/cif++/Config.hpp.  Generated from Config.hpp.in by configure.  */
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ * 
+ * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "cif-tools.hpp"
 
 #include <fstream>
 #include <functional>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
@@ -9,26 +37,26 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-#include "cif++.h"
-#include "cif-validator.h"
-#include "pdb2cif.h"
-#include "progress.h"
-#include "cif-test.h"
+#include "cif++/Cif++.hpp"
+#include "cif++/Cif2PDB.hpp"
+#include "cif++/Structure.hpp"
+#include "cif++/CifParser.hpp"
+#include "cif++/CifValidator.hpp"
+#include "cif++/CifUtils.hpp"
 
-using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 
-int drop(istream& is, set<string>& columns)
+int drop(std::istream& is, std::set<std::string>& columns)
 {
-	cif::file in(is);
+	cif::File in(is);
 	
 	for (auto c: columns)
 	{
-		string cat, item;
-		tie(cat, item) = cif::split_tag_name(c);
+		std::string cat, item;
+		std::tie(cat, item) = cif::splitTagName(c);
 		
 		// loop over all datablocks
 		for (auto& db: in)
@@ -39,12 +67,12 @@ int drop(istream& is, set<string>& columns)
 		}
 	}
 	
-	in.save(cout);
+	in.save(std::cout);
 	
 	return 0;
 }
 
-int cif_drop(int argc, char* argv[])
+int pr_main(int argc, char* argv[])
 {
 	po::options_description visible_options("cif-diff " + VERSION_STRING + " options file1 file2");
 	visible_options.add_options()
@@ -52,11 +80,11 @@ int cif_drop(int argc, char* argv[])
 		("version",										"Print version")
 		("verbose,v",									"Verbose output")
 		("output,o",									"Write output to this file, default is to the terminal (stdout)")
-		("column,c",	po::value<vector<string>>(),	"Column to drop, should be of the form '_category.item' with the leading underscore. Can be specified multiple times.");
+		("column,c",	po::value<std::vector<std::string>>(),	"Column to drop, should be of the form '_category.item' with the leading underscore. Can be specified multiple times.");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input,i",	po::value<string>(),		"Input file")
+		("input,i",	po::value<std::string>(),		"Input file")
 		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
@@ -71,13 +99,13 @@ int cif_drop(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION_STRING << endl;
+		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
 		exit(0);
 	}
 
 	if (vm.count("help") or vm.count("input") == 0 or vm.count("column") == 0)
 	{
-		cerr << visible_options << endl;
+		std::cerr << visible_options << std::endl;
 		exit(1);
 	}
 
@@ -85,12 +113,12 @@ int cif_drop(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 	
-	set<string> columns;
-	for (auto cs: vm["column"].as<vector<string>>())
+	std::set<std::string> columns;
+	for (auto cs: vm["column"].as<std::vector<std::string>>())
 	{
 		for (auto si = ba::make_split_iterator(cs, ba::token_finder(ba::is_any_of(",; "), ba::token_compress_on)); not si.eof(); ++si)
 		{
-			string c(si->begin(), si->end());
+			std::string c(si->begin(), si->end());
 			ba::to_lower(c);
 			columns.insert(c);
 		}
@@ -98,30 +126,30 @@ int cif_drop(int argc, char* argv[])
 
 	if (cif::VERBOSE)
 	{
-		cerr << "Dropping columns:" << endl;
+		std::cerr << "Dropping columns:" << std::endl;
 		for (auto c: columns)
-			cerr << "    " << c << endl;
-		cerr << endl;
+			std::cerr << "    " << c << std::endl;
+		std::cerr << std::endl;
 	}
 	
-	fs::path file = vm["input"].as<string>();
+	fs::path file = vm["input"].as<std::string>();
 	std::ifstream is(file);
 	if (not is.is_open())
 	{
-		cerr << "Could not open input file" << endl;
+		std::cerr << "Could not open input file" << std::endl;
 		exit(1);
 	}
 
-	ofstream f;
+	std::ofstream f;
 	if (vm.count("output"))
 	{
-		f.open(vm["output"].as<string>());
+		f.open(vm["output"].as<std::string>());
 		if (not f.is_open())
 		{
-			cerr << "Could not open output file" << endl;
+			std::cerr << "Could not open output file" << std::endl;
 			exit(1);
 		}
-		cout.rdbuf(f.rdbuf());
+		std::cout.rdbuf(f.rdbuf());
 	}
 	
 	return drop(is, columns);

@@ -1,4 +1,31 @@
-#include "pdb-redo.h"
+/* include/cif++/Config.hpp.  Generated from Config.hpp.in by configure.  */
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ * 
+ * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "cif-tools.hpp"
 
 #include <sys/wait.h>
 
@@ -21,7 +48,6 @@
 #include "cif++/CifValidator.hpp"
 #include "cif++/CifUtils.hpp"
 
-using namespace std;
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
@@ -33,16 +59,16 @@ namespace c = mmcif;
 class templateParser : public cif::SacParser
 {
   public:
-	templateParser(istream& is)
+	templateParser(std::istream& is)
 		: SacParser(is)
 	{
 	}
 	
-	virtual void produceDatablock(const string& name)
+	virtual void produceDatablock(const std::string& name)
 	{
 	}
 	
-	virtual void produceCategory(const string& name)
+	virtual void produceCategory(const std::string& name)
 	{
 	}
 	
@@ -50,14 +76,14 @@ class templateParser : public cif::SacParser
 	{
 	}
 	
-	virtual void produceItem(const string& category, const string& item, const string& value)
+	virtual void produceItem(const std::string& category, const std::string& item, const std::string& value)
 	{
-		string tag = "_" + category + "." + item;
+		std::string tag = "_" + category + "." + item;
 		if (find(mOrder.rbegin(), mOrder.rend(), tag) == mOrder.rend())
 			mOrder.push_back(tag);
 	}
 
-	vector<string>	mOrder;
+	std::vector<std::string>	mOrder;
 };
 
 // --------------------------------------------------------------------
@@ -66,32 +92,32 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 {
 	using namespace std::placeholders; 
 	
-//	set<string> tagsA(a.fields()), tagsB(b.fields());
+//	set<std::string> tagsA(a.fields()), tagsB(b.fields());
 //	
 //	if (tagsA != tagsB)
-//		cout << "Unequal number of fields" << endl;
+//		std::cout << "Unequal number of fields" << std::endl;
 
 	auto& validator = a.getValidator();
 	auto catValidator = validator.getValidatorForCategory(a.name());
 	if (catValidator == nullptr)
-		throw runtime_error("missing cat validator");
+		throw std::runtime_error("missing cat validator");
 	
-	typedef function<int(const char*,const char*)> compType;
-	vector<tuple<string,compType>> tags;
+	typedef std::function<int(const char*,const char*)> compType;
+	std::vector<std::tuple<std::string,compType>> tags;
 	auto keys = catValidator->mKeys;
-	vector<size_t> keyIx;
+	std::vector<size_t> keyIx;
 	
 	for (auto& tag: a.fields())
 	{
 		auto iv = catValidator->getValidatorForItem(tag);
 		if (iv == nullptr)
-			throw runtime_error("missing item validator");
+			throw std::runtime_error("missing item validator");
 		auto tv = iv->mType;
 		if (tv == nullptr)
-			throw runtime_error("missing type validator");
-		tags.push_back(make_tuple(tag, bind(&cif::ValidateType::compare, tv, std::placeholders::_1, std::placeholders::_2)));
+			throw std::runtime_error("missing type validator");
+		tags.push_back(std::make_tuple(tag, bind(&cif::ValidateType::compare, tv, std::placeholders::_1, std::placeholders::_2)));
 		
-		auto pred = [tag](const string& s) -> bool { return cif::iequals(tag, s) == 0; };
+		auto pred = [tag](const std::string& s) -> bool { return cif::iequals(tag, s) == 0; };
 		if (find_if(keys.begin(), keys.end(), pred) == keys.end())
 			keyIx.push_back(tags.size() - 1);
 	}
@@ -105,7 +131,7 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 
 		for (auto kix: keyIx)
 		{
-			string tag;
+			std::string tag;
 			compType compare;
 			
 			tie(tag, compare) = tags[kix];
@@ -119,7 +145,7 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 		return d < 0;
 	};
 	
-//	vector<cif::Row> rowsA(a.begin(), a.end()), rowsB(b.begin(), b.end());
+//	std::vector<cif::Row> rowsA(a.begin(), a.end()), rowsB(b.begin(), b.end());
 //	sort(rowsA.begin(), rowsA.end(), rowLess);
 //	sort(rowsB.begin(), rowsB.end(), rowLess);
 	
@@ -129,15 +155,15 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 	{
 		virtual ~Diff() {}
 		
-		string key(cif::Row r, vector<string>& keys)
+		std::string key(cif::Row r, std::vector<std::string>& keys)
 		{
-			vector<string> v;
+			std::vector<std::string> v;
 			for (auto k: keys)
-				v.push_back(r[k].as<string>());
+				v.push_back(r[k].as<std::string>());
 			return "[" + ba::join(v, ", ") + "]";
 		}
 		
-		virtual void report(vector<string>& keys) = 0;
+		virtual void report(std::vector<std::string>& keys) = 0;
 	};
 
 	struct ExtraADiff : public Diff
@@ -146,9 +172,9 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 		
 		ExtraADiff(cif::Row r) : A(r) {}
 		
-		virtual void report(vector<string>& keys)
+		virtual void report(std::vector<std::string>& keys)
 		{
-			cout << "Extra row in A with key " << key(A, keys) << endl;
+			std::cout << "Extra row in A with key " << key(A, keys) << std::endl;
 		}
 	};
 	
@@ -158,45 +184,45 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 		
 		ExtraBDiff(cif::Row r) : B(r) {}
 		
-		virtual void report(vector<string>& keys)
+		virtual void report(std::vector<std::string>& keys)
 		{
-			cout << "Extra row in B with key " << key(B, keys) << endl;
+			std::cout << "Extra row in B with key " << key(B, keys) << std::endl;
 		}
 	};
 	
 	struct ValueDiff : public Diff
 	{
 		cif::Row A, B;
-		vector<string> missingA, missingB, different;
+		std::vector<std::string> missingA, missingB, different;
 		
-		ValueDiff(cif::Row a, cif::Row b, vector<string>&&  missingA, vector<string>&& missingB, vector<string>&& different)
+		ValueDiff(cif::Row a, cif::Row b, std::vector<std::string>&&  missingA, std::vector<std::string>&& missingB, std::vector<std::string>&& different)
 			: A(a), B(b), missingA(move(missingA)), missingB(move(missingB)), different(move(different)) {}
 		
-		virtual void report(vector<string>& keys)
+		virtual void report(std::vector<std::string>& keys)
 		{
-			cout << "Differences in rows with key " << key(A, keys) << endl;
+			std::cout << "Differences in rows with key " << key(A, keys) << std::endl;
 			
 			for (auto& item: different)
 			{
-				cout << "    " << item << " (A): '" << A[item] << '\'' << endl
-					 << "    " << item << " (B): '" << B[item] << '\'' << endl;
+				std::cout << "    " << item << " (A): '" << A[item] << '\'' << std::endl
+					 << "    " << item << " (B): '" << B[item] << '\'' << std::endl;
 			}
 			
 			for (auto& item: missingA)
 			{
-				cout << "    " << item << " (A): <missing>" << endl
-					 << "    " << item << " (B): '" << B[item] << '\'' << endl;
+				std::cout << "    " << item << " (A): <missing>" << std::endl
+					 << "    " << item << " (B): '" << B[item] << '\'' << std::endl;
 			}
 
 			for (auto& item: missingB)
 			{
-				cout << "    " << item << " (A): '" << A[item] << '\'' << endl
-					 << "    " << item << " (B): <missing>" << endl;
+				std::cout << "    " << item << " (A): '" << A[item] << '\'' << std::endl
+					 << "    " << item << " (B): <missing>" << std::endl;
 			}
 		}
 	};
 	
-	vector<Diff*> diffs;
+	std::vector<Diff*> diffs;
 
 	while ((maxDiffCount == 0 or diffs.size() < maxDiffCount) and (ai != a.end() or bi != b.end()))
 	{
@@ -226,11 +252,11 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 			continue;
 		}
 		
-		vector<string> missingA, missingB, different;
+		std::vector<std::string> missingA, missingB, different;
 		
 		for (auto& tt: tags)
 		{
-			string tag;
+			std::string tag;
 			compType compare;
 			
 			tie(tag, compare) = tt;
@@ -260,9 +286,9 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 
 	if (not diffs.empty())
 	{
-		cout << string(cif::get_terminal_width(), '-') << endl
-			 << "Differences in values for category " << a.name() << endl
-			 << endl;
+		std::cout << std::string(cif::get_terminal_width(), '-') << std::endl
+			 << "Differences in values for category " << a.name() << std::endl
+			 << std::endl;
 
 		for (auto diff: diffs)
 		{
@@ -271,14 +297,14 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 		}
 	
 		if (diffs.size() == maxDiffCount)
-			cout << "..." << endl;
-		cout << endl;
+			std::cout << "..." << std::endl;
+		std::cout << std::endl;
 	}
 }
 
 void compareCifs(cif::Datablock& dbA, cif::Datablock& dbB, const cif::iset& categories, int maxDiffCount)
 {
-	vector<string> catA, catB;
+	std::vector<std::string> catA, catB;
 
 	for (auto& cat: dbA)
 		catA.push_back(cat.name());
@@ -291,16 +317,16 @@ void compareCifs(cif::Datablock& dbA, cif::Datablock& dbB, const cif::iset& cate
 	// loop over categories twice, to group output
 	// First iteration is to list missing categories.
 
-	vector<string> missingA, missingB;
+	std::vector<std::string> missingA, missingB;
 
 	auto catA_i = catA.begin(), catB_i = catB.begin();
 	
 	while (catA_i != catA.end() and catB_i != catB.end())
 	{
-		string nA = *catA_i;
+		std::string nA = *catA_i;
 		ba::to_lower(nA);
 		
-		string nB = *catB_i;
+		std::string nB = *catB_i;
 		ba::to_lower(nB);
 		
 		int d = nA.compare(nB);
@@ -331,12 +357,12 @@ void compareCifs(cif::Datablock& dbA, cif::Datablock& dbB, const cif::iset& cate
 	if (categories.empty())
 	{
 		if (not missingA.empty())
-			cout << "Categories missing in A: " << ba::join(missingA, ", ") << endl
-				 << endl;
+			std::cout << "Categories missing in A: " << ba::join(missingA, ", ") << std::endl
+				 << std::endl;
 	
 		if (not missingB.empty())
-			cout << "Categories missing in B: " << ba::join(missingB, ", ") << endl
-				 << endl;
+			std::cout << "Categories missing in B: " << ba::join(missingB, ", ") << std::endl
+				 << std::endl;
 	}
 
 	// Second loop, now compare category values
@@ -344,10 +370,10 @@ void compareCifs(cif::Datablock& dbA, cif::Datablock& dbB, const cif::iset& cate
 	
 	while (catA_i != catA.end() and catB_i != catB.end())
 	{
-		string nA = *catA_i;
+		std::string nA = *catA_i;
 		ba::to_lower(nA);
 		
-		string nB = *catB_i;
+		std::string nB = *catB_i;
 		ba::to_lower(nB);
 		
 		int d = nA.compare(nB);
@@ -374,7 +400,7 @@ void compareCifsText(c::File& a, c::File& b, bool icase, bool iwhite)
 	
 	if ((fd[0] = mkstemps(generated, 4)) < 0 or (fd[1] = mkstemps(original, 4)) < 0)
 	{
-		cerr << "Error creating temp files:  " << strerror(errno) << endl;
+		std::cerr << "Error creating temp files:  " << strerror(errno) << std::endl;
 		exit(1);
 	}
 
@@ -393,12 +419,12 @@ void compareCifsText(c::File& a, c::File& b, bool icase, bool iwhite)
 		io::filtering_stream<io::output> out;
 		out.push(gen);
 
-		vector<string> order;
+		std::vector<std::string> order;
 		a.data().getTagOrder(order);
 		b.data().write(out, order);
 	}
 	
-	vector<const char*> nArgv = {
+	std::vector<const char*> nArgv = {
 		"/usr/bin/vimdiff"
 	};
 	
@@ -423,7 +449,7 @@ void compareCifsText(c::File& a, c::File& b, bool icase, bool iwhite)
 	if (pid <= 0)
 	{
 		if (execv(nArgv[0], const_cast<char*const*>(nArgv.data())) < 0)
-			cerr << "Failed to execute vimdiff" << endl;
+			std::cerr << "Failed to execute vimdiff" << std::endl;
 		exit(1);
 	}
 	
@@ -444,7 +470,7 @@ int pr_main(int argc, char* argv[])
 		("help,h",										"Display help message")
 		("version",										"Print version")
 		("verbose,v",									"Verbose output")
-		("category",	po::value<vector<string>>(),	"Limit comparison to this category, default is all categories. Can be specified multiple times")
+		("category",	po::value<std::vector<std::string>>(),	"Limit comparison to this category, default is all categories. Can be specified multiple times")
 		("max-diff-count", po::value<int>(),			"Maximum number of diff items per category, enter zero (0) for unlimited, default is 5")
 		("text",										"Text based diff (using vimdiff) based on the order of the cif version")
 		("icase",										"Ignore case (vimdiff option)")
@@ -452,7 +478,7 @@ int pr_main(int argc, char* argv[])
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input,i",	po::value<vector<string>>(),"Input files")
+		("input,i",	po::value<std::vector<std::string>>(),"Input files")
 		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
@@ -467,13 +493,13 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		cout << argv[0] << " version " << VERSION_STRING << endl;
+		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
 		exit(0);
 	}
 
-	if (vm.count("help") or vm.count("input") == 0 or vm["input"].as<vector<string>>().size() != 2)
+	if (vm.count("help") or vm.count("input") == 0 or vm["input"].as<std::vector<std::string>>().size() != 2)
 	{
-		cerr << visible_options << endl;
+		std::cerr << visible_options << std::endl;
 		exit(1);
 	}
 
@@ -488,18 +514,18 @@ int pr_main(int argc, char* argv[])
 	cif::iset categories;
 	if (vm.count("category"))
 	{
-		for (auto cs: vm["category"].as<vector<string>>())
+		for (auto cs: vm["category"].as<std::vector<std::string>>())
 		{
 			for (auto si = ba::make_split_iterator(cs, ba::token_finder(ba::is_any_of(",; "), ba::token_compress_on)); not si.eof(); ++si)
 			{
-				string cat(si->begin(), si->end());
+				std::string cat(si->begin(), si->end());
 				ba::to_lower(cat);
 				categories.insert(cat);
 			}
 		}
 	}
 	
-	auto input = vm["input"].as<vector<string>>();
+	auto input = vm["input"].as<std::vector<std::string>>();
 	c::File file1{fs::path(input[0])};
 	c::File file2{fs::path(input[1])};
 

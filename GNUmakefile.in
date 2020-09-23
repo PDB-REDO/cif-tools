@@ -1,31 +1,43 @@
-# Makefile for rama-angles
-#
-#        Copyright Maarten L. Hekkelman, 2014-2020
-# Distributed under the Boost Software License, Version 1.0.
-#    (See accompanying file LICENSE_1_0.txt or copy at
-#          http://www.boost.org/LICENSE_1_0.txt)
-#
-# Use the make.config file in the uplevel directory to
-# change the settings for this build
+# SPDX-License-Identifier: BSD-2-Clause
+# 
+# Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 firstTarget: all
 
 CXX					= @CXX@
-CXXFLAGS			= @CXXFLAGS@ @CPPFLAGS@ @BOOST_CPPFLAGS@ @LIBZEEP_CPPFLAGS@ @PTHREAD_CFLAGS@ @LIBCLIPPER_CPPFLAGS@ @GSL_CFLAGS@
-LDFLAGS				= @LDFLAGS@ @BOOST_LDFLAGS@ @LIBZEEP_LDFLAGS@ @PTHREAD_CFLAGS@ @LIBCLIPPER_LDFLAGS@
-LIBS				= @LIBS@ -Wl,-Bstatic -lgsl -lgslcblas -Wl,-Bdynamic -lm \
+CXXFLAGS			= @CXXFLAGS@ @CPPFLAGS@ @BOOST_CPPFLAGS@ @PTHREAD_CFLAGS@
+LDFLAGS				= @LDFLAGS@ @BOOST_LDFLAGS@ @PTHREAD_CFLAGS@
+LIBS				= @LIBS@ \
 					  @BOOST_IOSTREAMS_LIB@ \
-					  @BOOST_THREAD_LIB@ \
-					  @BOOST_REGEX_LIB@ \
 					  @BOOST_PROGRAM_OPTIONS_LIB@ \
-					  @BOOST_DATE_TIME_LIB@ \
-					  -lboost_timer -lboost_chrono \
-					  -static-libstdc++
+					  @BOOST_TIMER_LIB@ \
+					  @BOOST_DATE_TIME_LIB@
 
 prefix				= @prefix@
 exec_prefix			= @exec_prefix@
-libdir				= @libdir@
-includedir			= @includedir@
+bindir				= @bindir@
+datarootdir			= @datarootdir@
+datadir				= @datadir@
 
 GNUmakefile: config.status GNUmakefile.in
 	$(SHELL) ./config.status
@@ -39,12 +51,9 @@ configure: configure.ac
 # main build variables
 CXXFLAGS            += -Wall -Wno-multichar
 
-PACKAGES			+= 
+DATADIR				= $(datadir)/@PACKAGE_NAME@
 
-ifneq ($(PACKAGES),)
-CXXFLAGS			+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PACKAGES))
-LDFLAGS				+= $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PACKAGES) )
-endif
+DEFINES				+= DATADIR='"$(DATADIR)"'
 
 # Use the DEBUG flag to build debug versions of the code
 DEBUG               = @DEBUG@
@@ -59,12 +68,8 @@ DEFINES				+= NDEBUG
 endif
 
 MRC					= @MRC@
+USE_RSRC			= @USE_RSRC@
 CIFPP_RSRC			= @CIFPP_RSRC@
-
-ifneq "$(MRC)" ""
-USE_RSRC	?= @USE_RSRC@
-DEFINES		+= USE_RSRC
-endif
 
 # targets
 
@@ -80,50 +85,32 @@ endif
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
-ifeq "$(MRC)" ""
-
-$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
-	@ echo ">>" $<
-	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
-
-else
-
 $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 
 COMMON_OBJECTS = pr-main.o
-COMMON_RSRC = @CIFPP_RSRC@/dictionaries @CIFPP_RSRC@/isomers.txt rsrc/version.txt @CIFPP_RSRC@/lib-version.txt
 
+ifneq "$(USE_RSRC)" "0"
+COMMON_RSRC = @CIFPP_RSRC@/dictionaries
+else
+$(OBJDIR)/pr-main.o: src/revision.hpp
 endif
 
 # The program rules
 
 # disabled for now: centrifuge map-maker
 PROGRAMS = \
-	pdb2cif cif2pdb mtz-maker cif-diff cif-grep cif-merge extractor \
-	prepper tls-interpreter stats isomers chiron re-ref cif-validate \
-	pepflip compref tortoize flipper mmCQL
-
-
-centrifuge_OBJECTS = HBondTraits.o svm++.o
-map-maker_OBJECTS = pr-server.o
-rama-angles_OBJECTS = pr-server.o ramachandran.o
-re-ref_OBJECTS = minimizer.o restraints.o
-pepflip_OBJECTS = minimizer.o restraints.o skiplist.o ramachandran.o
-
-tortoize_RSRC = rsrc/rama-data.bin rsrc/torsion-data.bin
-map-maker_RSRC = $(DOCROOT_FILES)
-rama-angles_RSRC = $(DOCROOT_FILES)
+	pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL
 
 define PROGRAM_template =
 
 $(1)_OBJECTS += $(1).o $(COMMON_OBJECTS)
 
-ifneq "$(MRC)" ""
+ifneq "$(USE_RSRC)" "0"
 $(1)_OBJECTS += $(1).o $(1)_rsrc.o
 
-$$(OBJDIR)/$(1)_rsrc.o: @CIFPP_RSRC@/dictionaries $$($(1)_RSRC) $$(COMMON_RSRC)
+$$(OBJDIR)/$(1)_rsrc.o: $$($(1)_RSRC) $$(COMMON_RSRC)
 	$(MRC) -o $$@ $$^
 endif
 
@@ -157,11 +144,23 @@ $(REVISION_FILE): $(OBJDIR) src
 	git describe --match=build --dirty > $@
 	git log --pretty=medium --date=iso8601 -1 >> $@
 
+src/revision.hpp: $(REVISION_FILE)
+	echo 'const char kRevision[] = R"(' > $@
+	cat $? >> $@
+	echo ')";' >> $@
+
 rsrc:
 	@ mkdir -p $@
 
 rsrc/version.txt: $(REVISION_FILE) | rsrc
 	cp $? $@
+
+.PHONY: install
+install: $(PROGRAMS)
+	for p in $(PROGRAMS); do install -D $$p $(bindir)/$$p; done
+	for d in mmcif_ddl.dic  mmcif_pdbx.dic; do \
+		install -D -m644 $(CIFPP_RSRC)/dictionaries/$$d $(DATADIR)/dictionaries/$$d; \
+	done
 
 .PHONY: FORCE
 FORCE:

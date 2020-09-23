@@ -1,4 +1,31 @@
-#include "pdb-redo.h"
+/* include/cif++/Config.hpp.  Generated from Config.hpp.in by configure.  */
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ * 
+ * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "cif-tools.hpp"
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -10,12 +37,8 @@
 #include <cmath>
 #include <regex>
 
-#include <zeep/streambuf.hpp>
-
 #include "cif++/Cif++.hpp"
 #include "cif++/CifUtils.hpp"
-
-using namespace std;
 
 string VERSION_STRING;
 
@@ -121,38 +144,56 @@ void load_version_info()
 		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
 		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)");
 
+#if USE_RSRC
+
 	auto version = cif::rsrc_loader::load("version.txt");
 	if (not version)
-		VERSION_STRING = "unknown version, version resource is missing";
-	else
 	{
-		zeep::char_streambuf buffer(version.data(), version.size());
-		istream is(&buffer);
-		string line;
+		VERSION_STRING = "unknown version, version resource is missing";
+		return;
+	}
 
-		while (getline(is, line))
+	struct membuf : public streambuf
+	{
+		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
+	} buffer(const_cast<char*>(version.data()), version.size());
+
+#else
+
+#include "revision.hpp"
+
+	struct membuf : public streambuf
+	{
+		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
+	} buffer(const_cast<char*>(kRevision), sizeof(kRevision));
+
+#endif
+	istream is(&buffer);
+
+	string line;
+
+	while (getline(is, line))
+	{
+		smatch m;
+
+		if (regex_match(line, m, rxVersionNr))
 		{
-			smatch m;
-
-			if (regex_match(line, m, rxVersionNr))
-			{
-				gVersionNr = m[1];
-				if (m[2].matched)
-					gVersionNr += '*';
-				continue;
-			}
-
-			if (regex_match(line, m, rxVersionDate))
-			{
-				gVersionDate = m[1];
-				continue;
-			}
+			gVersionNr = m[1];
+			if (m[2].matched)
+				gVersionNr += '*';
+			continue;
 		}
 
-		if (not VERSION_STRING.empty())
-			VERSION_STRING += "\n";
-		VERSION_STRING += gVersionNr + " " + gVersionDate;
+		if (regex_match(line, m, rxVersionDate))
+		{
+			gVersionDate = m[1];
+			continue;
+		}
 	}
+
+	if (not VERSION_STRING.empty())
+		VERSION_STRING += "\n";
+	VERSION_STRING += gVersionNr + " " + gVersionDate;
 }
 
 string get_version_nr()
@@ -191,10 +232,13 @@ int main(int argc, char* argv[])
 	try
 	{
 		cif::rsrc_loader::init({
-#if USE_RSRC
-			{ cif::rsrc_loader_type::mrsrc, "", { gResourceIndex, gResourceData, gResourceName } },
+			{ cif::rsrc_loader_type::file, "." },
+#if defined DATADIR
+			{ cif::rsrc_loader_type::file, DATADIR },
 #endif
-			{ cif::rsrc_loader_type::file, "." }
+#if USE_RSRC
+			{ cif::rsrc_loader_type::mrsrc, "", { gResourceIndex, gResourceData, gResourceName } }
+#endif
 		});
 
 		load_version_info();
