@@ -115,7 +115,7 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 		auto tv = iv->mType;
 		if (tv == nullptr)
 			throw std::runtime_error("missing type validator");
-		tags.push_back(std::make_tuple(tag, bind(&cif::ValidateType::compare, tv, std::placeholders::_1, std::placeholders::_2)));
+		tags.push_back(std::make_tuple(tag, std::bind(&cif::ValidateType::compare, tv, std::placeholders::_1, std::placeholders::_2)));
 		
 		auto pred = [tag](const std::string& s) -> bool { return cif::iequals(tag, s) == 0; };
 		if (find_if(keys.begin(), keys.end(), pred) == keys.end())
