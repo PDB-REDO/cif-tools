@@ -636,6 +636,7 @@ AX_PACKAGE_REQUIRES
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
+CIFPP_RSRC
 CIFPP_LIBS
 CIFPP_CFLAGS
 BOOST_DATE_TIME_LIB
@@ -6833,6 +6834,7 @@ fi
 
 			CIFPP_CFLAGS="-I ${withval}/include"
 			CIFPP_LIBS="-L${withval}/.libs -lcif++"
+			CIFPP_RSRC="${withval}/rsrc"
 
 			CIFPP_CFLAGS=$CIFPP_CFLAGS
 
@@ -6840,6 +6842,9 @@ fi
 
 
 fi
+
+
+CIFPP_RSRC=$CIFPP_RSRC
 
 
 
@@ -7179,7 +7184,9 @@ fi
 
 $as_echo "#define HAVE_CIFPP 1" >>confdefs.h
 
-     LIBS="-lcif++ $LIBS"
+
+					 LIBS="-lcif++ $LIBS"
+
 else
   as_fn_error $? "libcif++ not found" "$LINENO" 5
 fi

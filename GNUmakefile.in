@@ -55,7 +55,9 @@ endif
 # main build variables
 CXXFLAGS            += -Wall -Wno-multichar
 
-DATADIR				= $(datadir)/libcifpp
+CIFPP_RSRC			= @CIFPP_RSRC@
+CIFPP_RSRC			?= $(datadir)/libcifpp
+DATADIR				= $(CIFPP_RSRC)
 
 DEFINES				+= DATADIR='"$(DATADIR)"'
 
