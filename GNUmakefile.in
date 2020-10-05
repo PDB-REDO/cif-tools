@@ -56,13 +56,13 @@ endif
 CXXFLAGS            += -Wall -Wno-multichar
 
 CIFPP_RSRC			= @CIFPP_RSRC@
-CIFPP_RSRC			?= $(datadir)/libcifpp
 
 ifneq "$(CIFPP_RSRC)" ""
 DATADIR				= $(CIFPP_RSRC)
-endif
-
 DEFINES				+= DATADIR='"$(DATADIR)"'
+else
+DATADIR				= $(datadir)/libcifpp
+endif
 
 # Use the DEBUG flag to build debug versions of the code
 DEBUG               = @DEBUG@
