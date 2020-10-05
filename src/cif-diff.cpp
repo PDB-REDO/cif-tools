@@ -204,19 +204,19 @@ void compareCategories(cif::Category& a, cif::Category& b, size_t maxDiffCount)
 			
 			for (auto& item: different)
 			{
-				std::cout << "    " << item << " (A): '" << A[item] << '\'' << std::endl
-					 << "    " << item << " (B): '" << B[item] << '\'' << std::endl;
+				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << std::endl
+					 << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << std::endl;
 			}
 			
 			for (auto& item: missingA)
 			{
 				std::cout << "    " << item << " (A): <missing>" << std::endl
-					 << "    " << item << " (B): '" << B[item] << '\'' << std::endl;
+					 << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << std::endl;
 			}
 
 			for (auto& item: missingB)
 			{
-				std::cout << "    " << item << " (A): '" << A[item] << '\'' << std::endl
+				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << std::endl
 					 << "    " << item << " (B): <missing>" << std::endl;
 			}
 		}
