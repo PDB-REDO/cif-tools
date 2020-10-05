@@ -57,7 +57,10 @@ CXXFLAGS            += -Wall -Wno-multichar
 
 CIFPP_RSRC			= @CIFPP_RSRC@
 CIFPP_RSRC			?= $(datadir)/libcifpp
+
+ifneq "$(CIFPP_RSRC)" ""
 DATADIR				= $(CIFPP_RSRC)
+endif
 
 DEFINES				+= DATADIR='"$(DATADIR)"'
 
