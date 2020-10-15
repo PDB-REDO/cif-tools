@@ -59,10 +59,10 @@ CIFPP_RSRC			= @CIFPP_RSRC@
 
 ifneq "$(CIFPP_RSRC)" ""
 DATADIR				= $(CIFPP_RSRC)
-DEFINES				+= DATADIR='"$(DATADIR)"'
 else
 DATADIR				= $(datadir)/libcifpp
 endif
+DEFINES				+= DATADIR='"$(DATADIR)"'
 
 # Use the DEBUG flag to build debug versions of the code
 DEBUG               = @DEBUG@
