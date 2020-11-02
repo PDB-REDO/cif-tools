@@ -51,13 +51,13 @@ namespace io = boost::iostreams;
 class grepParser : public cif::SacParser
 {
   public:
-	grepParser(const std::string& file, std::istream& is, const std::string& pattern, bool quiet, bool printLineNr)
-		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet), mLineNr(printLineNr)
+	grepParser(const std::string& file, std::istream& is, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
+		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet), mLineNr(printLineNr), mInvertMatch(invertMatch)
 	{
 	}
 	
-	grepParser(const std::string& file, std::istream& is, const std::string& tag, const std::string& pattern, bool quiet, bool printLineNr)
-		: grepParser(file, is, pattern, quiet, printLineNr)
+	grepParser(const std::string& file, std::istream& is, const std::string& tag, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
+		: grepParser(file, is, pattern, quiet, printLineNr, invertMatch)
 	{
 		std::tie(mCat, mItem) = cif::splitTagName(tag);
 	}
@@ -80,7 +80,7 @@ class grepParser : public cif::SacParser
 	{
 		if ((mCat.empty() or cif::iequals(category, mCat)) and
 			(mItem.empty() or cif::iequals(item, mItem)) and
-			std::regex_search(value, mRx))
+			std::regex_search(value, mRx) == not mInvertMatch)
 		{
 			++mMatches;
 			
@@ -99,23 +99,23 @@ class grepParser : public cif::SacParser
 	std::string	mCat, mItem;
 	std::regex	mRx;
 	size_t	mMatches = 0;
-	bool	mQuiet, mLineNr;
+	bool	mQuiet, mLineNr, mInvertMatch;
 };
 
-size_t cifGrep(const std::string& pattern, const std::string& tag, const std::string& file, std::istream& is, bool quiet, bool printLineNr)
+size_t cifGrep(const std::string& pattern, const std::string& tag, const std::string& file, std::istream& is, bool quiet, bool printLineNr, bool invertMatch)
 {
 	size_t result = 0;
 	
 	if (tag.empty())
 	{
-		grepParser gp(file, is, pattern, quiet, printLineNr);
+		grepParser gp(file, is, pattern, quiet, printLineNr, invertMatch);
 		gp.parseFile();
 		
 		result = gp.getMatches();
 	}
 	else
 	{
-		grepParser gp(file, is, tag, pattern, quiet, printLineNr);
+		grepParser gp(file, is, tag, pattern, quiet, printLineNr, invertMatch);
 		gp.parseFile();
 		
 		result = gp.getMatches();
@@ -128,23 +128,24 @@ int pr_main(int argc, char* argv[])
 {
 	po::options_description visible_options("cif-grep [option...] pattern [file ...]");
 	visible_options.add_options()
-		("item,i",	po::value<std::string>(),		"Item tag to scan, default is all item values")
+		("item,i",	po::value<std::string>(),	"Item tag to scan, default is all item values")
 		("help",								"Display help message")
 		("version",								"Print version")
 		("quiet,q",								"Only print files matching pattern")
 		("count,c",								"Only show number of hits")
+		("invert-match,v",						"Select fields NOT matching the pattern")
 		("line-number,n",						"Print line numbers")
 		("no-filename,h",						"Don't print the filename")
 		("with-filename,H",						"Do print the filename")
-		("verbose,v",							"Verbose output")
+		("verbose,V",							"Verbose output")
 		("files-with-matches,l",				"Print only names of files containing matches")
 		("recursive,r",							"Search recursively");
 
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("pattern",	po::value<std::string>(),		"Pattern")
-		("input",	po::value<std::vector<std::string>>(),"Input files")
-		("debug,d",	po::value<int>(),			"Debug level (for even more verbose output)");
+		("pattern",	po::value<std::string>(),				"Pattern")
+		("input",	po::value<std::vector<std::string>>(),	"Input files")
+		("debug,d",	po::value<int>(),						"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
@@ -179,6 +180,7 @@ int pr_main(int argc, char* argv[])
 	bool noFileNames = filenamesOnly == false and vm.count("no-filename") > 0;
 	bool doFileNames = vm.count("with-filename") > 0;
 	bool lineNumbers = vm.count("line-number") > 0;
+	bool invertMatch = vm.count("invert-match") > 0;
 	size_t count = 0;
 
 	quiet = quiet or countOnly;
@@ -203,9 +205,9 @@ int pr_main(int argc, char* argv[])
 	}
 	
 	size_t result = false;
-	if (vm.count("input") == 0)
+	if (vm.count("input") == 0 and not vm.count("recursive"))
 	{
-		result = cifGrep(pattern, tag, "stdin", std::cin, quiet or filenamesOnly, lineNumbers);
+		result = cifGrep(pattern, tag, "stdin", std::cin, quiet or filenamesOnly, lineNumbers, invertMatch);
 		if (doFileNames or (filenamesOnly and result != 0))
 			std::cout << "stdin" << std::endl;
 		if (countOnly)
@@ -213,10 +215,15 @@ int pr_main(int argc, char* argv[])
 	}
 	else
 	{
-		auto files = vm["input"].as<std::vector<std::string>>();
+		std::vector<std::string> files;
+		if (vm.count("input"))
+			files = vm["input"].as<std::vector<std::string>>();
 		
 		if (vm.count("recursive"))
 		{
+			if (files.empty())
+				files.push_back(fs::current_path());
+
 			std::vector<std::string> expanded;
 			for (auto file: files)
 			{
@@ -248,10 +255,10 @@ int pr_main(int argc, char* argv[])
 				return std::make_tuple(size, f);
 			});
 		
-			if (doFileNames)
-				noFileNames = false;
-			else if (files.size() <= 1)
-				noFileNames = true;
+		if (doFileNames)
+			noFileNames = false;
+		else if (files.size() <= 1)
+			noFileNames = true;
 		
 		for (auto file: filesWithSizes)
 		{
@@ -280,7 +287,7 @@ int pr_main(int argc, char* argv[])
 	
 			try
 			{
-				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), in, quiet or filenamesOnly, lineNumbers);
+				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), in, quiet or filenamesOnly, lineNumbers, invertMatch);
 
 				count += r;
 
