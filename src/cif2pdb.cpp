@@ -53,12 +53,12 @@ int pr_main(int argc, char* argv[])
 	desc.add_options()
 		("input,i",		po::value<std::string>(),	"Input file")
 		("output,o",	po::value<std::string>(),	"Output file, default stdout")
-		("help,h",								"Display help message")
-		("version",								"Print version")
-		("verbose,v",							"Verbose output")
-		("no-validate",							"Omit validation of the mmCIF file, forcing output in case of errors")
+		("help,h",									"Display help message")
+		("version",									"Print version")
+		("verbose,v",								"Verbose output")
+		("no-validate",								"Omit validation of the mmCIF file, forcing output in case of errors")
 		("dict",		po::value<std::string>(),	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
-		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
+		("debug,d",		po::value<int>(),			"Debug level (for even more verbose output)");
 
 	po::positional_options_description p;
 	p.add("input", 1);

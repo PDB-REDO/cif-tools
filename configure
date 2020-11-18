@@ -645,6 +645,7 @@ BOOST_IOSTREAMS_LIB
 BOOST_LDFLAGS
 BOOST_CPPFLAGS
 CXXCPP
+UPDATE_REVISION
 USE_RSRC
 MRC
 DEBUG
@@ -721,6 +722,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_resources
+enable_revision
 with_boost
 with_boost_libdir
 with_boost_iostreams
@@ -1379,6 +1381,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-resources     Do not use mrc to store data in resources
+  --disable-revision      Create a build number as revision
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -5484,6 +5487,21 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+# Check whether --enable-revision was given.
+if test "${enable_revision+set}" = set; then :
+  enableval=$enable_revision;
+fi
+
+
+if test "x$enable_revision" != "xno" ; then :
+
+	UPDATE_REVISION=1
+
+fi
+
+UPDATE_REVISION=$UPDATE_REVISION
+
+
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -7017,7 +7035,7 @@ fi
 
 
 
-    AX_PACKAGE_REQUIRES="$AX_PACKAGE_REQUIRES libcif++"
+    AX_PACKAGE_REQUIRES="$AX_PACKAGE_REQUIRES libcifpp"
     AX_PACKAGE_REQUIRES_PRIVATE="$AX_PACKAGE_REQUIRES_PRIVATE "
 
 
@@ -7029,12 +7047,12 @@ if test -n "$CIFPP_CFLAGS"; then
     pkg_cv_CIFPP_CFLAGS="$CIFPP_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libcif++ \""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libcif++ ") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libcifpp \""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libcifpp ") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_CIFPP_CFLAGS=`$PKG_CONFIG --cflags "libcif++ " 2>/dev/null`
+  pkg_cv_CIFPP_CFLAGS=`$PKG_CONFIG --cflags "libcifpp " 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -7046,12 +7064,12 @@ if test -n "$CIFPP_LIBS"; then
     pkg_cv_CIFPP_LIBS="$CIFPP_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libcif++ \""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libcif++ ") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libcifpp \""; } >&5
+  ($PKG_CONFIG --exists --print-errors "libcifpp ") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_CIFPP_LIBS=`$PKG_CONFIG --libs "libcif++ " 2>/dev/null`
+  pkg_cv_CIFPP_LIBS=`$PKG_CONFIG --libs "libcifpp " 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -7072,18 +7090,18 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        CIFPP_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "libcif++ " 2>&1`
+	        CIFPP_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "libcifpp " 2>&1`
         else
-	        CIFPP_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "libcif++ " 2>&1`
+	        CIFPP_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "libcifpp " 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$CIFPP_PKG_ERRORS" >&5
 
-	as_fn_error $? "the required package libcif++ is not installed" "$LINENO" 5
+	as_fn_error $? "the required package libcifpp is not installed" "$LINENO" 5
 elif test $pkg_failed = untried; then
      	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-	as_fn_error $? "the required package libcif++ is not installed" "$LINENO" 5
+	as_fn_error $? "the required package libcifpp is not installed" "$LINENO" 5
 else
 	CIFPP_CFLAGS=$pkg_cv_CIFPP_CFLAGS
 	CIFPP_LIBS=$pkg_cv_CIFPP_LIBS

@@ -142,7 +142,8 @@ void load_version_info()
 {
 	const std::regex
 		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
-		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)");
+		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)"),
+		rxVersionNr2(R"(ciftools-version: (\d+\.\d+\.\d+))");
 
 #include "revision.hpp"
 
@@ -170,6 +171,13 @@ void load_version_info()
 		if (std::regex_match(line, m, rxVersionDate))
 		{
 			gVersionDate = m[1];
+			continue;
+		}
+
+		// always the first, replace with more specific if followed by the other info
+		if (std::regex_match(line, m, rxVersionNr2))
+		{
+			gVersionNr = m[1];
 			continue;
 		}
 	}
@@ -214,16 +222,6 @@ int main(int argc, char* argv[])
 	
 	try
 	{
-		cif::rsrc_loader::init({
-			{ cif::rsrc_loader_type::file, "." },
-#if defined DATADIR
-			{ cif::rsrc_loader_type::file, DATADIR },
-#endif
-#if USE_RSRC
-			{ cif::rsrc_loader_type::mrsrc, "", { gResourceIndex, gResourceData, gResourceName } }
-#endif
-		});
-
 		load_version_info();
 		
 		result = pr_main(argc, argv);

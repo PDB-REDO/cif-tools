@@ -45,6 +45,17 @@ AC_SUBST([USE_RSRC], [$USE_RSRC])
 
 AC_DEFINE_UNQUOTED([USE_RSRC], [$USE_RSRC], [Use mrc to store resources])
 
+dnl revision numbering is something used internally at the NKI
+AC_ARG_ENABLE(
+	revision,
+	[AS_HELP_STRING([--disable-revision], [Create a build number as revision])])
+
+AS_IF([test "x$enable_revision" != "xno" ], [
+	UPDATE_REVISION=1
+])
+
+AC_SUBST([UPDATE_REVISION], [$UPDATE_REVISION])
+
 AC_CHECK_HEADER([filesystem], [], [AC_MSG_ERROR([The file <filesystem> is missing, perhaps you should install a more recent libstdc++ implementation.])])
 
 dnl check if we need stdc++fs as library
@@ -98,7 +109,7 @@ AS_IF([test "x$CIFPP_LIBS" = "x"], [
 	AC_PATH_PROG([PKG_CONFIG], [pkg-config])
 	if test -x "$PKG_CONFIG"
 	then
-		AX_PKG_CHECK_MODULES([CIFPP], [libcif++], [], [], [AC_MSG_ERROR([the required package libcif++ is not installed])])
+		AX_PKG_CHECK_MODULES([CIFPP], [libcifpp], [], [], [AC_MSG_ERROR([the required package libcifpp is not installed])])
 	else
 		AC_CHECK_HEADER(
 	        [cif++/Config.hpp],

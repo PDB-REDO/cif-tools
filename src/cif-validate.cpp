@@ -42,13 +42,14 @@ int pr_main(int argc, char* argv[])
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
-		("dict",	po::value<std::string>(),		"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
+		("dict",	po::value<std::string>()->default_value("mmcif_pdbx_v50"),
+												"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
 		("validate-links",						"Validate all links")
 		("verbose,v",							"Verbose output");
 	
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input",	po::value<std::string>(),		"Input file")
+		("input",	po::value<std::string>(),	"Input file")
 		("debug,d",	po::value<int>(),			"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
@@ -79,11 +80,7 @@ int pr_main(int argc, char* argv[])
 
 	cif::File f;
 	
-	if (vm.count("dict"))
-	{
-		std::string dict = vm["dict"].as<std::string>();
-		f.loadDictionary(dict.c_str());
-	}
+	f.loadDictionary(vm["dict"].as<std::string>().c_str());
 	
 	if (vm.count("input") == 0)
 		f.load(std::cin);

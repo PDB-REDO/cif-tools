@@ -156,7 +156,7 @@ void transplant(cif::File& target, cif::File& donor)
 				
 				for (auto r: dbd["struct_ref_seq"].find(cif::Key("ref_id") == refID))
 					dbt["struct_ref_seq"].emplace(r);
-		}
+			}
 		}
 		else if (iequals(type, "non-polymer"))
 		{
