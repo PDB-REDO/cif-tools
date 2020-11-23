@@ -1,0 +1,36 @@
+.TH cif2pdb 1 "2020-11-23" "version 1.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+cif2pdb \- Convert the contents of a mmCIF file into PDB format
+.SH SYNOPSIS
+cif2pdb [OPTION] input [output]
+.SH DESCRIPTION
+This tools attempts to write out the contents of a mmCIF file in PDB format.
+.sp
+Note that this will likely drop lots of information that cannot be represented
+in PDB format and might even fail completely due to too many atoms or other
+overruns.
+.sp
+Like most of the other \fIcif-tools\fR this file can read compressed mmCIF
+files directly.
+.SH OPTIONS
+Input and output files do not need the option flag. If no output file is
+given, the result is printed to /fIstdout\fR.
+.TP
+\fB--dict\fR=<file>
+The mmCIF dictionary file to use. The default is \fImmcif_pdbx_v50\fR.
+.TP
+\fB--no-validate\fR
+Omit the validation of the input mmCIF file. This will force output even in
+case the input file contains errors.
+.TP
+\fB--verbose\fR,\fB-V\fR
+Be more verbose, useful to diagnose validation errors.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-diff\fR, \fBcif-drop\fR, \fBcif-grep\fR, \fBcif-merge\fR, 
+\fBcif-validate\fR, \fBmmCQL\fR, \fBpdb2cif\fR.

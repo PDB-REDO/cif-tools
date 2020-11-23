@@ -55,24 +55,27 @@ int pr_main(int argc, char* argv[])
 	
 	try
 	{
-		po::options_description desc("pdb2cif " + VERSION_STRING + " options");
+		po::options_description desc("pdb2cif " + VERSION_STRING + " options input [output]");
 		desc.add_options()
-			("input,i",		po::value<std::string>(),	"Input file")
-			("output,o",	po::value<std::string>(),	"Output file, default stdout")
-			("help,h",								"Display help message")
-			("version",								"Print version")
-			("verbose,v",							"Verbose output")
-			("validate",							"Validate output file before writing")
-			("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)")
+			("help,h",									"Display help message")
+			("version",									"Print version")
+			("verbose,v",								"Verbose output")
+			("validate",								"Validate output file before writing")
 			("dict",		po::value<std::string>(),	"Dictionary file containing restraints for residues in this specific target")
 			;
-	
+
+		po::options_description hidden_options("hidden options");
+		hidden_options.add_options()
+			("input",		po::value<std::string>(),	"Input file")
+			("output,o",	po::value<std::string>(),	"Output file, default stdout")
+			("debug,d",		po::value<int>(),			"Debug level (for even more verbose output)");
+
 		po::positional_options_description p;
 		p.add("input", 1);
 		p.add("output", 1);
 		
 		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+		po::store(po::command_line_parser(argc, argv).options(desc).options(hidden_options).positional(p).run(), vm);
 		po::notify(vm);
 	
 		if (vm.count("version"))

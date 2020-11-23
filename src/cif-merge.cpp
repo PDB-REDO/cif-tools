@@ -213,9 +213,9 @@ int pr_main(int argc, char* argv[])
 {
 	po::options_description visible_options("cif-merge " + VERSION_STRING + " [options] inputFile donorFile ");
 	visible_options.add_options()
-		("help,h",								"Display help message")
-		("version",								"Print version")
-		("verbose,v",							"Verbose output")
+		("help,h",									"Display help message")
+		("version",									"Print version")
+		("verbose,v",								"Verbose output")
 		("input,i",		po::value<std::string>(),	"Modified PDB file")
 		("output,o",	po::value<std::string>(),	"Output file, default is stdout (terminal)")
 		("donor",		po::value<std::string>(),	"CIF file (or PDB ID for this file) containing the data to collect data from")

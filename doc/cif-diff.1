@@ -1,0 +1,44 @@
+.TH cif-diff 1 "2020-11-23" "version 1.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+cif\-diff \- A tool to compare two mmCIF files
+.SH SYNOPSIS
+cif\-diff [OPTION] file1 file2
+.SH DESCRIPTION
+The mmCIF format does not specify the order in which categories
+or fields should be recorded. Using this tool, you can reorder
+a second file in the same way as the first before comparing the
+content making it easier to spot differences.
+.SH OPTIONS
+.TP
+\fB--category\fR=arg
+Limit the comparison to this category, default is to show differences
+in all categories. This option can be specified multiple times.
+.TP
+\fB--max-diff-count\fR=nr
+Display at most \fBnr\fR items per category. Default is 5 items, if
+you specify zero the number of items will unlimited.
+.sp
+This option has no effect when the \fB--text\fR option is specified.
+.TP
+\fB--text\fR
+Default is to display the differences in some kind of summary. But if
+you prefer to use a more graphical diff: this option will use vimdiff
+to display the differences.
+.TP
+\fB--icase\fR
+Pass the \fIignore case\fR option to vimdiff.
+.TP
+\fB--iwhite\fR
+Pass the \fIignore white\fR option to vimdiff.
+.TP
+\fB--verbose\fR,\fB-v\fR
+Be more verbose, useful to diagnose validation errors.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-drop\fR, \fBcif-grep\fR, \fBcif-merge\fR, \fBcif-validate\fR, 
+\fBcif2pdb\fR, \fBmmCQL\fR, \fBpdb2cif\fR.

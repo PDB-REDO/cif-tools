@@ -1,0 +1,39 @@
+.TH cif-merge 1 "2020-11-23" "version 1.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+cif\-merge \- Merge the content of a modified PDB file into a mmCIF file
+.SH SYNOPSIS
+cif\-merge [OPTION] inputFile donorFile
+.SH DESCRIPTION
+Unfortunately, a lot of tools in the crystallographic area are still not capable
+of working with mmCIF files in a proper way, forcing you to feed them
+PDB files. Or, when they do support mmCIF, they write out mutilated files without
+lots of the original information contained in the input file.
+.sp
+To remedy this, \fIcif\-merge\fR can be used to create a new mmCIF file containing
+information from the processed PDB (or mmCIF) file and fill in the blanks using a
+donor mmCIF file.
+.SH OPTIONS
+.TP
+\fB--input\fR=<file>, \fB-i\fR <file>
+The file that was processed by an old tool, missing the additional data.
+.TP
+\fB--donor\fR=<file>
+The donor file, containing the extra information.
+.TP
+\fB--output\fR=<file>, \fB-o\fR <file>
+Write output to the specified \fI<file>\fR, default is to write to \fIstdout\fR.
+.TP
+\fB--dict\fR=<file>
+Dictionary file containing restraints for residues in the processed file.
+.TP
+\fB--verbose\fR,\fB-v\fR
+Be more verbose, useful to diagnose validation errors.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-diff\fR, \fBcif-drop\fR, \fBcif-grep\fR, \fBcif-validate\fR, 
+\fBcif2pdb\fR, \fBmmCQL\fR, \fBpdb2cif\fR.

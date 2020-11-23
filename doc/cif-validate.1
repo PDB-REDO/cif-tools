@@ -1,0 +1,33 @@
+.TH cif-validate 1 "2020-11-23" "version 1.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+cif\-validate \- Validate the content of a mmCIF file
+.SH SYNOPSIS
+cif\-validate [OPTION] file
+.SH DESCRIPTION
+The mmCIF format is not really new, but the implementation of this format has been
+taken up slowly. Unfornately, the knowledge of the ins and outs of the format are
+still poorly understood and many files written contain errors.
+.sp
+\fIcif\-validate\fR can be used to help debug the creation of mmCIF files. By default
+it uses the dictionary provided by \fIlibcifpp\fR (which may be updated automatically,
+depending on your installion). But you can also specify your own dictionary file using
+the \fB--dict\fR option.
+.SH OPTIONS
+.TP
+\fB--dict\fR=<file>
+The mmCIF dictionary file to use. The default is \fImmcif_pdbx_v50\fR.
+.TP
+\fB--validate-links\fR
+Validate all links. Will output information about missing parent category items.
+.TP
+\fB--verbose\fR,\fB-v\fR
+Be more verbose, useful to diagnose validation errors.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-diff\fR, \fBcif-drop\fR, \fBcif-grep\fR, \fBcif-merge\fR, 
+\fBcif2pdb\fR, \fBmmCQL\fR, \fBpdb2cif\fR.

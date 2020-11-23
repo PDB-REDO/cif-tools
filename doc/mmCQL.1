@@ -1,0 +1,44 @@
+.TH mmCQL 1 "2020-11-23" "version 1.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+mmCQL \- SQL-like tool to manipulate mmCIF files
+.SH SYNOPSIS
+mmCQL [OPTION] input [output]
+.SH DESCRIPTION
+The mmCIF format is a structured format and with a proper dictionary it even
+looks a lot like a database with relations between categories that act as
+tables.
+.sp
+In pipelines processing mmCIF files it is often required to simply change the
+content of a single field, or add some data, delete it, etc. For this the
+mmCQL tool offers a \fBSQL\fR like language.
+.sp
+This tool is not a complete and finished piece of software, it lack perhaps
+a lot of functionality. However, it is already very useful to simply lookup
+some value or change items based on some criteria.
+.SH OPTIONS
+.TP
+\fB--force\fR
+Write output file even if the name of the output file is the same as the
+input file, which will of course overwrite the input file.
+.TP
+\fB--script\fR=<file>, \fB-f\fR <file>
+Read commands from the file \fB<file\fR.
+.TP
+\fB--verbose\fR,\fB-v\fR
+Be more verbose, useful to diagnose validation errors.
+.SH EXAMPLES
+You can do simple updates, like so:
+.sp
+\fBUPDATE\fR struct_asym \fBSET\fR id = 'X' \fBWHERE\fR id = 'BBB';
+.sp
+This will rename the asym with ID 'BBB' to 'X'. All children of this asym
+will be renamed as well if the proper dictionary was loaded.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-diff\fR, \fBcif-drop\fR, \fBcif-grep\fR, \fBcif-merge\fR, 
+\fBcif2pdb\fR, \fBmmCQL\fR, \fBpdb2cif\fR.

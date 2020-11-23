@@ -1,0 +1,53 @@
+.TH cif-grep 1 "2020-11-23" "version 1.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+cif\-grep \- A tool like grep to print fields in mmCIF files that match patterns
+.SH SYNOPSIS
+cif\-grep [OPTION] pattern file1 [file2..]
+.SH DESCRIPTION
+This tool tries to work in a similar way as \fIgrep\fR by searching mmCIF files
+comparing the content of fields to patterns.
+.SH OPTIONS
+Multiple files can be specified to search. If a directory name if specied, all
+files in that directory will be searched. Use the \fI--recursive\fR flag to do
+a recursive search.
+.TP
+\fB--item\fR=<item>, \fB-i\fR <item>
+Limit the search to only the item specified in \fI<item>\fR. Default is to search
+all items. Item should be of the form \fB'_category.item'\fR with the leading
+underscore.
+.TP
+\fB--quiet\fR, \fB-q\fR
+Print only the file names that match the pattern.
+.TP
+\fB--count\fR, \fB-c\fR
+Only show the number of hits.
+.TP
+\fB--invert-match\fR, \fB-v\fR
+Only select the fields that do \fBnot\fR match the pattern.
+.TP
+\fB--line-number\fR, \fB-n\fR
+Print the line numbers.
+.TP
+\fB--no-filename\fR, \fB-h\fR
+Do not print the filename.
+.TP
+\fB--with-filename\fR, \fB-H\fR
+Do print the filename.
+.TP
+\fB--files-with-matches\fR, \fB-l\fR
+Print only the names of the files containing matches.
+.TP
+\fB--recursive\fR, \fB-r\fR
+Search recursivly.
+.TP
+\fB--verbose\fR,\fB-V\fR
+Be more verbose, useful to diagnose validation errors.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-diff\fR, \fBcif-drop\fR, \fBcif-merge\fR, \fBcif-validate\fR, 
+\fBcif2pdb\fR, \fBmmCQL\fR, \fBpdb2cif\fR.

@@ -49,15 +49,18 @@ namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description desc("cif2pdb " + VERSION_STRING + " options");
-	desc.add_options()
-		("input,i",		po::value<std::string>(),	"Input file")
-		("output,o",	po::value<std::string>(),	"Output file, default stdout")
+	po::options_description options("cif2pdb " + VERSION_STRING + " options input [output]");
+	options.add_options()
 		("help,h",									"Display help message")
 		("version",									"Print version")
 		("verbose,v",								"Verbose output")
 		("no-validate",								"Omit validation of the mmCIF file, forcing output in case of errors")
-		("dict",		po::value<std::string>(),	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
+		("dict",		po::value<std::string>(),	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file");
+
+	po::options_description hidden_options("hidden options");
+	hidden_options.add_options()
+		("input",		po::value<std::string>(),	"Input file")
+		("output,o",	po::value<std::string>(),	"Output file, default stdout")
 		("debug,d",		po::value<int>(),			"Debug level (for even more verbose output)");
 
 	po::positional_options_description p;
@@ -65,7 +68,7 @@ int pr_main(int argc, char* argv[])
 	p.add("output", 1);
 	
 	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+	po::store(po::command_line_parser(argc, argv).options(options).options(hidden_options).positional(p).run(), vm);
 	po::notify(vm);
 
 	if (vm.count("version"))
@@ -76,7 +79,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("help") or vm.count("input") == 0)
 	{
-		std::cerr << desc << std::endl;
+		std::cerr << options << std::endl;
 		exit(1);
 	}
 
