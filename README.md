@@ -14,7 +14,13 @@ of handling C++17 code.
 Building
 --------
 
-Make sure you install libcif++ first
-before building. You don't have to install them in system locations,
-paths can be set as described in the next section.
+Make sure you install libcif++ first before building.
+
+After that, building should be as easy as typing:
+
+```
+./configure
+make
+make install
+```
 
