@@ -38,6 +38,7 @@ exec_prefix			= @exec_prefix@
 bindir				= @bindir@
 datarootdir			= @datarootdir@
 datadir				= @datadir@
+mandir				= @mandir@
 
 GNUmakefile: config.status GNUmakefile.in
 	$(SHELL) ./config.status
@@ -133,7 +134,7 @@ endif
 $(OBJDIR)/pr-main.o: src/revision.hpp
 
 ifneq "$(USE_RSRC)" "0"
-COMMON_RSRC = $(DATADIR)/dictionaries
+COMMON_RSRC = $(DATADIR)/mmcif_pdbx_v50.dic
 
 rsrc:
 	@ mkdir -p $@
@@ -185,6 +186,11 @@ all: $(PROGRAMS)
 install: $(PROGRAMS)
 	install -d $(bindir)
 	for p in $(PROGRAMS); do install $$p $(bindir)/$$p; done
+	install -d $(mandir)/man1
+	for p in $(PROGRAMS); do \
+		install -m 644 doc/$${p}.1 $(mandir)/man1/$${p}.1; \
+		gzip $(mandir)/man1/$${p}.1; \
+	done
 
 .PHONY: FORCE
 FORCE:
