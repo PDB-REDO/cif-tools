@@ -625,10 +625,6 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-LIBBZ2_LDFLAGS
-LIBBZ2_CPPFLAGS
-LIBZ_LDFLAGS
-LIBZ_CPPFLAGS
 CIFPP_LDFLAGS
 CIFPP_CPPFLAGS
 AX_PACKAGE_REQUIRES_PRIVATE
@@ -751,11 +747,7 @@ PKG_CONFIG_LIBDIR
 CIFPP_CFLAGS
 CIFPP_LIBS
 CIFPP_CPPFLAGS
-CIFPP_LDFLAGS
-LIBZ_CPPFLAGS
-LIBZ_LDFLAGS
-LIBBZ2_CPPFLAGS
-LIBBZ2_LDFLAGS'
+CIFPP_LDFLAGS'
 
 
 # Initialize some variables set by options.
@@ -1380,7 +1372,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --disable-resources     Do not use mrc to store data in resources
+  --enable-resources      Use mrc to store data in resources
   --disable-revision      Create a build number as revision
 
 Optional Packages:
@@ -1438,14 +1430,6 @@ Some influential environment variables:
               C preprocessor flags for CIFPP headers
   CIFPP_LDFLAGS
               linker flags for CIFPP libraries
-  LIBZ_CPPFLAGS
-              C preprocessor flags for LIBZ headers
-  LIBZ_LDFLAGS
-              linker flags for LIBZ libraries
-  LIBBZ2_CPPFLAGS
-              C preprocessor flags for LIBBZ2 headers
-  LIBBZ2_LDFLAGS
-              linker flags for LIBBZ2 libraries
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3722,7 +3706,6 @@ ac_config_sub="$SHELL $ac_aux_dir/config.sub"  # Please don't use this var.
 ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
-
 ac_config_headers="$ac_config_headers src/config.hpp"
 
 
@@ -5471,7 +5454,7 @@ if test "${enable_resources+set}" = set; then :
 fi
 
 
-	if test "x$enable_resources" != "xno" ; then :
+	if test "x$enable_resources" = "xyes" ; then :
 
 		USE_RSRC=1
 
@@ -6867,6 +6850,8 @@ fi
 CIFPP_RSRC=$CIFPP_RSRC
 
 
+if test "x$CIFPP_LIBS" = "x"; then :
+
 
 
 
@@ -6987,48 +6972,6 @@ $as_echo "no" >&6; }
 		PKG_CONFIG=""
 	fi
 fi
-if test "x$CIFPP_LIBS" = "x"; then :
-
-	# Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_PKG_CONFIG+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-$as_echo "$PKG_CONFIG" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
 	if test -x "$PKG_CONFIG"
 	then
 
@@ -7214,169 +7157,6 @@ fi
 	fi
 
 fi
-
-
-
-
-
-  if ${ax_cv_have_LIBZ+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  save_CPPFLAGS="$CPPFLAGS"
-     save_LDFLAGS="$LDFLAGS"
-     save_LIBS="$LIBS"
-
-     if test "x$LIBZ_CPPFLAGS" != "x"; then :
-  CPPFLAGS="$CPPFLAGS $LIBZ_CPPFLAGS"
-fi
-
-     if test "x$LIBZ_LDFLAGS" != "x"; then :
-  LDFLAGS="$LDFLAGS $LIBZ_LDFLAGS"
-fi
-
-     ac_fn_cxx_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_zlib_h" = xyes; then :
-
-       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lz" >&5
-$as_echo_n "checking for main in -lz... " >&6; }
-if ${ac_cv_lib_z_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lz  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_z_main=yes
-else
-  ac_cv_lib_z_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_main" >&5
-$as_echo "$ac_cv_lib_z_main" >&6; }
-if test "x$ac_cv_lib_z_main" = xyes; then :
-  ax_cv_have_LIBZ=yes
-else
-  ax_cv_have_LIBZ=no
-fi
-
-
-else
-  ax_cv_have_LIBZ=no
-fi
-
-
-
-     CPPFLAGS="$save_CPPFLAGS"
-     LDFLAGS="$save_LDFLAGS"
-     LIBS="$save_LIBS"
-
-fi
-
-
-  if test "$ax_cv_have_LIBZ" = "yes"; then :
-
-$as_echo "#define HAVE_LIBZ 1" >>confdefs.h
-
-     LIBS="$LIBS -lz"
-else
-  as_fn_error $? "libz not found - compressed files not supported" "$LINENO" 5
-fi
-
-
-
-
-
-  if ${ax_cv_have_LIBBZ2+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  save_CPPFLAGS="$CPPFLAGS"
-     save_LDFLAGS="$LDFLAGS"
-     save_LIBS="$LIBS"
-
-     if test "x$LIBBZ2_CPPFLAGS" != "x"; then :
-  CPPFLAGS="$CPPFLAGS $LIBBZ2_CPPFLAGS"
-fi
-
-     if test "x$LIBBZ2_LDFLAGS" != "x"; then :
-  LDFLAGS="$LDFLAGS $LIBBZ2_LDFLAGS"
-fi
-
-     ac_fn_cxx_check_header_mongrel "$LINENO" "bzlib.h" "ac_cv_header_bzlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_bzlib_h" = xyes; then :
-
-       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lbz2" >&5
-$as_echo_n "checking for main in -lbz2... " >&6; }
-if ${ac_cv_lib_bz2_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lbz2  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_bz2_main=yes
-else
-  ac_cv_lib_bz2_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_bz2_main" >&5
-$as_echo "$ac_cv_lib_bz2_main" >&6; }
-if test "x$ac_cv_lib_bz2_main" = xyes; then :
-  ax_cv_have_LIBBZ2=yes
-else
-  ax_cv_have_LIBBZ2=no
-fi
-
-
-else
-  ax_cv_have_LIBBZ2=no
-fi
-
-
-
-     CPPFLAGS="$save_CPPFLAGS"
-     LDFLAGS="$save_LDFLAGS"
-     LIBS="$save_LIBS"
-
-fi
-
-
-  if test "$ax_cv_have_LIBBZ2" = "yes"; then :
-
-$as_echo "#define HAVE_LIBBZ2 1" >>confdefs.h
-
-     LIBS="$LIBS -lbz2"
-else
-  as_fn_error $? "libbz2 not found - compressed files not supported" "$LINENO" 5
-fi
-
 
 ac_config_files="$ac_config_files GNUmakefile"
 

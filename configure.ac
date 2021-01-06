@@ -10,7 +10,6 @@ AX_CHECK_COMPILE_FLAG([-fstandalone-debug], [ CXXFLAGS="$CXXFLAGS -fstandalone-d
 
 AC_CONFIG_SRCDIR([src/pr-main.cpp])
 AC_CONFIG_AUX_DIR(config)
-AC_CONFIG_MACRO_DIR([config/m4])
 AC_CONFIG_HEADERS([src/config.hpp])
 
 AC_PREFIX_DEFAULT(/usr/local)
@@ -34,9 +33,9 @@ if test "x$MRC" = "x"; then
 else
 	AC_ARG_ENABLE(
 		resources,
-		[AS_HELP_STRING([--disable-resources], [Do not use mrc to store data in resources])])
+		[AS_HELP_STRING([--enable-resources], [Use mrc to store data in resources])])
 
-	AS_IF([test "x$enable_resources" != "xno" ], [
+	AS_IF([test "x$enable_resources" = "xyes" ], [
 		USE_RSRC=1
 	])
 fi
@@ -106,7 +105,7 @@ AC_ARG_WITH([cif++],
 AC_SUBST([CIFPP_RSRC], [$CIFPP_RSRC])
 
 AS_IF([test "x$CIFPP_LIBS" = "x"], [
-	AC_PATH_PROG([PKG_CONFIG], [pkg-config])
+	PKG_PROG_PKG_CONFIG
 	if test -x "$PKG_CONFIG"
 	then
 		AX_PKG_CHECK_MODULES([CIFPP], [libcifpp], [], [], [AC_MSG_ERROR([the required package libcifpp is not installed])])
@@ -128,13 +127,6 @@ pkg-config.])])
                  [AC_MSG_ERROR([libcif++ not found])])
 	fi
 ])
-
-AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
-				 [ LIBS="$LIBS -lz" ],
-                 [AC_MSG_ERROR([libz not found - compressed files not supported])])
-AX_CHECK_LIBRARY([LIBBZ2], [bzlib.h], [bz2],
-				 [ LIBS="$LIBS -lbz2"],
-                 [AC_MSG_ERROR([libbz2 not found - compressed files not supported])])
 
 dnl Process Makefile.in to create Makefile
 AC_OUTPUT([GNUmakefile])
