@@ -1,4 +1,3 @@
-/* include/cif++/Config.hpp.  Generated from Config.hpp.in by configure.  */
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  * 
@@ -30,7 +29,5 @@
 #include <string>
 
 #include "config.hpp"
-
-#include "cif++/Config.hpp"
 
 extern std::string VERSION_STRING;

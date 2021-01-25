@@ -1,4 +1,3 @@
-/* include/cif++/Config.hpp.  Generated from Config.hpp.in by configure.  */
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  * 
