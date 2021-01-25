@@ -92,10 +92,10 @@ AC_ARG_WITH([cif++],
 				AC_MSG_ERROR(['${withval}'' is not a valid directory for --with-cif++])
 			])
 			dnl AC_SUBST([CIFPP_CFLAGS], ["-I ${withval}/include"])
-			dnl AC_SUBST([CIFPP_LIBS], ["-L${withval}/.libs -lcif++"])
+			dnl AC_SUBST([CIFPP_LIBS], ["-L${withval}/.libs -lcifpp"])
 
 			CIFPP_CFLAGS="-I ${withval}/include"
-			CIFPP_LIBS="-L${withval}/.libs -lcif++"
+			CIFPP_LIBS="-L${withval}/.libs -lcifpp"
 			CIFPP_RSRC="${withval}/rsrc"
 
 			AC_SUBST([CIFPP_CFLAGS], [$CIFPP_CFLAGS])
@@ -120,13 +120,22 @@ Can't find the libcif++ header, Config.hpp.  Make sure that it
 is installed, and either use the --with-cif++ option or install
 pkg-config.])])
 
-			AX_CHECK_LIBRARY([CIFPP], [cif++/Config.hpp], [cif++],
+			AX_CHECK_LIBRARY([CIFPP], [cif++/Config.hpp], [cifpp],
 				 [
-					 LIBS="-lcif++ $LIBS"
+					 LIBS="-lcifpp $LIBS"
 				 ],
                  [AC_MSG_ERROR([libcif++ not found])])
 	fi
 ])
+
+dnl Reintroduce the dependency on libz and libbz2. That's because we might be
+dnl linking against the static versions of libboost. And then we need these.
+AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
+				 [ LIBS="$LIBS -lz" ],
+                 [AC_MSG_ERROR([libz not found - compressed files not supported])])
+AX_CHECK_LIBRARY([LIBBZ2], [bzlib.h], [bz2],
+				 [ LIBS="$LIBS -lbz2"],
+                 [AC_MSG_ERROR([libbz2 not found - compressed files not supported])])
 
 dnl Process Makefile.in to create Makefile
 AC_OUTPUT([GNUmakefile])
