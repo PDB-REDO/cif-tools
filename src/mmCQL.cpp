@@ -393,6 +393,8 @@ class Parser
 		delete_,
 		into,
 		values,
+		is_,
+		null_
 	};
 
 	std::string Describe(Token token)
@@ -435,6 +437,8 @@ class Parser
 			case Token::delete_:	return "DELETE";
 			case Token::into:		return "INTO";
 			case Token::values:		return "VALUES";
+			case Token::is_:		return "IS";
+			case Token::null_:		return "NULL";
 
 			default:			assert(false); return "unknown token";
 		}
@@ -865,6 +869,8 @@ Parser::Token Parser::GetNextToken()
 				else if (iequals(mToken, "DELETE")) 	token = Token::delete_;
 				else if (iequals(mToken, "INTO")) 		token = Token::into;
 				else if (iequals(mToken, "VALUES")) 	token = Token::values;
+				else if (iequals(mToken, "IS")) 		token = Token::is_;
+				else if (iequals(mToken, "NULL")) 		token = Token::null_;
 				else									token = Token::ident;
 			}
 			break;
@@ -1253,35 +1259,54 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 		throw std::runtime_error("Invalid item '" + item + "' for category '" + cat.name() + "' in where clause");
 	}
 
-	if (mLookahead < Token::eq_ or mLookahead > Token::ne_)
-		Match(Token::eq_);
-	
-	auto oper = mLookahead;
-	Match(mLookahead);
-	
-	cif::Condition c;
-	std::string value = mToken;
-
-	switch (mLookahead)
+	if (mLookahead == Token::is_)
 	{
-		case Token::integer:
-		case Token::number:
-		case Token::string:
+		Match(mLookahead);
+
+		if (mLookahead == Token::not_)
+		{
 			Match(mLookahead);
-			break;
-		default:
-			Match(Token::string);
+			Match(Token::null_);
+			return cif::Key(item) != cif::Empty();
+		}
+		else
+		{
+			Match(Token::null_);
+			return cif::Key(item) == cif::Empty();
+		}
 	}
-
-	switch (oper)
+	else
 	{
-		case Token::eq_:	return cif::Key(item) == value;
-		case Token::lt_:	return cif::Key(item) <  value;
-		case Token::le_:	return cif::Key(item) <= value;
-		case Token::gt_:	return cif::Key(item) >  value;
-		case Token::ge_:	return cif::Key(item) >= value;
-		case Token::ne_:	return cif::Key(item) != value;
-		default:			throw std::logic_error("should never happen");
+		if (mLookahead < Token::eq_ or mLookahead > Token::ne_)
+			Match(Token::eq_);
+		
+		auto oper = mLookahead;
+		Match(mLookahead);
+		
+		cif::Condition c;
+		std::string value = mToken;
+
+		switch (mLookahead)
+		{
+			case Token::integer:
+			case Token::number:
+			case Token::string:
+				Match(mLookahead);
+				break;
+			default:
+				Match(Token::string);
+		}
+
+		switch (oper)
+		{
+			case Token::eq_:	return cif::Key(item) == value;
+			case Token::lt_:	return cif::Key(item) <  value;
+			case Token::le_:	return cif::Key(item) <= value;
+			case Token::gt_:	return cif::Key(item) >  value;
+			case Token::ge_:	return cif::Key(item) >= value;
+			case Token::ne_:	return cif::Key(item) != value;
+			default:			throw std::logic_error("should never happen");
+		}
 	}
 }
 
