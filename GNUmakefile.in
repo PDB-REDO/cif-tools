@@ -62,7 +62,7 @@ CXXFLAGS            += -Wall -Wno-multichar
 CIFPP_RSRC			= @CIFPP_RSRC@
 
 ifneq "$(CIFPP_RSRC)" ""
-DATADIR				= $(CIFPP_RSRC)/dictionaries
+DATADIR				= $(CIFPP_RSRC)
 else
 DATADIR				= $(datadir)/libcifpp
 endif
@@ -135,10 +135,16 @@ endif
 $(OBJDIR)/pr-main.o: src/revision.hpp
 
 ifneq "$(USE_RSRC)" "0"
-COMMON_RSRC = $(DATADIR)/mmcif_pdbx_v50.dic
+COMMON_RSRC = rsrc/mmcif_pdbx_v50.dic
 
 rsrc:
 	@ mkdir -p $@
+
+rsrc/%.dic: $(DATADIR)/%.dic.gz
+	gzcat -s $^ > $@
+
+rsrc/%.dic: $(DATADIR)/%.dic
+	ln -fs $^ $@
 
 rsrc/version.txt: $(REVISION_FILE) | rsrc
 	cp $? $@
