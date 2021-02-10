@@ -121,7 +121,7 @@ Can't find the libcif++ header, Config.hpp.  Make sure that it
 is installed, and either use the --with-cif++ option or install
 pkg-config.])])
 
-			AX_CHECK_LIBRARY([CIFPP], [cif++/Config.hpp], [cifpp],
+			AX_CHECK_LIBRARY([CIFPP], [cif++/Cif++.hpp], [cifpp],
 				 [
 					 LIBS="-lcifpp $LIBS"
 				 ],
