@@ -7307,13 +7307,13 @@ fi
 
 
 	else
-		ac_fn_cxx_check_header_mongrel "$LINENO" "cif++/Config.hpp" "ac_cv_header_cifpp_Config_hpp" "$ac_includes_default"
-if test "x$ac_cv_header_cifpp_Config_hpp" = xyes; then :
+		ac_fn_cxx_check_header_mongrel "$LINENO" "cif++/Cif++.hpp" "ac_cv_header_cifpp_Cifpp_hpp" "$ac_includes_default"
+if test "x$ac_cv_header_cifpp_Cifpp_hpp" = xyes; then :
 
 
 else
   as_fn_error $? "
-Can't find the libcif++ header, Config.hpp.  Make sure that it
+Can't find the libcif++ header, Cif++.hpp.  Make sure that it
 is installed, and either use the --with-cif++ option or install
 pkg-config." "$LINENO" 5
 fi
