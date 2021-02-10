@@ -33,9 +33,9 @@ if test "x$MRC" = "x"; then
 else
 	AC_ARG_ENABLE(
 		resources,
-		[AS_HELP_STRING([--enable-resources], [Use mrc to store data in resources])])
+		[AS_HELP_STRING([--disable-resources], [Use mrc to store data in resources])])
 
-	AS_IF([test "x$enable_resources" = "xyes" ], [
+	AS_IF([test "x$enable_resources" != "xno" ], [
 		USE_RSRC=1
 	])
 fi
