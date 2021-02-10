@@ -140,10 +140,10 @@ COMMON_RSRC = rsrc/mmcif_pdbx_v50.dic
 rsrc:
 	@ mkdir -p $@
 
-rsrc/%.dic: $(DATADIR)/%.dic.gz
+rsrc/%.dic: $(DATADIR)/%.dic.gz | rsrc
 	gzcat -s $^ > $@
 
-rsrc/%.dic: $(DATADIR)/%.dic
+rsrc/%.dic: $(DATADIR)/%.dic | rsrc
 	ln -fs $^ $@
 
 rsrc/version.txt: $(REVISION_FILE) | rsrc
