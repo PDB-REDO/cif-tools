@@ -141,7 +141,7 @@ rsrc:
 	@ mkdir -p $@
 
 rsrc/%.dic: $(DATADIR)/%.dic.gz | rsrc
-	gzcat $^ > $@
+	zcat $^ > $@
 
 rsrc/%.dic: $(DATADIR)/%.dic | rsrc
 	ln -fs $^ $@
