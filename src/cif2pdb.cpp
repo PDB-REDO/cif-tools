@@ -48,8 +48,8 @@ namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description options("cif2pdb " + VERSION_STRING + " options input [output]");
-	options.add_options()
+	po::options_description visible_options("cif2pdb " + VERSION_STRING + " options input [output]");
+	visible_options.add_options()
 		("help,h",									"Display help message")
 		("version",									"Print version")
 		("verbose,v",								"Verbose output")
@@ -62,12 +62,15 @@ int pr_main(int argc, char* argv[])
 		("output,o",	po::value<std::string>(),	"Output file, default stdout")
 		("debug,d",		po::value<int>(),			"Debug level (for even more verbose output)");
 
+	po::options_description cmdline_options;
+	cmdline_options.add(visible_options).add(hidden_options);
+
 	po::positional_options_description p;
 	p.add("input", 1);
 	p.add("output", 1);
 	
 	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(options).options(hidden_options).positional(p).run(), vm);
+	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
 	po::notify(vm);
 
 	if (vm.count("version"))
@@ -78,7 +81,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("help") or vm.count("input") == 0)
 	{
-		std::cerr << options << std::endl;
+		std::cerr << visible_options << std::endl;
 		exit(1);
 	}
 

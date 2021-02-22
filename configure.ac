@@ -1,6 +1,12 @@
 AC_PREREQ([2.69])
 
-AC_INIT([cif-tools], 1.0, [m.hekkelman@nki.nl])
+m4_define([cif_tools_version_major],[1])
+m4_define([cif_tools_version_minor],[0])
+m4_define([cif_tools_version_micro],[0])
+m4_define([cif_tools_version_extra],[])
+m4_define([cif_tools_version],[cif_tools_version_major().cif_tools_version_minor().cif_tools_version_micro()cif_tools_version_extra])
+
+AC_INIT([cif-tools], [cif_tools_version], [m.hekkelman@nki.nl])
 
 dnl Switch to a decent C++ compiler, and check if it works.
 AC_LANG(C++)
@@ -33,7 +39,7 @@ if test "x$MRC" = "x"; then
 else
 	AC_ARG_ENABLE(
 		resources,
-		[AS_HELP_STRING([--disable-resources], [Use mrc to store data in resources])])
+		[AS_HELP_STRING([--disable-resources], [Do not use mrc to store data in resources])])
 
 	AS_IF([test "x$enable_resources" != "xno" ], [
 		USE_RSRC=1
@@ -77,8 +83,8 @@ AC_TRY_LINK(
 )
 
 AX_BOOST_BASE([1.65.1], [], [AC_MSG_ERROR([Could not find a recent version of boost])])
-AX_BOOST_IOSTREAMS
 AX_BOOST_PROGRAM_OPTIONS
+AX_BOOST_IOSTREAMS
 AX_BOOST_DATE_TIME
 AX_BOOST_REGEX
 
@@ -92,24 +98,20 @@ AC_ARG_WITH([cif++],
 			AS_IF([test -d ${withval}/include], [], [
 				AC_MSG_ERROR(['${withval}'' is not a valid directory for --with-cif++])
 			])
-			dnl AC_SUBST([CIFPP_CFLAGS], ["-I ${withval}/include"])
-			dnl AC_SUBST([CIFPP_LIBS], ["-L${withval}/.libs -lcifpp"])
 
 			CIFPP_CFLAGS="-I ${withval}/include"
 			CIFPP_LIBS="-L${withval}/.libs -lcifpp"
-			CIFPP_RSRC="${withval}/rsrc"
+			LIBCIFPP_DATA_DIR="${withval}/rsrc"
 
 			AC_SUBST([CIFPP_CFLAGS], [$CIFPP_CFLAGS])
 			AC_SUBST([CIFPP_LIBS], [$CIFPP_LIBS])
 		])
 
-AC_SUBST([CIFPP_RSRC], [$CIFPP_RSRC])
-
 AS_IF([test "x$CIFPP_LIBS" = "x"], [
-	PKG_PROG_PKG_CONFIG
 	if test -x "$PKG_CONFIG"
 	then
-		AX_PKG_CHECK_MODULES([CIFPP], [libcifpp], [], [], [AC_MSG_ERROR([the required package libcifpp is not installed])])
+		AX_PKG_CHECK_MODULES([CIFPP], [libcifpp], [], [], [AC_MSG_ERROR([the required package libcif++ is not installed])])
+		LIBCIFPP_DATA_DIR=$(pkg-config --variable=datalibdir libcifpp)
 	else
 		AC_CHECK_HEADER(
 	        [cif++/Cif++.hpp],
@@ -117,26 +119,31 @@ AS_IF([test "x$CIFPP_LIBS" = "x"], [
 				dnl CIFPP_CFLAGS="-I ${withval}/include"
 			],
 			[AC_MSG_ERROR([
-Can't find the libcif++ header, Cif++.hpp.  Make sure that it
+Can't find the libcif++ header, Config.hpp.  Make sure that it
 is installed, and either use the --with-cif++ option or install
 pkg-config.])])
 
-			AX_CHECK_LIBRARY([CIFPP], [cif++/Cif++.hpp], [cifpp],
-				 [
-					 LIBS="-lcifpp $LIBS"
-				 ],
-                 [AC_MSG_ERROR([libcif++ not found])])
+		AX_CHECK_LIBRARY([CIFPP], [cif++/Cif++.hpp], [cifpp],
+			[
+				LIBS="-lcifpp $LIBS"
+			],
+			[AC_MSG_ERROR([libcif++ not found])])
+		AS_IF([ test -f /usr/local/share/libcifpp/mmcif_pdbx_v50.dic.gz ], [LIBCIFPP_DATA_DIR=/usr/local/share/libcifpp/ ])
+		AS_IF([ test -f /var/cache/libcifpp/mmcif_pdbx_v50.dic.gz ], [LIBCIFPP_DATA_DIR=/var/cache/libcifpp ])
 	fi
 ])
 
-dnl Reintroduce the dependency on libz and libbz2. That's because we might be
-dnl linking against the static versions of libboost. And then we need these.
+AC_ARG_VAR([LIBCIFPP_DATA_DIR], [Directory containing mmcif_pdbx_v50.dic file])
+AC_SUBST([LIBCIFPP_DATA_DIR], [$LIBCIFPP_DATA_DIR])
+dnl These are still needed outside the Debian environment
 AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
-				 [ LIBS="$LIBS -lz" ],
-                 [AC_MSG_ERROR([libz not found - compressed files not supported])])
+	[ LIBS="$LIBS -lz" ],
+	[AC_MSG_ERROR([libz not found - compressed files not supported])])
 AX_CHECK_LIBRARY([LIBBZ2], [bzlib.h], [bz2],
-				 [ LIBS="$LIBS -lbz2"],
-                 [AC_MSG_ERROR([libbz2 not found - compressed files not supported])])
+	[ LIBS="$LIBS -lbz2"],
+	[AC_MSG_ERROR([libbz2 not found - compressed files not supported])])
+
+AC_SUBST([LIBS], [$LIBS])
 
 dnl Process Makefile.in to create Makefile
 AC_OUTPUT([GNUmakefile])

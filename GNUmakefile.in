@@ -23,18 +23,24 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 firstTarget: all
+empty =
+space = $(empty) $(empty)
 
 CXX					= @CXX@
-CXXFLAGS			= @CXXFLAGS@ @CPPFLAGS@ @PTHREAD_CFLAGS@ @CIFPP_CFLAGS@
-LDFLAGS				= @LDFLAGS@ @PTHREAD_CFLAGS@
+CXXFLAGS			= @CXXFLAGS@ \
+					  @CPPFLAGS@ \
+					  @PTHREAD_CFLAGS@ \
+					  @CIFPP_CFLAGS@
+LDFLAGS				= @LDFLAGS@ \
+					  @PTHREAD_CFLAGS@
 LIBS				= @CIFPP_LIBS@ \
-					  @BOOST_IOSTREAMS_LIB@ \
 					  @BOOST_PROGRAM_OPTIONS_LIB@ \
+					  @BOOST_IOSTREAMS_LIB@ \
 					  @BOOST_DATE_TIME_LIB@ \
 					  @BOOST_REGEX_LIB@ \
-					  @LIBS@ 
+					  @LIBS@
 
-prefix				= @prefix@
+prefix				= $(DESTDIR)@prefix@
 exec_prefix			= @exec_prefix@
 bindir				= @bindir@
 datarootdir			= @datarootdir@
@@ -44,32 +50,21 @@ mandir				= @mandir@
 GNUmakefile: config.status GNUmakefile.in
 	$(SHELL) ./config.status
 
-ifneq "$(CHECK_CONFIG)" ""
-
-config.status: configure
-	$(SHELL) ./config.status --recheck
-
-configure: configure.ac
-	autoconf
-
-endif
-
 # main build variables
+PROGRAM				= @PACKAGE_NAME@
+PROGRAMS			= pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL
+
 VERSION				= @PACKAGE_VERSION@
 
-CXXFLAGS            += -Wall -Wno-multichar
+SEARCH_PATHS		= src test @LIBCIFPP_DATA_DIR@
 
-CIFPP_RSRC			= @CIFPP_RSRC@
+COMMON_OBJECTS		= pr-main.o
+OBJECTS				= $(PROGRAMS:%=%.o) $(COMMON_OBJECTS)
 
-ifneq "$(CIFPP_RSRC)" ""
-DATADIR				= $(CIFPP_RSRC)
-else
-DATADIR				= $(datadir)/libcifpp
-endif
-DEFINES				+= DATADIR='"$(DATADIR)"'
+RESOURCES			= mmcif_pdbx_v50.dic
 
 # Use the DEBUG flag to build debug versions of the code
-DEBUG               = @DEBUG@
+DEBUG				= @DEBUG@
 
 ifeq "$(DEBUG)" "1"
 DEFINES				+= DEBUG
@@ -83,10 +78,9 @@ endif
 MRC					= @MRC@
 USE_RSRC			= @USE_RSRC@
 
-# targets
+VPATH += $(subst $(space),:,$(SEARCH_PATHS))
 
-VPATH += src:test
-
+CXXFLAGS            += -Wall -Wno-multichar
 CXXFLAGS			+= $(DEFINES:%=-D%)
 
 OBJDIR = obj
@@ -101,8 +95,6 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	@ echo ">>" $<
 	@ $(CXX) -MD -c -o $@ $< $(CFLAGS) $(CXXFLAGS)
 
-COMMON_OBJECTS = pr-main.o
-
 # We have development releases and official releases, for each we
 # maintain different versioning schemes.
 
@@ -113,7 +105,7 @@ REVISION_FILE = version-info-$(REVISION).txt
 
 $(REVISION_FILE):
 	rm -f version-info-*.txt
-	@ echo ciftools-version: $(VERSION) > $@
+	@ echo $(PROGRAM)-version: $(VERSION) > $@
 	@ git describe --match=build --dirty >> $@
 	@ git log --pretty=medium --date=iso8601 -1 >> $@
 
@@ -126,58 +118,31 @@ else
 
 src/revision.hpp:
 	@ echo 'const char kRevision[] = R"(' > $@
-	@ echo ciftools-version: $(VERSION) >> $@
+	@ echo $(PROGRAM)-version: $(VERSION) >> $@
 	@ echo Date:   $$(date --iso-8601) >> $@
 	@ echo ')";' >> $@
 
 endif
 
-$(OBJDIR)/pr-main.o: src/revision.hpp
-
-ifneq "$(USE_RSRC)" "0"
-COMMON_RSRC = rsrc/mmcif_pdbx_v50.dic
-
-rsrc:
-	@ mkdir -p $@
-
-rsrc/%.dic: $(DATADIR)/%.dic.gz | rsrc
-	zcat $^ > $@
-
-rsrc/%.dic: $(DATADIR)/%.dic | rsrc
-	ln -fs $^ $@
-
-rsrc/version.txt: $(REVISION_FILE) | rsrc
-	cp $? $@
-
-endif
-
 # The program rules
 
-PROGRAMS = \
-	pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL
-
-define PROGRAM_template =
-
-$(1)_OBJECTS += $(1).o $(COMMON_OBJECTS)
-
 ifneq "$(USE_RSRC)" "0"
-$(1)_OBJECTS += $(1).o $(1)_rsrc.o
-
-$$(OBJDIR)/$(1)_rsrc.o: $$($(1)_RSRC) $$(COMMON_RSRC)
-	$(MRC) -o $$@ $$^
+$(OBJDIR)/$(PROGRAM)_rsrc.o: $(RESOURCES)
+	$(MRC) -o $@ $^
+COMMON_OBJECTS	+= $(PROGRAM)_rsrc.o
 endif
 
-$(1): $$($(1)_OBJECTS:%=$(OBJDIR)/%)
+define PROGRAM_template
+
+$$(OBJDIR)/$(1).o: src/revision.hpp
+
+$(1): $(OBJDIR)/$(1).o $$(COMMON_OBJECTS:%.o=$(OBJDIR)/%.o)
+	@ echo '->' $$@
+	@ $(CXX) -o $$@ $$^ $$(CXXFLAGS) $$(LDFLAGS) $$(LIBS)
 
 endef
 
 $(foreach program,$(PROGRAMS),$(eval $(call PROGRAM_template,$(program))))
-
-$(PROGRAMS):
-	@ echo '->' $@
-	@ $(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) $(LIBS)
-
-OBJECTS = $(sort $(foreach program,$(PROGRAMS),$($(program)_OBJECTS)))
 
 $(OBJDIR)/%.d: $(OBJDIR)/%.o
 
