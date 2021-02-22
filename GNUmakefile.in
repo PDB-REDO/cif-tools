@@ -127,6 +127,10 @@ endif
 # The program rules
 
 ifneq "$(USE_RSRC)" "0"
+# dictionaries may be found compressed
+%.dic: %.dic.gz
+	gunzip -c $^ > $@
+
 $(OBJDIR)/$(PROGRAM)_rsrc.o: $(RESOURCES)
 	$(MRC) -o $@ $^
 COMMON_OBJECTS	+= $(PROGRAM)_rsrc.o

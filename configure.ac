@@ -12,7 +12,10 @@ dnl Switch to a decent C++ compiler, and check if it works.
 AC_LANG(C++)
 AX_CXX_COMPILE_STDCXX_17([noext])
 
-AX_CHECK_COMPILE_FLAG([-fstandalone-debug], [ CXXFLAGS="$CXXFLAGS -fstandalone-debug" ], , [-Werror])
+AX_CHECK_COMPILE_FLAG([-fstandalone-debug],
+	[
+		CXXFLAGS="$CXXFLAGS -fstandalone-debug"
+	] , , [-Werror])
 
 AC_CONFIG_SRCDIR([src/pr-main.cpp])
 AC_CONFIG_AUX_DIR(config)
@@ -21,6 +24,7 @@ AC_CONFIG_HEADERS([src/config.hpp])
 AC_PREFIX_DEFAULT(/usr/local)
 
 AC_PROG_INSTALL
+PKG_PROG_PKG_CONFIG
 
 AX_PTHREAD
 
@@ -28,6 +32,7 @@ AC_ARG_VAR([DEBUG], [Build a debug version of the application])
 
 AC_ARG_VAR([MRC], [Specify a location for the mrc executable])
 
+dnl using resources?
 USE_RSRC=0
 
 if test "x$MRC" = "x"; then
@@ -83,13 +88,15 @@ AC_TRY_LINK(
 )
 
 AX_BOOST_BASE([1.65.1], [], [AC_MSG_ERROR([Could not find a recent version of boost])])
-AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_IOSTREAMS
+AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_DATE_TIME
 AX_BOOST_REGEX
 
 CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
 LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
+
+dnl Check for libcifpp
 
 AC_ARG_WITH([cif++],
 	AS_HELP_STRING([--with-cif++=@<:@location@:>@],
