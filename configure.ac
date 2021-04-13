@@ -52,6 +52,9 @@ AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_DATE_TIME
 AX_BOOST_REGEX
 
+AX_IOSTREAMS_Z
+AX_IOSTREAMS_BZ2
+
 AX_LIBCIFPP
 
 dnl These are still needed outside the Debian environment
