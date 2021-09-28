@@ -37,7 +37,7 @@ AC_DEFUN([AX_LIBCIFPP],
 				])
 
 				CIFPP_CFLAGS="-I ${withval}/include"
-				CIFPP_LIBS="-L${withval}/.libs -lcifpp"
+				CIFPP_LIBS="-L${withval}/lib -lcifpp"
 				LIBCIFPP_DATA_DIR="${withval}/rsrc"
 
 				AC_SUBST([CIFPP_CFLAGS], [$CIFPP_CFLAGS])
