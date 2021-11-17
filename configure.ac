@@ -44,6 +44,15 @@ AS_IF([test "x$enable_revision" != "xno" ], [
 
 AC_SUBST([UPDATE_REVISION], [$UPDATE_REVISION])
 
+dnl These are still needed outside the Debian environment
+AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
+	[ LIBS="$LIBS -lz" ],
+	[AC_MSG_ERROR([libz not found - compressed files not supported])])
+AX_CHECK_LIBRARY([LIBBZ2], [bzlib.h], [bz2],
+	[ LIBS="$LIBS -lbz2"],
+	[AC_MSG_ERROR([libbz2 not found - compressed files not supported])])
+
+
 AX_FILESYSTEM
 
 AX_BOOST_BASE([1.65.1], [], [AC_MSG_ERROR([Could not find a recent version of boost])])
@@ -56,14 +65,6 @@ AX_IOSTREAMS_Z
 AX_IOSTREAMS_BZ2
 
 AX_LIBCIFPP
-
-dnl These are still needed outside the Debian environment
-AX_CHECK_LIBRARY([LIBZ], [zlib.h], [z],
-	[ LIBS="$LIBS -lz" ],
-	[AC_MSG_ERROR([libz not found - compressed files not supported])])
-AX_CHECK_LIBRARY([LIBBZ2], [bzlib.h], [bz2],
-	[ LIBS="$LIBS -lbz2"],
-	[AC_MSG_ERROR([libbz2 not found - compressed files not supported])])
 
 AC_SUBST([LIBS], [$LIBS])
 

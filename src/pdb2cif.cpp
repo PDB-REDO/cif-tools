@@ -34,7 +34,7 @@
 #include <filesystem>
 
 #include <boost/program_options.hpp>
-#include <boost/iostreams/filter/bzip2.hpp>
+// #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
@@ -115,12 +115,7 @@ int pr_main(int argc, char* argv[])
 	
 		io::filtering_stream<io::input> in;
 	
-		if (file.extension() == ".bz2")
-		{
-			in.push(io::bzip2_decompressor());
-			file = file.stem();
-		}
-		else if (file.extension() == ".gz")
+		if (file.extension() == ".gz")
 		{
 			in.push(io::gzip_decompressor());
 			file = file.stem();
@@ -143,8 +138,6 @@ int pr_main(int argc, char* argv[])
 			
 			if (file.extension() == ".gz")
 				out.push(io::gzip_compressor());
-			else if (file.extension() == ".bz2")
-				out.push(io::bzip2_compressor());
 			
 			out.push(outfile);
 			
