@@ -8449,7 +8449,7 @@ else
 fi
 
 				CIFPP_CFLAGS="-I ${withval}/include"
-				CIFPP_LIBS="-L${withval}/.libs -lcifpp"
+				CIFPP_LIBS="-L${withval}/lib -lcifpp"
 				LIBCIFPP_DATA_DIR="${withval}/rsrc"
 
 				CIFPP_CFLAGS=$CIFPP_CFLAGS
