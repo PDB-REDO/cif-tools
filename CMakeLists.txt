@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.0 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.1 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -105,70 +105,39 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # Create a revision file, containing the current git version info
-
-find_package(Git)
-if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-	include(GetGitRevisionDescription)
-    get_git_head_revision(REFSPEC COMMITHASH)
-
-	# Generate our own version string
-	git_describe_working_tree(BUILD_VERSION_STRING --match=build --dirty)
-else()
-    message(WARNING "Git not found, cannot set version info")
-
-    SET(BUILD_VERSION_STRING ${PROJECT_VERSION})
-endif()
-
-# generate version.h
-include_directories(${CMAKE_BINARY_DIR} PRIVATE)
-string(TIMESTAMP BUILD_DATE_TIME "%Y-%m-%d" UTC)
-configure_file("${CMAKE_SOURCE_DIR}/src/revision.hpp.in" "${CMAKE_BINARY_DIR}/revision.hpp" @ONLY)
+include(VersionString)
+write_version_header()
 
 # Optionally use mrc to create resources
-find_program(MRC mrc HINTS "$ENV{LOCALAPPDATA}/bin"  "$ENV{LOCALAPPDATA}/mrc" "${CMAKE_INSTALL_PREFIX}/../mrc" "/usr/local/bin")
+find_package(Mrc)
 
-if(MRC)
+if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
 else()
 	message(WARNING "Not using resources since mrc was not found")
 endif()
 
-if(USE_RSRC STREQUAL "ON")
-	set(USE_RSRC 1)
-
+if(USE_RSRC)
 	message("Using resources compiled with ${MRC}")
 	add_compile_definitions(USE_RSRC)
 endif()
 
-set(CMAKE_THREAD_PREFER_PTHREAD)
-set(THREADS_PREFER_PTHREAD_FLAG)
-find_package(Threads)
-
 set (Boost_DETAILED_FAILURE_MSG ON)
-find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams date_time regex)
+find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options)
 
-find_package(ZLIB)
-find_package(BZip2)
 find_package(cifpp 3.0.1 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
-
-find_package(ZLIB REQUIRED)
-find_package(BZip2 REQUIRED)
-
-if(USE_RSRC)
-	add_custom_command(OUTPUT cif-tools_rsrc.obj
-		COMMAND ${MRC} -o cif-tools_rsrc.obj ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic ${COFF_SPEC}
-	)
-
-	set(RESOURCE_FILE cif-tools_rsrc.obj)
-endif()
 
 list(APPEND programs pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL)
 
 foreach(PROGRAM IN LISTS programs)
 	add_executable(${PROGRAM} ${CMAKE_SOURCE_DIR}/src/${PROGRAM}.cpp ${CMAKE_SOURCE_DIR}/src/pr-main.cpp ${RESOURCE_FILE})
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${cifpp_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${CMAKE_BINARY_DIR})
-	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp ZLIB::ZLIB BZip2::BZip2 ${CMAKE_THREAD_LIBS_INIT})
+	if(USE_RSRC)
+		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
+	endif()
+
+	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp Boost::program_options)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 endforeach()

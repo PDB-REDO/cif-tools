@@ -39,8 +39,6 @@
 #include "cif++/Cif++.hpp"
 #include "cif++/CifUtils.hpp"
 
-std::string VERSION_STRING;
-
 int pr_main(int argc, char* argv[]);
 
 // --------------------------------------------------------------------
@@ -133,71 +131,6 @@ class RUsage
 
 // --------------------------------------------------------------------
 
-namespace {
-	std::string gVersionNr, gVersionDate;
-}
-
-void load_version_info()
-{
-	const std::regex
-		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
-		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)"),
-		rxVersionNr2(R"(cif-tools-version: (\d+(?:\.\d+)+))");
-
-#include "revision.hpp"
-
-	struct membuf : public std::streambuf
-	{
-		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
-	} buffer(const_cast<char*>(kRevision), sizeof(kRevision));
-
-	std::istream is(&buffer);
-
-	std::string line;
-
-	while (getline(is, line))
-	{
-		std::smatch m;
-
-		if (std::regex_match(line, m, rxVersionNr))
-		{
-			gVersionNr = m[1];
-			if (m[2].matched)
-				gVersionNr += '*';
-			continue;
-		}
-
-		if (std::regex_match(line, m, rxVersionDate))
-		{
-			gVersionDate = m[1];
-			continue;
-		}
-
-		// always the first, replace with more specific if followed by the other info
-		if (std::regex_match(line, m, rxVersionNr2))
-		{
-			gVersionNr = m[1];
-			continue;
-		}
-	}
-
-	if (not VERSION_STRING.empty())
-		VERSION_STRING += "\n";
-	VERSION_STRING += gVersionNr + '.' + cif::get_version_nr() + " " + gVersionDate;
-}
-
-std::string get_version_nr()
-{
-	return gVersionNr + '/' + cif::get_version_nr();
-}
-
-std::string get_version_date()
-{
-	return gVersionDate;
-}
-
-// --------------------------------------------------------------------
-
 // recursively print exception whats:
 void print_what (const std::exception& e)
 {
@@ -221,8 +154,6 @@ int main(int argc, char* argv[])
 	
 	try
 	{
-		load_version_info();
-		
 		result = pr_main(argc, argv);
 	}
 	catch (std::exception& ex)

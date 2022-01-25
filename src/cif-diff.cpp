@@ -464,7 +464,7 @@ void compareCifsText(c::File& a, c::File& b, bool icase, bool iwhite)
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-diff " + VERSION_STRING + " options file1 file2");
+	po::options_description visible_options("cif-diff options file1 file2");
 	visible_options.add_options()
 		("help,h",										"Display help message")
 		("version",										"Print version")
@@ -492,7 +492,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
+		write_version_string(std::cout, vm.count("verbose"));
 		exit(0);
 	}
 

@@ -1316,7 +1316,7 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("mmCQL " + VERSION_STRING + " [options] input output");
+	po::options_description visible_options("mmCQL [options] input output");
 	visible_options.add_options()
 		("help,h",										"Display help message")
 		("version",										"Print version")
@@ -1345,7 +1345,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("version"))
 	{
-		std::cout << argv[0] << " version " << VERSION_STRING << std::endl;
+		write_version_string(std::cout, vm.count("verbose"));
 		exit(0);
 	}
 

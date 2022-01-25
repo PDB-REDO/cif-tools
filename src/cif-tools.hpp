@@ -28,6 +28,4 @@
 
 #include <string>
 
-#include "config.hpp"
-
-extern std::string VERSION_STRING;
+#include "revision.hpp"
