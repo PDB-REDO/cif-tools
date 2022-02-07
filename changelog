@@ -1,6 +1,9 @@
+Version 1.0.1a
+- Remove GNU autoconf files.
+
 Version 1.0.1
 - Update version string output
 - Move to cmake instead of GNU autoconf and friends
 
-Version 1.0.0
+version 1.0.1
 - Initial release
