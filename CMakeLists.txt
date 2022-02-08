@@ -140,6 +140,6 @@ foreach(PROGRAM IN LISTS programs)
 	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp Boost::program_options)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+
+	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
-
-
