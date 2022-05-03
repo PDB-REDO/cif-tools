@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.1 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.2 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -125,7 +125,7 @@ endif()
 set (Boost_DETAILED_FAILURE_MSG ON)
 find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options)
 
-find_package(cifpp 3.0.1 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(cifpp 4.0.1 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
 
 list(APPEND programs pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL)
 

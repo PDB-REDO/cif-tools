@@ -264,13 +264,13 @@ int pr_main(int argc, char* argv[])
 	// Read donor file
 	mmcif::File df{vm["donor"].as<std::string>()};
 
-	updateEntryID(cf.file(), df.data().getName());
-	transplant(cf.file(), df.file());
+	updateEntryID(cf, df.data().getName());
+	transplant(cf, df);
 	
 	if (vm.count("output"))
 		cf.save(vm["output"].as<std::string>());
 	else
-		cf.file().save(std::cout);
+		cf.save(std::cout);
 
 	return 0;	
 }

@@ -129,10 +129,10 @@ int pr_main(int argc, char* argv[])
 		
 		out.push(outfile);
 		
-		WritePDBFile(out, f);
+		WritePDBFile(out, f.front());
 	}
 	else
-		WritePDBFile(std::cout, f);
+		WritePDBFile(std::cout, f.front());
 	
 	return 0;	
 }
