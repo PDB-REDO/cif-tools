@@ -1,3 +1,6 @@
+Version 1.0.3
+- Added --data-block option to mmCQL
+
 Version 1.0.2
 - Update for new libcifpp
 

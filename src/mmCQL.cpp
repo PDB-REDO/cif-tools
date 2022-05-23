@@ -1322,6 +1322,8 @@ int pr_main(int argc, char* argv[])
 		("version",										"Print version")
 		("verbose,v",									"Verbose output")
 
+		("data-block,D",	po::value<std::string>(),	"Specify datablock to use, default is first")
+
 		("force",										"Force writing of output file, even if it is the same as the input file")
 
 		("script,f",     po::value<std::string>(),   		"Read commands from script");
@@ -1368,7 +1370,11 @@ int pr_main(int argc, char* argv[])
 	auto input = vm["input"].as<std::string>();
 	c::File file{fs::path(input)};
 
-	cql::Parser parser(file.data());
+	std::string datablock;
+	if (vm.count("data-block"))
+		datablock = vm["data-block"].as<std::string>();
+
+	cql::Parser parser(datablock.empty() ? file.data() : file[datablock]);
 
 	if (vm.count("script"))
 	{
