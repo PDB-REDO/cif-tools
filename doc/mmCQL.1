@@ -1,4 +1,4 @@
-.TH mmCQL 1 "2020-11-23" "version 1.0.1" "User Commands"
+.TH mmCQL 1 "2020-11-23" "version 1.0.3" "User Commands"
 .if n .ad l
 .nh
 .SH NAME
@@ -18,6 +18,10 @@ This tool is not a complete and finished piece of software, it lack perhaps
 a lot of functionality. However, it is already very useful to simply lookup
 some value or change items based on some criteria.
 .SH OPTIONS
+.TP
+\fB--data-block=<datablock>\fR, \fB-D <datablock>\fR, 
+The default for mmCQL is to search only the first datablock in a CIF file.
+Using this option you can specify to search another datablock.
 .TP
 \fB--force\fR
 Write output file even if the name of the output file is the same as the
