@@ -33,9 +33,8 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-// #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
+
+#include <gzstream/gzstream.hpp>
 
 #include "cif++/Cif++.hpp"
 #include "cif++/Structure.hpp"
@@ -45,18 +44,17 @@
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 
-class grepParser : public cif::SacParser
+class statsParser : public cif::SacParser
 {
   public:
-	grepParser(const std::string& file, std::istream& is, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
+	statsParser(const std::string& file, std::istream& is, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
 		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet), mLineNr(printLineNr), mInvertMatch(invertMatch)
 	{
 	}
 	
-	grepParser(const std::string& file, std::istream& is, const std::string& tag, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
-		: grepParser(file, is, pattern, quiet, printLineNr, invertMatch)
+	statsParser(const std::string& file, std::istream& is, const std::string& tag, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
+		: statsParser(file, is, pattern, quiet, printLineNr, invertMatch)
 	{
 		std::tie(mCat, mItem) = cif::splitTagName(tag);
 	}
@@ -107,14 +105,14 @@ size_t cifGrep(const std::string& pattern, const std::string& tag, const std::st
 	
 	if (tag.empty())
 	{
-		grepParser gp(file, is, pattern, quiet, printLineNr, invertMatch);
+		statsParser gp(file, is, pattern, quiet, printLineNr, invertMatch);
 		gp.parseFile();
 		
 		result = gp.getMatches();
 	}
 	else
 	{
-		grepParser gp(file, is, tag, pattern, quiet, printLineNr, invertMatch);
+		statsParser gp(file, is, tag, pattern, quiet, printLineNr, invertMatch);
 		gp.parseFile();
 		
 		result = gp.getMatches();
@@ -259,11 +257,9 @@ int pr_main(int argc, char* argv[])
 		else if (files.size() <= 1)
 			noFileNames = true;
 		
-		for (auto file: filesWithSizes)
+		for (const auto &[size, file] : filesWithSizes)
 		{
-			fs::path f;
-			size_t size;
-			std::tie(size, f) = file;
+			fs::path f(file);
 
 			if (not fs::is_regular_file(f))
 				continue;
@@ -271,20 +267,30 @@ int pr_main(int argc, char* argv[])
 			if (cif::VERBOSE)
 				std::cerr << f << std::endl;
 
-			std::ifstream infile(f, std::ios_base::in | std::ios_base::binary);
-			if (not infile.is_open())
-				throw std::runtime_error("Could not open file " + f.string());
-	
-			io::filtering_stream<io::input> in;
-		
+			std::unique_ptr<std::istream> in;
+
 			if (f.extension() == ".gz")
-				in.push(io::gzip_decompressor());
-			
-			in.push(infile);
+			{
+				gzstream::ifstream infile(f);
+
+				if (not infile.is_open())
+					throw std::runtime_error("Could not open file " + f.string());
+
+				in.reset(new gzstream::ifstream(std::move(infile)));
+			}
+			else
+			{
+				std::ifstream infile(f);
+
+				if (not infile.is_open())
+					throw std::runtime_error("Could not open file " + f.string());
+
+				in.reset(new std::ifstream(std::move(infile)));
+			}
 	
 			try
 			{
-				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), in, quiet or filenamesOnly, lineNumbers, invertMatch);
+				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), *in, quiet or filenamesOnly, lineNumbers, invertMatch);
 
 				count += r;
 

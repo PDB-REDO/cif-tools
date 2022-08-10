@@ -125,15 +125,16 @@ endif()
 set (Boost_DETAILED_FAILURE_MSG ON)
 find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options)
 
-find_package(cifpp 4.0.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(cifpp 5.0.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(gzstream REQUIRED)
 
-list(APPEND programs pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL)
+list(APPEND programs pdb2cif cif2pdb cif-diff cif-drop cif-grep cif-merge cif-validate mmCQL cif-stats)
 
 foreach(PROGRAM IN LISTS programs)
 	add_executable(${PROGRAM} ${CMAKE_SOURCE_DIR}/src/${PROGRAM}.cpp ${CMAKE_SOURCE_DIR}/src/pr-main.cpp ${RESOURCE_FILE})
 
 	if(USE_RSRC)
-		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
+		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ddl.dic)
 	endif()
 
 	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})

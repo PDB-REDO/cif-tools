@@ -28,65 +28,71 @@
 
 #include <fstream>
 #include <functional>
+#include <regex>
 #include <filesystem>
+#include <iomanip>
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <gzstream/gzstream.hpp>
+
 #include "cif++/Cif++.hpp"
-#include "cif++/Cif2PDB.hpp"
 #include "cif++/Structure.hpp"
 #include "cif++/CifParser.hpp"
-#include "cif++/CifValidator.hpp"
 #include "cif++/CifUtils.hpp"
 
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
-int drop(std::istream& is, std::set<std::string>& columns)
+class statsParser : public cif::SacParser
 {
-	cif::File in(is);
-	
-	for (auto c: columns)
+  public:
+	statsParser(std::istream& is)
+		: SacParser(is)
 	{
-		std::string cat, item;
-		std::tie(cat, item) = cif::splitTagName(c);
-		
-		// loop over all datablocks
-		for (auto& db: in)
-		{
-			auto& c = db[cat];
-			if (not c.empty())
-				c.drop(item);
-		}
 	}
 	
-	in.save(std::cout);
+	virtual void produceDatablock(const std::string& name)
+	{
+	}
 	
-	return 0;
-}
+	virtual void produceCategory(const std::string& name)
+	{
+	}
+	
+	virtual void produceRow()
+	{
+	}
+	
+	virtual void produceItem(const std::string& category, const std::string& item, const std::string& value)
+	{
+		size_t l = value.length();
+		m_size_histogram[l] += 1;
+	}
+	
+	std::map<size_t,size_t> m_size_histogram;
+};
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-diff options file1 file2");
+	po::options_description visible_options("cif-stats");
 	visible_options.add_options()
-		("help,h",										"Display help message")
-		("version",										"Print version")
-		("verbose,v",									"Verbose output")
-		("output,o",									"Write output to this file, default is to the terminal (stdout)")
-		("column,c",	po::value<std::vector<std::string>>(),	"Column to drop, should be of the form '_category.item' with the leading underscore. Can be specified multiple times.");
-	
+		("input",	po::value<std::string>(),	"Input file")
+		("help",								"Display help message")
+		("version",								"Print version")
+		("verbose,V",							"Verbose output");
+
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
-		("input,i",	po::value<std::string>(),		"Input file")
-		("debug,d",		po::value<int>(),		"Debug level (for even more verbose output)");
+		("debug,d",	po::value<int>(),			"Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
 
 	po::positional_options_description p;
-	p.add("input", 2);
+	p.add("input", 1);
 	
 	po::variables_map vm;
 	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
@@ -98,55 +104,53 @@ int pr_main(int argc, char* argv[])
 		exit(0);
 	}
 
-	if (vm.count("help") or vm.count("input") == 0 or vm.count("column") == 0)
+	if (vm.count("help") or vm.count("input") == 0)
 	{
 		std::cerr << visible_options << std::endl;
-		exit(1);
+		exit(vm.count("help") ? 0 : 1);
 	}
 
 	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
-	
-	std::set<std::string> columns;
-	for (auto cs: vm["column"].as<std::vector<std::string>>())
+
+	std::filesystem::path file = vm["input"].as<std::string>();
+	std::unique_ptr<std::istream> in;
+
+	if (file.extension() == ".gz")
 	{
-		for (auto si = ba::make_split_iterator(cs, ba::token_finder(ba::is_any_of(",; "), ba::token_compress_on)); not si.eof(); ++si)
-		{
-			std::string c(si->begin(), si->end());
-			ba::to_lower(c);
-			columns.insert(c);
-		}
+		gzstream::ifstream infile(file);
+
+		if (not infile.is_open())
+			throw std::runtime_error("Could not open file " + file.string());
+
+		in.reset(new gzstream::ifstream(std::move(infile)));
+	}
+	else
+	{
+		std::ifstream infile(file);
+
+		if (not infile.is_open())
+			throw std::runtime_error("Could not open file " + file.string());
+
+		in.reset(new std::ifstream(std::move(infile)));
 	}
 
-	if (cif::VERBOSE)
+	statsParser parser(*in);
+	parser.parseFile();
+
+	size_t N = 0;
+	for (const auto &[k, v] : parser.m_size_histogram)
 	{
-		std::cerr << "Dropping columns:" << std::endl;
-		for (auto c: columns)
-			std::cerr << "    " << c << std::endl;
-		std::cerr << std::endl;
-	}
-	
-	fs::path file = vm["input"].as<std::string>();
-	std::ifstream is(file);
-	if (not is.is_open())
-	{
-		std::cerr << "Could not open input file" << std::endl;
-		exit(1);
+		N += v;
+		std::cout << std::fixed << std::setw(6) << k << " : " << v << std::endl;
 	}
 
-	std::ofstream f;
-	if (vm.count("output"))
-	{
-		f.open(vm["output"].as<std::string>());
-		if (not f.is_open())
-		{
-			std::cerr << "Could not open output file" << std::endl;
-			exit(1);
-		}
-		std::cout.rdbuf(f.rdbuf());
-	}
-	
-	return drop(is, columns);
+	std::cout << std::endl
+			  << "Total number of items: " << N << std::endl;
+
+	std::cout << "sizeof a std::string is " << sizeof(std::string) << std::endl;
+
+	return 0;
 }
 

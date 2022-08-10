@@ -34,11 +34,6 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
-// #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
-#include <boost/iostreams/copy.hpp>
 
 #include "cif++/Cif++.hpp"
 #include "cif++/Cif2PDB.hpp"
@@ -50,7 +45,6 @@
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 namespace c = mmcif;
 
 using cif::iequals;

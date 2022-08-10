@@ -44,7 +44,6 @@
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-// namespace io = boost::iostreams;
 namespace c = mmcif;
 
 using unicode = char32_t;

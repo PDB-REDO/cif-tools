@@ -33,9 +33,7 @@
 #include <filesystem>
 
 #include <boost/program_options.hpp>
-// #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
+#include <gzstream/gzstream.hpp>
 
 #include "cif++/Cif++.hpp"
 #include "cif++/Cif2PDB.hpp"
@@ -43,7 +41,6 @@
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
@@ -121,18 +118,19 @@ int pr_main(int argc, char* argv[])
 	{
 		file = vm["output"].as<std::string>();
 		
-		std::ofstream outfile(file.c_str(), std::ios_base::out | std::ios_base::binary);
-		io::filtering_stream<io::output> out;
-		
 		if (file.extension() == ".gz")
-			out.push(io::gzip_compressor());
-		
-		out.push(outfile);
-		
-		WritePDBFile(out, f);
+		{
+			gzstream::ofstream out(file, std::ios_base::binary);
+			WritePDBFile(out, f.front());
+		}
+		else
+		{
+			std::ofstream out(file.c_str(), std::ios_base::binary);
+			WritePDBFile(out, f.front());
+		}
 	}
 	else
-		WritePDBFile(std::cout, f);
+		WritePDBFile(std::cout, f.front());
 	
 	return 0;	
 }

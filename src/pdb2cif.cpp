@@ -34,9 +34,8 @@
 #include <filesystem>
 
 #include <boost/program_options.hpp>
-// #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
+
+#include <gzstream/gzstream.hpp>
 
 #include "cif++/Cif++.hpp"
 #include "cif++/PDB2Cif.hpp"
@@ -45,7 +44,6 @@
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
@@ -105,26 +103,30 @@ int pr_main(int argc, char* argv[])
 		std::regex pdbIdRx(R"(\d\w{3})");
 		
 		fs::path file = input;
-// #warning "compile time PDB_DIR?"
-		// if (not fs::exists(file) and regex_match(input, pdbIdRx))
-		// 	file = fs::path(PDB_DIR) / "pdb" / input.substr(1, 2) / ("pdb" + input + ".ent.gz");
-		
-		std::ifstream infile(file, std::ios_base::in | std::ios_base::binary);
-		if (not infile.is_open())
-			throw std::runtime_error("Could not open file " + file.string());
-	
-		io::filtering_stream<io::input> in;
-	
+
+		std::unique_ptr<std::istream> in;
+
 		if (file.extension() == ".gz")
 		{
-			in.push(io::gzip_decompressor());
-			file = file.stem();
+			gzstream::ifstream infile(file);
+
+			if (not infile.is_open())
+				throw std::runtime_error("Could not open file " + file.string());
+
+			in.reset(new gzstream::ifstream(std::move(infile)));
+		}
+		else
+		{
+			std::ifstream infile(file);
+
+			if (not infile.is_open())
+				throw std::runtime_error("Could not open file " + file.string());
+
+			in.reset(new std::ifstream(std::move(infile)));
 		}
 		
-		in.push(infile);
-	
 		cif::File f;
-		ReadPDBFile(in, f);
+		ReadPDBFile(*in, f);
 		
 		if (vm.count("validate") and not f.isValid())
 			throw std::runtime_error("The resulting mmCIF is not valid");
@@ -132,16 +134,17 @@ int pr_main(int argc, char* argv[])
 		if (vm.count("output"))
 		{
 			file = vm["output"].as<std::string>();
-			
-			std::ofstream outfile(file, std::ios_base::out | std::ios_base::binary);
-			io::filtering_stream<io::output> out;
-			
+
 			if (file.extension() == ".gz")
-				out.push(io::gzip_compressor());
-			
-			out.push(outfile);
-			
-			f.save(out);
+			{
+				gzstream::ofstream outfile(file, std::ios_base::binary);
+				f.save(outfile);
+			}
+			else
+			{
+				std::ofstream outfile(file, std::ios_base::binary);
+				f.save(outfile);
+			}
 		}
 		else
 			f.save(std::cout);
