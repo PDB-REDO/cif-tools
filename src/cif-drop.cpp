@@ -33,12 +33,7 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "cif++/Cif++.hpp"
-#include "cif++/Cif2PDB.hpp"
-#include "cif++/Structure.hpp"
-#include "cif++/CifParser.hpp"
-#include "cif++/CifValidator.hpp"
-#include "cif++/CifUtils.hpp"
+#include <cif++.hpp>
 
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
@@ -46,12 +41,12 @@ namespace fs = std::filesystem;
 
 int drop(std::istream& is, std::set<std::string>& columns)
 {
-	cif::File in(is);
+	cif::file in(is);
 	
 	for (auto c: columns)
 	{
 		std::string cat, item;
-		std::tie(cat, item) = cif::splitTagName(c);
+		std::tie(cat, item) = cif::split_tag_name(c);
 		
 		// loop over all datablocks
 		for (auto& db: in)

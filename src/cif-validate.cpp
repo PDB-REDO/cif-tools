@@ -30,8 +30,7 @@
 
 #include <boost/program_options.hpp>
 
-#include "cif++/Cif++.hpp"
-#include "cif++/CifUtils.hpp"
+#include "cif++.hpp"
 
 namespace po = boost::program_options;
 
@@ -41,7 +40,7 @@ int pr_main(int argc, char* argv[])
 	visible_options.add_options()
 		("help,h",								"Display help message")
 		("version",								"Print version")
-		("dict",	po::value<std::string>()->default_value("mmcif_pdbx_v50"),
+		("dict",	po::value<std::string>()->default_value("mmcif_pdbx"),
 												"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
 		("validate-links",						"Validate all links")
 		("verbose,v",							"Verbose output");
@@ -77,19 +76,20 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
-	cif::File f;
-	
-	f.loadDictionary(vm["dict"].as<std::string>().c_str());
+	cif::file f;
 	
 	if (vm.count("input") == 0)
 		f.load(std::cin);
 	else
 		f.load(vm["input"].as<std::string>());
 
-	int result = f.isValid() ? 0 : 1;
+	if (not vm["dict"].defaulted())
+		f.load_dictionary(vm["dict"].as<std::string>().c_str());
+
+	int result = f.is_valid() ? 0 : 1;
 
 	if (vm.count("validate-links"))
-		f.validateLinks();
+		f.validate_links();
 
 	return result;
 }

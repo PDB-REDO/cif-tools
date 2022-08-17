@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,61 +26,63 @@
 
 #include "cif-tools.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <regex>
-#include <filesystem>
 
-#include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/program_options.hpp>
 
-#include <gzstream/gzstream.hpp>
+#include <gxrio.hpp>
 
-#include "cif++/Cif++.hpp"
-#include "cif++/Structure.hpp"
-#include "cif++/CifParser.hpp"
-#include "cif++/CifUtils.hpp"
+#include "cif++.hpp"
 
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
-class statsParser : public cif::SacParser
+class statsParser : public cif::sac_parser
 {
   public:
-	statsParser(const std::string& file, std::istream& is, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
-		: SacParser(is), mFile(file), mRx(pattern), mQuiet(quiet), mLineNr(printLineNr), mInvertMatch(invertMatch)
+	statsParser(const std::string &file, std::istream &is, const std::string &pattern, bool quiet, bool printLineNr, bool invertMatch)
+		: sac_parser(is)
+		, mFile(file)
+		, mRx(pattern)
+		, mQuiet(quiet)
+		, mLineNr(printLineNr)
+		, mInvertMatch(invertMatch)
 	{
 	}
-	
-	statsParser(const std::string& file, std::istream& is, const std::string& tag, const std::string& pattern, bool quiet, bool printLineNr, bool invertMatch)
+
+	statsParser(const std::string &file, std::istream &is, const std::string &tag, const std::string &pattern, bool quiet, bool printLineNr, bool invertMatch)
 		: statsParser(file, is, pattern, quiet, printLineNr, invertMatch)
 	{
-		std::tie(mCat, mItem) = cif::splitTagName(tag);
+		std::tie(mCat, mItem) = cif::split_tag_name(tag);
 	}
-	
-	size_t getMatches() const			{ return mMatches; }
-	
-	virtual void produceDatablock(const std::string& name)
+
+	size_t getMatches() const { return mMatches; }
+
+	void produce_datablock(const std::string &name) override
 	{
 	}
-	
-	virtual void produceCategory(const std::string& name)
+
+	void produce_category(const std::string &name) override
 	{
 	}
-	
-	virtual void produceRow()
+
+	void produce_row() override
 	{
 	}
-	
-	virtual void produceItem(const std::string& category, const std::string& item, const std::string& value)
+
+	void produce_item(const std::string &category, const std::string &item, const std::string &value) override
 	{
 		if ((mCat.empty() or cif::iequals(category, mCat)) and
 			(mItem.empty() or cif::iequals(item, mItem)) and
 			std::regex_search(value, mRx) == not mInvertMatch)
 		{
 			++mMatches;
-			
+
 			if (not mQuiet)
 			{
 				if (not mFile.empty())
@@ -91,58 +93,43 @@ class statsParser : public cif::SacParser
 			}
 		}
 	}
-	
-	std::string	mFile;
-	std::string	mCat, mItem;
-	std::regex	mRx;
-	size_t	mMatches = 0;
-	bool	mQuiet, mLineNr, mInvertMatch;
+
+	std::string mFile;
+	std::string mCat, mItem;
+	std::regex mRx;
+	size_t mMatches = 0;
+	bool mQuiet, mLineNr, mInvertMatch;
 };
 
-size_t cifGrep(const std::string& pattern, const std::string& tag, const std::string& file, std::istream& is, bool quiet, bool printLineNr, bool invertMatch)
+size_t cifGrep(const std::string &pattern, const std::string &tag, const std::string &file, std::istream &is, bool quiet, bool printLineNr, bool invertMatch)
 {
 	size_t result = 0;
-	
+
 	if (tag.empty())
 	{
 		statsParser gp(file, is, pattern, quiet, printLineNr, invertMatch);
-		gp.parseFile();
-		
+		gp.parse_file();
+
 		result = gp.getMatches();
 	}
 	else
 	{
 		statsParser gp(file, is, tag, pattern, quiet, printLineNr, invertMatch);
-		gp.parseFile();
-		
+		gp.parse_file();
+
 		result = gp.getMatches();
 	}
-	
+
 	return result;
 }
 
-int pr_main(int argc, char* argv[])
+int pr_main(int argc, char *argv[])
 {
 	po::options_description visible_options("cif-grep [option...] pattern [file ...]");
-	visible_options.add_options()
-		("item,i",	po::value<std::string>(),	"Item tag to scan, default is all item values")
-		("help",								"Display help message")
-		("version",								"Print version")
-		("quiet,q",								"Only print files matching pattern")
-		("count,c",								"Only show number of hits")
-		("invert-match,v",						"Select fields NOT matching the pattern")
-		("line-number,n",						"Print line numbers")
-		("no-filename,h",						"Don't print the filename")
-		("with-filename,H",						"Do print the filename")
-		("verbose,V",							"Verbose output")
-		("files-with-matches,l",				"Print only names of files containing matches")
-		("recursive,r",							"Search recursively");
+	visible_options.add_options()("item,i", po::value<std::string>(), "Item tag to scan, default is all item values")("help", "Display help message")("version", "Print version")("quiet,q", "Only print files matching pattern")("count,c", "Only show number of hits")("invert-match,v", "Select fields NOT matching the pattern")("line-number,n", "Print line numbers")("no-filename,h", "Don't print the filename")("with-filename,H", "Do print the filename")("verbose,V", "Verbose output")("files-with-matches,l", "Print only names of files containing matches")("recursive,r", "Search recursively");
 
 	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("pattern",	po::value<std::string>(),				"Pattern")
-		("input",	po::value<std::vector<std::string>>(),	"Input files")
-		("debug,d",	po::value<int>(),						"Debug level (for even more verbose output)");
+	hidden_options.add_options()("pattern", po::value<std::string>(), "Pattern")("input", po::value<std::vector<std::string>>(), "Input files")("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
@@ -150,7 +137,7 @@ int pr_main(int argc, char* argv[])
 	po::positional_options_description p;
 	p.add("pattern", 1);
 	p.add("input", -1);
-	
+
 	po::variables_map vm;
 	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
 	po::notify(vm);
@@ -189,18 +176,18 @@ int pr_main(int argc, char* argv[])
 		tag = vm["item"].as<std::string>();
 
 		std::string cat, item;
-		std::tie(cat, item) = cif::splitTagName(tag);
-		
+		std::tie(cat, item) = cif::split_tag_name(tag);
+
 		if (cat.empty())
 			throw std::runtime_error("Invalid category in tag: '" + cat + '\'');
-		
+
 		if (item.empty())
-			throw std::runtime_error("Invalid item: '" + item + '\''); 
-		
+			throw std::runtime_error("Invalid item: '" + item + '\'');
+
 		if (cif::VERBOSE)
 			std::cerr << "matching only for category: " << cat << " and item " << item << std::endl;
 	}
-	
+
 	size_t result = false;
 	if (vm.count("input") == 0 and not vm.count("recursive"))
 	{
@@ -215,19 +202,19 @@ int pr_main(int argc, char* argv[])
 		std::vector<std::string> files;
 		if (vm.count("input"))
 			files = vm["input"].as<std::vector<std::string>>();
-		
+
 		if (vm.count("recursive"))
 		{
 			if (files.empty())
 				files.push_back(fs::current_path());
 
 			std::vector<std::string> expanded;
-			for (auto file: files)
+			for (auto file : files)
 			{
 				if (fs::is_directory(file))
 				{
 					for (auto i = fs::recursive_directory_iterator(file);
-						i != fs::recursive_directory_iterator(); ++i)
+						 i != fs::recursive_directory_iterator(); ++i)
 					{
 						fs::path p = i->path();
 						if (fs::is_regular_file(p))
@@ -237,60 +224,43 @@ int pr_main(int argc, char* argv[])
 				else
 					expanded.push_back(file);
 			}
-			
+
 			files = expanded;
 		}
-		
-		std::vector<std::tuple<size_t,std::string>> filesWithSizes;
+
+		std::vector<std::tuple<size_t, std::string>> filesWithSizes;
 		size_t totalSize = 0;
-		
+
 		transform(files.begin(), files.end(), back_inserter(filesWithSizes),
-			[&totalSize](const std::string& f) -> std::tuple<size_t, std::string>
+			[&totalSize](const std::string &f) -> std::tuple<size_t, std::string>
 			{
 				size_t size = fs::file_size(f);
 				totalSize += size;
 				return std::make_tuple(size, f);
 			});
-		
+
 		if (doFileNames)
 			noFileNames = false;
 		else if (files.size() <= 1)
 			noFileNames = true;
-		
+
 		for (const auto &[size, file] : filesWithSizes)
 		{
 			fs::path f(file);
 
 			if (not fs::is_regular_file(f))
 				continue;
-			
+
 			if (cif::VERBOSE)
 				std::cerr << f << std::endl;
 
-			std::unique_ptr<std::istream> in;
+			gxrio::ifstream in(f);
+			if (not in.is_open())
+				throw std::runtime_error("Could not open file " + f.string());
 
-			if (f.extension() == ".gz")
-			{
-				gzstream::ifstream infile(f);
-
-				if (not infile.is_open())
-					throw std::runtime_error("Could not open file " + f.string());
-
-				in.reset(new gzstream::ifstream(std::move(infile)));
-			}
-			else
-			{
-				std::ifstream infile(f);
-
-				if (not infile.is_open())
-					throw std::runtime_error("Could not open file " + f.string());
-
-				in.reset(new std::ifstream(std::move(infile)));
-			}
-	
 			try
 			{
-				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), *in, quiet or filenamesOnly, lineNumbers, invertMatch);
+				size_t r = cifGrep(pattern, tag, noFileNames ? "" : f.filename().string(), in, quiet or filenamesOnly, lineNumbers, invertMatch);
 
 				count += r;
 
@@ -300,11 +270,11 @@ int pr_main(int argc, char* argv[])
 				if (r > 0)
 					result = true;
 			}
-			catch (const std::exception& e)
+			catch (const std::exception &e)
 			{
 				std::cerr << std::endl
-						<< "exception for " << f << std::endl
-						<< " => " << e.what() << std::endl;
+						  << "exception for " << f << std::endl
+						  << " => " << e.what() << std::endl;
 			}
 		}
 	}
@@ -314,4 +284,3 @@ int pr_main(int argc, char* argv[])
 
 	return result ? 0 : 1;
 }
-

@@ -36,8 +36,7 @@
 #include <cmath>
 #include <regex>
 
-#include "cif++/Cif++.hpp"
-#include "cif++/CifUtils.hpp"
+#include "cif++.hpp"
 
 int pr_main(int argc, char* argv[]);
 

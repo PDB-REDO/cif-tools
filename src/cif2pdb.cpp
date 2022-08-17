@@ -102,7 +102,7 @@ int pr_main(int argc, char* argv[])
 		f.loadDictionary(dict.c_str());
 	}
 	else
-		f.loadDictionary("mmcif_pdbx_v50");
+		f.loadDictionary("mmcif_pdbx");
 	
 	f.load(file);
 	
