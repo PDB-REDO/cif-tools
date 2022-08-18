@@ -35,38 +35,34 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <gzstream/gzstream.hpp>
-
-#include "cif++/Cif++.hpp"
-#include "cif++/Structure.hpp"
-#include "cif++/CifParser.hpp"
-#include "cif++/CifUtils.hpp"
+#include <gxrio.hpp>
+#include <cif++.hpp>
 
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
-class statsParser : public cif::SacParser
+class statsParser : public cif::sac_parser
 {
   public:
 	statsParser(std::istream& is)
-		: SacParser(is)
+		: sac_parser(is)
 	{
 	}
 	
-	virtual void produceDatablock(const std::string& name)
+	void produce_datablock(const std::string& name) override
 	{
 	}
 	
-	virtual void produceCategory(const std::string& name)
+	void produce_category(const std::string& name) override
 	{
 	}
 	
-	virtual void produceRow()
+	void produce_row() override
 	{
 	}
 	
-	virtual void produceItem(const std::string& category, const std::string& item, const std::string& value)
+	void produce_item(const std::string& category, const std::string& item, const std::string& value) override
 	{
 		size_t l = value.length();
 		m_size_histogram[l] += 1;
@@ -114,30 +110,12 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
-	std::filesystem::path file = vm["input"].as<std::string>();
-	std::unique_ptr<std::istream> in;
+	gxrio::ifstream in(vm["input"].as<std::string>());
+	if (not in.is_open())
+		throw std::runtime_error("Could not open file " + vm["input"].as<std::string>());
 
-	if (file.extension() == ".gz")
-	{
-		gzstream::ifstream infile(file);
-
-		if (not infile.is_open())
-			throw std::runtime_error("Could not open file " + file.string());
-
-		in.reset(new gzstream::ifstream(std::move(infile)));
-	}
-	else
-	{
-		std::ifstream infile(file);
-
-		if (not infile.is_open())
-			throw std::runtime_error("Could not open file " + file.string());
-
-		in.reset(new std::ifstream(std::move(infile)));
-	}
-
-	statsParser parser(*in);
-	parser.parseFile();
+	statsParser parser(in);
+	parser.parse_file();
 
 	size_t N = 0;
 	for (const auto &[k, v] : parser.m_size_histogram)

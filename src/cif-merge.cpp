@@ -35,37 +35,31 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "cif++/Cif++.hpp"
-#include "cif++/Cif2PDB.hpp"
-#include "cif++/Structure.hpp"
-#include "cif++/CifParser.hpp"
-#include "cif++/CifValidator.hpp"
-#include "cif++/CifUtils.hpp"
+#include <cif++.hpp>
 
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace c = mmcif;
 
 using cif::iequals;
 
 // --------------------------------------------------------------------
 
-void updateEntryID(cif::File& target, const std::string& entryID)
+void updateEntryID(cif::file& target, const std::string& entryID)
 {
-	auto& db = target.firstDatablock();
+	auto& db = target.front();
 	
-	if (db.getName() != entryID)
-		db.setName(entryID);
+	if (db.name() != entryID)
+		db.set_name(entryID);
 
 	for (auto r: db["entry"])
 		r["id"] = entryID;
 }
 
-void transplant(cif::File& target, cif::File& donor)
+void transplant(cif::file& target, cif::file& donor)
 {
-	auto& dbt = target.firstDatablock();
-	auto& dbd = donor.firstDatablock();
+	auto& dbt = target.front();
+	auto& dbd = donor.front();
 
 	for (auto c: { "struct", "struct_keywords", "audit_author", "citation", "citation_author", "diffrn", "diffrn_radiation", "diffrn_radiation_wavelength" })
 	{
@@ -87,16 +81,16 @@ void transplant(cif::File& target, cif::File& donor)
 	}
 	
 	std::string exptlMethod;
-	auto dExplt = dbd["exptl"].find(cif::Key("entry_id") == dbd.getName());
+	auto dExplt = dbd["exptl"].find(cif::key("entry_id") == dbd.name());
 	if (dExplt.size() != 1)
 		throw std::runtime_error("Invalid number of exptl records in donor file, should be exactly one this version of cif-merge");
 	cif::tie(exptlMethod) = dExplt.front().get("method");
-	auto tExplt = dbt["exptl"].find(cif::Key("entry_id") == dbt.getName());
+	auto tExplt = dbt["exptl"].find(cif::key("entry_id") == dbt.name());
 	if (tExplt.empty())
 	{
 		auto c = dbt.emplace("exptl");
 		std::get<0>(c)->emplace({
-			{ "entry_id", dbt.getName() },
+			{ "entry_id", dbt.name() },
 			{ "method", exptlMethod }
 		});
 	}
@@ -121,12 +115,12 @@ void transplant(cif::File& target, cif::File& donor)
 		
 		if (iequals(type, "polymer"))
 		{
-			auto t = dbt["entity_poly"][cif::Key("entity_id") == id];
+			auto t = dbt["entity_poly"].find1(cif::key("entity_id") == id);
 			
 			std::string polyType, seq;
 			cif::tie(polyType, seq) = t.get("type", "pdbx_seq_one_letter_code");
 			
-			auto d = dbd["entity_poly"][cif::Key("type") == polyType and cif::Key("pdbx_seq_one_letter_code") == seq];
+			auto d = dbd["entity_poly"].find1(cif::key("type") == polyType and cif::key("pdbx_seq_one_letter_code") == seq);
 			
 			if (d.empty())
 			{
@@ -139,7 +133,7 @@ void transplant(cif::File& target, cif::File& donor)
 			
 			// copy over refseq
 			
-			auto sr = dbd["struct_ref"][cif::Key("entity_id") == dEntityID];
+			auto sr = dbd["struct_ref"].find1(cif::key("entity_id") == dEntityID);
 			if (not sr.empty())
 			{
 				sr["entity_id"] = id;
@@ -147,18 +141,18 @@ void transplant(cif::File& target, cif::File& donor)
 				
 				std::string refID = sr["id"].as<std::string>();
 				
-				for (auto r: dbd["struct_ref_seq"].find(cif::Key("ref_id") == refID))
+				for (auto r: dbd["struct_ref_seq"].find(cif::key("ref_id") == refID))
 					dbt["struct_ref_seq"].emplace(r);
 			}
 		}
 		else if (iequals(type, "non-polymer"))
 		{
-			auto t = dbt["pdbx_entity_nonpoly"][cif::Key("entity_id") == id];
+			auto t = dbt["pdbx_entity_nonpoly"].find1(cif::key("entity_id") == id);
 			
 			std::string compID;
 			cif::tie(compID) = t.get("comp_id");
 			
-			auto d = dbd["pdbx_entity_nonpoly"][cif::Key("comp_id") == compID];
+			auto d = dbd["pdbx_entity_nonpoly"].find1(cif::key("comp_id") == compID);
 			
 			if (d.empty())
 			{
@@ -171,7 +165,7 @@ void transplant(cif::File& target, cif::File& donor)
 		}
 		else if (iequals(type, "water"))
 		{
-			cif::tie(dEntityID) = dbd["entity"][cif::Key("type") == type].get("id");
+			dEntityID = dbd["entity"].find1<std::string>(cif::key("type") == type, "id");
 		}
 		else if (cif::VERBOSE)
 			std::cerr << "Unsupported entity type: " << type << std::endl;
@@ -179,9 +173,8 @@ void transplant(cif::File& target, cif::File& donor)
 		if (dEntityID.empty())
 			continue;
 
-		std::string srcMethod, description, weight;
-		cif::tie(srcMethod, description, weight) =
-			dbd["entity"][cif::Key("id") == dEntityID].get("src_method", "pdbx_description", "formula_weight");
+		const auto &[srcMethod, description, weight] =
+			dbd["entity"].find1<std::string,std::string,std::string>(cif::key("id") == dEntityID, "src_method", "pdbx_description", "formula_weight");
 		
 		r["src_method"] = srcMethod;
 		r["pdbx_description"] = description;
@@ -191,7 +184,7 @@ void transplant(cif::File& target, cif::File& donor)
 		{
 			std::string srcRec = kSrcMap.at(srcMethod);
 
-			auto d = dbd[srcRec][cif::Key("entity_id") == dEntityID];
+			auto d = dbd[srcRec].find1(cif::key("entity_id") == dEntityID);
 			if (not d.empty())
 			{
 				d["entity_id"] = id;
@@ -212,7 +205,7 @@ int pr_main(int argc, char* argv[])
 		("input,i",		po::value<std::string>(),	"Modified PDB file")
 		("output,o",	po::value<std::string>(),	"Output file, default is stdout (terminal)")
 		("donor",		po::value<std::string>(),	"CIF file (or PDB ID for this file) containing the data to collect data from")
-		("dict",		po::value<std::string>(),	"Dictionary file containing restraints for residues in this specific target")
+		// ("dict",		po::value<std::string>(),	"Dictionary file containing restraints for residues in this specific target")
 		;
 	
 
@@ -249,16 +242,16 @@ int pr_main(int argc, char* argv[])
 
 	// Load dict, if any
 	
-	if (vm.count("dict"))
-		c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
+	// if (vm.count("dict"))
+	// 	c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
 
 	// Read input file
-	mmcif::File cf{vm["input"].as<std::string>()};
+	cif::file cf{vm["input"].as<std::string>()};
 	
 	// Read donor file
-	mmcif::File df{vm["donor"].as<std::string>()};
+	cif::file df{vm["donor"].as<std::string>()};
 
-	updateEntryID(cf, df.data().getName());
+	updateEntryID(cf, df.front().name());
 	transplant(cf, df);
 	
 	if (vm.count("output"))

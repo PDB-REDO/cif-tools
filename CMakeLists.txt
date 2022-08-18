@@ -134,10 +134,10 @@ list(APPEND programs
 	cif-diff
 	# cif-drop
 	cif-grep
-	# cif-merge
+	cif-merge
 	cif-validate
-	# mmCQL
-	# cif-stats
+	mmCQL
+	cif-stats
 )
 
 foreach(PROGRAM IN LISTS programs)

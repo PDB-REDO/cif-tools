@@ -34,17 +34,11 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
-// #include <zeep/unicode-support.hpp>
-
-#include "cif++/Cif++.hpp"
-#include "cif++/Structure.hpp"
-#include "cif++/CifValidator.hpp"
-#include "cif++/CifUtils.hpp"
+#include "cif++.hpp"
 
 namespace po = boost::program_options;
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace c = mmcif;
 
 using unicode = char32_t;
 
@@ -238,7 +232,7 @@ class StatementList : public Statement
 class SelectStatement : public Statement
 {
   public:
-	SelectStatement(cif::Category& category, bool distinct, std::vector<std::string>&& items, cif::Condition&& where)
+	SelectStatement(cif::category& category, bool distinct, std::vector<std::string>&& items, cif::condition&& where)
 		: mCategory(category), mDistinct(distinct), mItems(std::move(items)), mWhere(std::move(where)) {}
 
 	virtual void Execute()
@@ -252,8 +246,7 @@ class SelectStatement : public Statement
 		{
 			transform(mItems.begin(), mItems.end(), fields.begin(),
 				[r](auto item) {
-					cif::detail::ItemReference ref = r[item];
-					return ref.as<std::string>();
+					return r[item].template as<std::string>();
 					});
 
 			std::string line = ba::join(fields, "\t");
@@ -268,10 +261,10 @@ class SelectStatement : public Statement
 	}
 
   private:
-	cif::Category& mCategory;
+	cif::category& mCategory;
 	bool mDistinct;
 	std::vector<std::string> mItems;
-	cif::Condition mWhere;
+	cif::condition mWhere;
 };
 
 // -----------------------------------------------------------------------
@@ -279,18 +272,18 @@ class SelectStatement : public Statement
 class DeleteStatement : public Statement
 {
   public:
-	DeleteStatement(cif::Category& category, cif::Condition&& where)
+	DeleteStatement(cif::category& category, cif::condition&& where)
 		: mCategory(category), mWhere(std::move(where)) {}
 
 	virtual void Execute()
 	{
-		cif::RowSet remove(mCategory);
+		std::vector<cif::row_handle> remove;
 		
 		mWhere.prepare(mCategory);
 
 		for (auto r: mCategory)
 		{
-			if (mWhere(mCategory, r))
+			if (mWhere(r))
 				remove.insert(remove.end(), r);
 		}
 
@@ -301,8 +294,8 @@ class DeleteStatement : public Statement
 	}
 
   private:
-	cif::Category& mCategory;
-	cif::Condition mWhere;
+	cif::category& mCategory;
+	cif::condition mWhere;
 };
 
 // -----------------------------------------------------------------------
@@ -310,7 +303,7 @@ class DeleteStatement : public Statement
 class UpdateStatement : public Statement
 {
   public:
-	UpdateStatement(cif::Category& category, std::vector<std::pair<std::string,std::string>>&& itemValuePairs, cif::Condition&& where)
+	UpdateStatement(cif::category& category, std::vector<std::pair<std::string,std::string>>&& itemValuePairs, cif::condition&& where)
 		: mCategory(category), mItemValuePairs(std::move(itemValuePairs)), mWhere(std::move(where)) {}
 
 	virtual void Execute()
@@ -321,7 +314,7 @@ class UpdateStatement : public Statement
 
 		for (auto r: mCategory)
 		{
-			if (mWhere(mCategory, r))
+			if (mWhere(r))
 			{
 				for (auto iv: mItemValuePairs)
 					r[iv.first] = iv.second;
@@ -334,9 +327,9 @@ class UpdateStatement : public Statement
 	}
 
   private:
-	cif::Category& mCategory;
+	cif::category& mCategory;
 	std::vector<std::pair<std::string,std::string>> mItemValuePairs;
-	cif::Condition mWhere;
+	cif::condition mWhere;
 };
 
 // -----------------------------------------------------------------------
@@ -344,7 +337,7 @@ class UpdateStatement : public Statement
 class Parser
 {
   public:
-	Parser(cif::Datablock& db)
+	Parser(cif::datablock& db)
 		: mDb(db) {}
 
 	StatementPtr Parse(std::streambuf* is);
@@ -458,10 +451,10 @@ class Parser
 	StatementPtr ParseUpdate();
 	std::vector<std::string> ParseItemList();
 
-	cif::Condition ParseWhereClause(cif::Category& cat);
-	cif::Condition ParseNotWhereClause(cif::Category& cat);
+	cif::condition ParseWhereClause(cif::category& cat);
+	cif::condition ParseNotWhereClause(cif::category& cat);
 
-	cif::Datablock& mDb;
+	cif::datablock& mDb;
 	std::streambuf* mIs;
 	Token mLookahead;
 	std::stack<unicode> mBuffer;
@@ -1052,7 +1045,7 @@ StatementPtr Parser::ParseSelect()
 	if (category == nullptr)
 		throw std::runtime_error("Category " + cat + " is not defined in this file");
 
-	auto cv = category->getCatValidator();
+	auto cv = category->get_cat_validator();
 	if (cv != nullptr)
 	{
 		std::vector<std::string> nItems;
@@ -1060,19 +1053,19 @@ StatementPtr Parser::ParseSelect()
 		for (auto item: items)
 		{
 			if (item == "*")
-				transform(cv->mItemValidators.begin(), cv->mItemValidators.end(), back_inserter(nItems),
-					[cat](auto iv) { return iv.mTag; });
+				transform(cv->m_item_validators.begin(), cv->m_item_validators.end(), back_inserter(nItems),
+					[cat](auto iv) { return iv.m_tag; });
 			else
 				nItems.push_back(item);
 		}
 
 		swap(items, nItems);
 
-		items.erase(remove_if(items.begin(), items.end(), [category](auto item) { return not category->hasColumn(item); }), items.end());
+		items.erase(remove_if(items.begin(), items.end(), [category](auto item) { return not category->has_column(item); }), items.end());
 
 		for (auto item: items)
 		{
-			auto iv = cv->getValidatorForItem(item);
+			auto iv = cv->get_validator_for_item(item);
 			if (iv == nullptr)
 				throw std::runtime_error("Item " + item + " is not defined in the PDBx dictionary for category " + cat);
 		}	
@@ -1084,7 +1077,7 @@ StatementPtr Parser::ParseSelect()
 		return StatementPtr{ new SelectStatement(*category, distinct, std::move(items), ParseNotWhereClause(*category)) };
 	}
 	else
-		return StatementPtr{ new SelectStatement(*category, distinct, std::move(items), cif::All()) };
+		return StatementPtr{ new SelectStatement(*category, distinct, std::move(items), cif::all()) };
 }
 
 // -----------------------------------------------------------------------
@@ -1106,7 +1099,7 @@ StatementPtr Parser::ParseDelete()
 		return StatementPtr{ new DeleteStatement(*category, ParseNotWhereClause(*category)) };
 	}
 	else
-		return StatementPtr{ new DeleteStatement(*category, cif::All()) };
+		return StatementPtr{ new DeleteStatement(*category, cif::all()) };
 }
 
 // -----------------------------------------------------------------------
@@ -1120,7 +1113,7 @@ StatementPtr Parser::ParseUpdate()
 	if (category == nullptr)
 		throw std::runtime_error("Category " + cat + " is not defined in this file");
 
-	auto cv = category->getCatValidator();
+	auto cv = category->get_cat_validator();
 
 	Match(Token::set);
 
@@ -1130,7 +1123,7 @@ StatementPtr Parser::ParseUpdate()
 		std::string item = mToken;
 		Match(Token::ident);
 
-		auto iv = cv ? cv->getValidatorForItem(item) : nullptr;
+		auto iv = cv ? cv->get_validator_for_item(item) : nullptr;
 		if (cv and iv == nullptr)
 			throw std::runtime_error("Invalid item '" + item + "' for category '" + cat + '\'');
 		
@@ -1168,7 +1161,7 @@ StatementPtr Parser::ParseUpdate()
 		return StatementPtr{ new UpdateStatement(*category, std::move(itemValuePairs), ParseNotWhereClause(*category)) };
 	}
 	else
-		return StatementPtr{ new UpdateStatement(*category, std::move(itemValuePairs), cif::All()) };
+		return StatementPtr{ new UpdateStatement(*category, std::move(itemValuePairs), cif::all()) };
 }
 
 // -----------------------------------------------------------------------
@@ -1204,14 +1197,14 @@ std::vector<std::string> Parser::ParseItemList()
 
 // -----------------------------------------------------------------------
 
-cif::Condition Parser::ParseNotWhereClause(cif::Category& cat)
+cif::condition Parser::ParseNotWhereClause(cif::category& cat)
 {
-	cif::Condition result;
+	cif::condition result;
 
 	if (mLookahead == Token::not_)
 	{
 		Match(Token::not_);
-		result = cif::Not(ParseNotWhereClause(cat));
+		result = not ParseNotWhereClause(cat);
 	}
 	else if (mLookahead == Token::braceopen)
 	{
@@ -1247,13 +1240,13 @@ cif::Condition Parser::ParseNotWhereClause(cif::Category& cat)
 
 // -----------------------------------------------------------------------
 
-cif::Condition Parser::ParseWhereClause(cif::Category& cat)
+cif::condition Parser::ParseWhereClause(cif::category& cat)
 {
 	std::string item = mToken;
 	Match(Token::ident);
 
-	auto cv = cat.getCatValidator();
-	if (cv != nullptr and cv->getValidatorForItem(item) == nullptr)
+	auto cv = cat.get_cat_validator();
+	if (cv != nullptr and cv->get_validator_for_item(item) == nullptr)
 	{
 		throw std::runtime_error("Invalid item '" + item + "' for category '" + cat.name() + "' in where clause");
 	}
@@ -1266,12 +1259,12 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 		{
 			Match(mLookahead);
 			Match(Token::null_);
-			return cif::Key(item) != cif::Empty();
+			return cif::key(item) != cif::null;
 		}
 		else
 		{
 			Match(Token::null_);
-			return cif::Key(item) == cif::Empty();
+			return cif::key(item) == cif::null;
 		}
 	}
 	else
@@ -1282,7 +1275,7 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 		auto oper = mLookahead;
 		Match(mLookahead);
 		
-		cif::Condition c;
+		cif::condition c;
 		std::string value = mToken;
 
 		switch (mLookahead)
@@ -1298,12 +1291,12 @@ cif::Condition Parser::ParseWhereClause(cif::Category& cat)
 
 		switch (oper)
 		{
-			case Token::eq_:	return cif::Key(item) == value;
-			case Token::lt_:	return cif::Key(item) <  value;
-			case Token::le_:	return cif::Key(item) <= value;
-			case Token::gt_:	return cif::Key(item) >  value;
-			case Token::ge_:	return cif::Key(item) >= value;
-			case Token::ne_:	return cif::Key(item) != value;
+			case Token::eq_:	return cif::key(item) == value;
+			case Token::lt_:	return cif::key(item) <  value;
+			case Token::le_:	return cif::key(item) <= value;
+			case Token::gt_:	return cif::key(item) >  value;
+			case Token::ge_:	return cif::key(item) >= value;
+			case Token::ne_:	return cif::key(item) != value;
 			default:			throw std::logic_error("should never happen");
 		}
 	}
@@ -1365,9 +1358,9 @@ int pr_main(int argc, char* argv[])
 		cif::VERBOSE = vm["debug"].as<int>();
 	
 	auto input = vm["input"].as<std::string>();
-	c::File file{fs::path(input)};
+	cif::file file{fs::path(input)};
 
-	cql::Parser parser(file.data());
+	cql::Parser parser(file.front());
 
 	if (vm.count("script"))
 	{
