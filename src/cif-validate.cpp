@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,73 +24,54 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cif-tools.hpp"
-
 #include <fstream>
 
-#include <boost/program_options.hpp>
+#include <cfg.hpp>
+#include <cif++.hpp>
 
-#include "cif++.hpp"
+#include "revision.hpp"
 
-namespace po = boost::program_options;
-
-int pr_main(int argc, char* argv[])
+int pr_main(int argc, char *argv[])
 {
-	po::options_description visible_options("cif-validate [option...] file");
-	visible_options.add_options()
-		("help,h",								"Display help message")
-		("version",								"Print version")
-		("dict",	po::value<std::string>()->default_value("mmcif_pdbx"),
-												"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file")
-		("validate-links",						"Validate all links")
-		("verbose,v",							"Verbose output");
-	
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("input",	po::value<std::string>(),	"Input file")
-		("debug,d",	po::value<int>(),			"Debug level (for even more verbose output)");
+	auto &config = cfg::config::instance();
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+	config.init(
+		cfg::make_option("help,h", "Display help message"),
+		cfg::make_option("version", "Print version"),
+		cfg::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		cfg::make_option("validate-links", "Validate all links"),
+		cfg::make_option("verbose,v", "Verbose output"),
+		cfg::make_option<int>("debug,d", "Debug level (for even more verbose output)"));
 
-	po::positional_options_description p;
-	p.add("input", 1);
-	
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
+	config.parse(argc, argv);
 
-	if (vm.count("version"))
+	if (config.has("version"))
 	{
-		write_version_string(std::cout, vm.count("verbose"));
+		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
 	}
 
-	if (vm.count("help"))
+	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << visible_options << std::endl;
-		exit(vm.count("help") ? 0 : 1);
+		std::cerr << "cif-validate [options...] file" << std::endl
+				  << std::endl
+				  << config << std::endl;
+		exit(config.has("help") ? 0 : 1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	cif::VERBOSE = config.count("verbose");
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
 
-	cif::file f;
-	
-	if (vm.count("input") == 0)
-		f.load(std::cin);
-	else
-		f.load(vm["input"].as<std::string>());
+	cif::file f(config.operands().front());
 
-	if (not vm["dict"].defaulted())
-		f.load_dictionary(vm["dict"].as<std::string>().c_str());
+	if (config.count("dict"))
+		f.load_dictionary(config.get<std::string>("dict"));
 
 	int result = f.is_valid() ? 0 : 1;
 
-	if (vm.count("validate-links"))
+	if (config.has("validate-links"))
 		f.validate_links();
 
 	return result;
 }
-

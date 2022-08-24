@@ -31,13 +31,8 @@
 #include <functional>
 #include <unordered_set>
 
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
+#include <cif++.hpp>
 
-#include "cif++.hpp"
-
-namespace po = boost::program_options;
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 using unicode = char32_t;
@@ -240,7 +235,7 @@ class SelectStatement : public Statement
 		std::vector<std::string> fields(mItems.size());
 		std::unordered_set<std::string> seen;
 
-		std::cout << ba::join(mItems, "\t") << std::endl;
+		std::cout << cif::join(mItems, "\t") << std::endl;
 
 		for (auto r: mCategory.find(std::move(mWhere)))
 		{
@@ -249,7 +244,7 @@ class SelectStatement : public Statement
 					return r[item].template as<std::string>();
 					});
 
-			std::string line = ba::join(fields, "\t");
+			std::string line = cif::join(fields, "\t");
 			bool seenLine = seen.count(line);
 
 			if (not mDistinct or not seenLine)

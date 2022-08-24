@@ -75,33 +75,6 @@ if(MSVC)
 
 	get_WIN32_WINNT(ver)
 	add_definitions(-D_WIN32_WINNT=${ver})
-
-	# On Windows, do not install in the system location
-	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND NOT BUILD_FOR_CCP4)
-		message(STATUS "The library and auxiliary files will be installed in $ENV{LOCALAPPDATA}/${PROJECT_NAME}")
-		set(CMAKE_INSTALL_PREFIX "$ENV{LOCALAPPDATA}/${PROJECT_NAME}" CACHE PATH "..." FORCE)
-	endif()
-
-	# Find out the processor type for the target
-	if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64")
-		set(COFF_TYPE "x64")
-	elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
-		set(COFF_TYPE "x86")
-	elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "ARM64")
-		set(COFF_TYPE "arm64")
-	else()
-		message(FATAL_ERROR "Unsupported or unknown processor type ${CMAKE_SYSTEM_PROCESSOR}")
-	endif()	
-
-	set(COFF_SPEC "--coff=${COFF_TYPE}")
-endif()
-
-if(UNIX AND NOT APPLE)
-	# On Linux, install in the $HOME/.local folder by default
-	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-		message(WARNING "The library and auxiliary files will be installed in $ENV{HOME}/.local")
-		set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.local" CACHE PATH "..." FORCE)
-	endif()
 endif()
 
 # Create a revision file, containing the current git version info
@@ -122,33 +95,33 @@ if(USE_RSRC)
 	add_compile_definitions(USE_RSRC)
 endif()
 
-set (Boost_DETAILED_FAILURE_MSG ON)
-find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options)
+add_subdirectory(gxrio EXCLUDE_FROM_ALL)
+add_subdirectory(libconfig EXCLUDE_FROM_ALL)
 
-find_package(gxrio REQUIRED)
-find_package(cifpp 5.0.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(cifpp 5.0.0 CONFIG REQUIRED)
+find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
 
 list(APPEND programs
-	# pdb2cif
-	# cif2pdb
+	pdb2cif
+	cif2pdb
 	cif-diff
-	# cif-drop
-	cif-grep
-	cif-merge
+	# # cif-drop
+	# cif-grep
+	# cif-merge
 	cif-validate
-	mmCQL
-	cif-stats
+	# mmCQL
+	# cif-stats
 )
 
 foreach(PROGRAM IN LISTS programs)
-	add_executable(${PROGRAM} ${CMAKE_SOURCE_DIR}/src/${PROGRAM}.cpp ${CMAKE_SOURCE_DIR}/src/pr-main.cpp ${RESOURCE_FILE})
+	add_executable(${PROGRAM} ${CMAKE_SOURCE_DIR}/src/${PROGRAM}.cpp ${CMAKE_SOURCE_DIR}/src/pr-main.cpp)
 
 	if(USE_RSRC)
 		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ddl.dic)
 	endif()
 
 	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp Boost::program_options)
+	target_link_libraries(${PROGRAM} PRIVATE pdbxpp::pdbxpp libconfig::libconfig gxrio::gxrio)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 

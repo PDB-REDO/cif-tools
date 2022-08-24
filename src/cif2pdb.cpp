@@ -24,69 +24,71 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cif-tools.hpp"
-
 #include <sys/wait.h>
 
 #include <fstream>
 #include <chrono>
 #include <filesystem>
 
-#include <boost/program_options.hpp>
-#include <gzstream/gzstream.hpp>
+#include <cfg.hpp>
+#include <gxrio.hpp>
 
-#include "cif++/Cif++.hpp"
-#include "cif++/Cif2PDB.hpp"
-#include "cif++/Structure.hpp"
+#include <cif++.hpp>
+#include <pdbx++/pdbx_io.hpp>
+#include <pdbx++/Cif2PDB.hpp>
+#include <pdbx++/Compound.hpp>
 
-namespace po = boost::program_options;
+#include "revision.hpp"
+
 namespace fs = std::filesystem;
-namespace c = mmcif;
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("cif2pdb options input [output]");
-	visible_options.add_options()
-		("help,h",									"Display help message")
-		("version",									"Print version")
-		("verbose,v",								"Verbose output")
-		("no-validate",								"Omit validation of the mmCIF file, forcing output in case of errors")
-		("dict",		po::value<std::string>(),	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file");
+	auto &config = cfg::config::instance();
 
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("input",		po::value<std::string>(),	"Input file")
-		("output,o",	po::value<std::string>(),	"Output file, default stdout")
-		("debug,d",		po::value<int>(),			"Debug level (for even more verbose output)");
+	config.init(
+		cfg::make_option("help,h",				"Display help message"),
+		cfg::make_option("version",				"Print version"),
+		cfg::make_option("verbose,v",			"Verbose output"),
+		cfg::make_option("no-validate",			"Omit validation of the mmCIF file, forcing output in case of errors"),
+		cfg::make_option<std::string>("dict",	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		cfg::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+	);
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+	config.parse(argc, argv, true);
 
-	po::positional_options_description p;
-	p.add("input", 1);
-	p.add("output", 1);
-	
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
-
-	if (vm.count("version"))
+	if (config.has("version"))
 	{
-		write_version_string(std::cout, vm.count("verbose"));
+		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
 	}
 
-	if (vm.count("help") or vm.count("input") == 0)
+	if (config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << visible_options << std::endl;
+		std::cerr << config << std::endl;
 		exit(1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	cif::VERBOSE = config.has("verbose") != 0;
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
 	
-	std::string input = vm["input"].as<std::string>();
+	// Load dict, if any
+	
+	if (config.has("dict"))
+		pdbx::CompoundFactory::instance().pushDictionary(config.get<std::string>("dict"));
+
+	if (config.has("version"))
+	{
+		write_version_string(std::cout, config.has("verbose"));
+		exit(0);
+	}
+
+	cif::VERBOSE = config.has("verbose") != 0;
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
+	
+	std::string input = config.operands().front();
 	std::regex pdbIdRx(R"(\d\w{3})");
 	
 	fs::path file = input;
@@ -94,19 +96,13 @@ int pr_main(int argc, char* argv[])
 	// if (not fs::exists(file) and std::regex_match(input, pdbIdRx))
 	// 	file = fs::path(PDB_DIR) / "mmCIF" / input.substr(1, 2) / (input + ".cif.gz");
 	
-	cif::File f;
-	
-	if (vm.count("dict"))
-	{
-		std::string dict = vm["dict"].as<std::string>();
-		f.loadDictionary(dict.c_str());
-	}
-	else
-		f.loadDictionary("mmcif_pdbx");
-	
-	f.load(file);
-	
-	if (not vm.count("no-validate") and not f.isValid())
+	gxrio::ifstream in(file);
+	if (not in.is_open())
+		throw std::runtime_error("Could not open file " + file.string());
+
+	cif::file f(in);
+
+	if (f.empty() or (not config.has("no-validate") and not f.is_valid()))
 	{
 		std::cerr << "This input mmCIF file is not valid";
 		if (not cif::VERBOSE)
@@ -114,23 +110,16 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 	
-	if (vm.count("output"))
+	if (config.operands().size() == 2)
 	{
-		file = vm["output"].as<std::string>();
-		
-		if (file.extension() == ".gz")
-		{
-			gzstream::ofstream out(file, std::ios_base::binary);
-			WritePDBFile(out, f.front());
-		}
-		else
-		{
-			std::ofstream out(file.c_str(), std::ios_base::binary);
-			WritePDBFile(out, f.front());
-		}
+		file = config.operands().back();
+
+		gxrio::ofstream out(file);
+
+		pdbx::WritePDBFile(out, f.front());
 	}
 	else
-		WritePDBFile(std::cout, f.front());
+		pdbx::WritePDBFile(std::cout, f.front());
 	
 	return 0;	
 }

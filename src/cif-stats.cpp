@@ -32,14 +32,9 @@
 #include <filesystem>
 #include <iomanip>
 
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <gxrio.hpp>
 #include <cif++.hpp>
 
-namespace po = boost::program_options;
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 class statsParser : public cif::sac_parser

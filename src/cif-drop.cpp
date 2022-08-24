@@ -30,13 +30,8 @@
 #include <functional>
 #include <filesystem>
 
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <cif++.hpp>
 
-namespace po = boost::program_options;
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 int drop(std::istream& is, std::set<std::string>& columns)

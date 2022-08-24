@@ -24,21 +24,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cif-tools.hpp"
-
 #include <sys/wait.h>
 
 #include <filesystem>
 #include <fstream>
 #include <functional>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/program_options.hpp>
+#include <cif++.hpp>
+#include <cfg.hpp>
+#include "revision.hpp"
 
-#include "cif++.hpp"
-
-namespace po = boost::program_options;
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 class fd_streambuf : public std::streambuf
@@ -540,44 +535,44 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 
 int pr_main(int argc, char *argv[])
 {
-	po::options_description visible_options("cif-diff options file1 file2");
-	visible_options.add_options()("help,h", "Display help message")("version", "Print version")("verbose,v", "Verbose output")("category", po::value<std::vector<std::string>>(), "Limit comparison to this category, default is all categories. Can be specified multiple times")("max-diff-count", po::value<int>(), "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5")("text", "Text based diff (using vimdiff) based on the order of the cif version")("icase", "Ignore case (vimdiff option)")("iwhite", "Ignore whitespace (vimdiff option)");
+	auto &config = cfg::config::instance();
 
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()("input,i", po::value<std::vector<std::string>>(), "Input files")("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
+	config.init(
+		cfg::make_option("help,h", "Display help message"),
+		cfg::make_option("version", "Print version"),
+		cfg::make_option("verbose,v", "Verbose output")
+		cfg::make_option<std::string>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times")
+		cfg::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5")
+		cfg::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version")
+		cfg::make_option("icase", "Ignore case (vimdiff option)")
+		cfg::make_option("iwhite", "Ignore whitespace (vimdiff option)")
+		cfg::make_option<int>("debug,d", "Debug level (for even more verbose output)")
+	);
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+	config.parse(argc, argv);
 
-	po::positional_options_description p;
-	p.add("input", 2);
-
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
-
-	if (vm.count("version"))
+	if (config.has("version"))
 	{
-		write_version_string(std::cout, vm.count("verbose"));
+		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
 	}
 
-	if (vm.count("help") or vm.count("input") == 0 or vm["input"].as<std::vector<std::string>>().size() != 2)
+	if (config.has("help") or config.operands().size() != 2)
 	{
-		std::cerr << visible_options << std::endl;
-		exit(1);
+		std::cerr << "cif-diff [options] file1 file2" << std::endl
+				  << std::endl
+				  << config << std::endl;
+		exit(config.has("help") ? 0 : 1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	cif::VERBOSE = config.count("verbose");
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
 
-	int maxDiffCount = 5;
-	if (vm.count("max-diff-count"))
-		maxDiffCount = vm["max-diff-count"].as<int>();
+	int maxDiffCount = config.get<int>("max-diff-count");
 
 	cif::iset categories;
-	if (vm.count("category"))
+	if (config.has("category"))
 	{
 		for (auto cs : vm["category"].as<std::vector<std::string>>())
 		{
@@ -594,8 +589,8 @@ int pr_main(int argc, char *argv[])
 	cif::file file1{fs::path(input[0])};
 	cif::file file2{fs::path(input[1])};
 
-	if (vm.count("text"))
-		compareCifsText(file1, file2, fs::path(input[0]), fs::path(input[1]), vm.count("icase"), vm.count("iwhite"));
+	if (config.has("text"))
+		compareCifsText(file1, file2, fs::path(input[0]), fs::path(input[1]), config.has("icase"), config.has("iwhite"));
 	else
 		compareCifs(file1.front(), file2.front(), categories, maxDiffCount);
 

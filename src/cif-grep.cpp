@@ -31,15 +31,10 @@
 #include <functional>
 #include <regex>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/program_options.hpp>
-
 #include <gxrio.hpp>
 
-#include "cif++.hpp"
+#include <cif++.hpp>
 
-namespace po = boost::program_options;
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 class statsParser : public cif::sac_parser
