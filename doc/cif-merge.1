@@ -4,7 +4,7 @@
 .SH NAME
 cif\-merge \- Merge the content of a modified PDB file into a mmCIF file
 .SH SYNOPSIS
-cif\-merge [OPTION] inputFile donorFile
+cif\-merge [options] input-file donor-file [output-file]
 .SH DESCRIPTION
 Unfortunately, a lot of tools in the crystallographic area are still not capable
 of working with mmCIF files in a proper way, forcing you to feed them
@@ -14,19 +14,11 @@ lots of the original information contained in the input file.
 To remedy this, \fIcif\-merge\fR can be used to create a new mmCIF file containing
 information from the processed PDB (or mmCIF) file and fill in the blanks using a
 donor mmCIF file.
+.sp
+The \fBinput-file\fR is the file that was processed by an old tool, missing the additional data.
+The \fBdonor-file\fR contains the extra information to be copied.
+When \fBoutput-file\fR is not specified, the result is written to stdout.
 .SH OPTIONS
-.TP
-\fB--input\fR=<file>, \fB-i\fR <file>
-The file that was processed by an old tool, missing the additional data.
-.TP
-\fB--donor\fR=<file>
-The donor file, containing the extra information.
-.TP
-\fB--output\fR=<file>, \fB-o\fR <file>
-Write output to the specified \fI<file>\fR, default is to write to \fIstdout\fR.
-.TP
-\fB--dict\fR=<file>
-Dictionary file containing restraints for residues in the processed file.
 .TP
 \fB--verbose\fR,\fB-v\fR
 Be more verbose, useful to diagnose validation errors.
