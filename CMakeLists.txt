@@ -105,7 +105,6 @@ list(APPEND programs
 	pdb2cif
 	cif2pdb
 	cif-diff
-	# # cif-drop
 	cif-grep
 	cif-merge
 	cif-validate
