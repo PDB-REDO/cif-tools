@@ -32,7 +32,7 @@
 #include <regex>
 
 #include <gxrio.hpp>
-
+#include <cfg.hpp>
 #include <cif++.hpp>
 
 namespace fs = std::filesystem;
@@ -120,55 +120,63 @@ size_t cifGrep(const std::string &pattern, const std::string &tag, const std::st
 
 int pr_main(int argc, char *argv[])
 {
-	po::options_description visible_options("cif-grep [option...] pattern [file ...]");
-	visible_options.add_options()("item,i", po::value<std::string>(), "Item tag to scan, default is all item values")("help", "Display help message")("version", "Print version")("quiet,q", "Only print files matching pattern")("count,c", "Only show number of hits")("invert-match,v", "Select fields NOT matching the pattern")("line-number,n", "Print line numbers")("no-filename,h", "Don't print the filename")("with-filename,H", "Do print the filename")("verbose,V", "Verbose output")("files-with-matches,l", "Print only names of files containing matches")("recursive,r", "Search recursively");
+	auto &config = cfg::config::instance();
 
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()("pattern", po::value<std::string>(), "Pattern")("input", po::value<std::vector<std::string>>(), "Input files")("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
+	config.init(
+		cfg::make_option("help,h", "Display help message"),
+		cfg::make_option("version", "Print version"),
+		cfg::make_option("verbose,V", "Verbose output"),
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+		cfg::make_option("quiet,q", "Only print files matching pattern"),
+		cfg::make_option("count,c", "Only show number of hits"),
+		cfg::make_option("invert-match,v", "Select fields NOT matching the pattern"),
+		cfg::make_option("line-number,n", "Print line numbers"),
+		cfg::make_option("no-filename,h", "Don't print the filename"),
+		cfg::make_option("with-filename,H", "Do print the filename"),
 
-	po::positional_options_description p;
-	p.add("pattern", 1);
-	p.add("input", -1);
+		cfg::make_option("files-with-matches,l", "Print only names of files containing matches"),
+		cfg::make_option("recursive,r", "Search recursively"),
 
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
+		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+	);
 
-	if (vm.count("version"))
+	config.parse(argc, argv);
+
+	if (config.has("version"))
 	{
-		write_version_string(std::cout, vm.count("verbose"));
+		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
 	}
 
-	if (vm.count("help") or vm.count("pattern") == 0)
+	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << visible_options << std::endl;
-		exit(vm.count("help") ? 0 : 1);
+		std::cerr << "cif-diff [options] file1 file2" << std::endl
+				  << std::endl
+				  << config << std::endl;
+		exit(config.has("help") ? 0 : 1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	cif::VERBOSE = config.count("verbose");
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
 
-	bool quiet = vm.count("quiet") > 0;
-	bool filenamesOnly = vm.count("files-with-matches") > 0;
-	bool countOnly = vm.count("count") > 0;
-	bool noFileNames = filenamesOnly == false and vm.count("no-filename") > 0;
-	bool doFileNames = vm.count("with-filename") > 0;
-	bool lineNumbers = vm.count("line-number") > 0;
-	bool invertMatch = vm.count("invert-match") > 0;
+	bool quiet = config.has("quiet");
+	bool filenamesOnly = config.has("files-with-matches");
+	bool countOnly = config.has("count");
+	bool noFileNames = filenamesOnly == false and config.has("no-filename");
+	bool doFileNames = config.has("with-filename");
+	bool lineNumbers = config.has("line-number");
+	bool invertMatch = config.has("invert-match");
 	size_t count = 0;
 
 	quiet = quiet or countOnly;
 
-	std::string pattern = vm["pattern"].as<std::string>();
+	std::string pattern = config.operands().front();
 	std::string tag;
-	if (vm.count("item"))
+
+	if (config.has("item"))
 	{
-		tag = vm["item"].as<std::string>();
+		tag = config.get<std::string>("item");
 
 		std::string cat, item;
 		std::tie(cat, item) = cif::split_tag_name(tag);
@@ -184,7 +192,7 @@ int pr_main(int argc, char *argv[])
 	}
 
 	size_t result = false;
-	if (vm.count("input") == 0 and not vm.count("recursive"))
+	if (config.operands().size() == 1 and not config.has("recursive"))
 	{
 		result = cifGrep(pattern, tag, "stdin", std::cin, quiet or filenamesOnly, lineNumbers, invertMatch);
 		if (doFileNames or (filenamesOnly and result != 0))
@@ -194,11 +202,10 @@ int pr_main(int argc, char *argv[])
 	}
 	else
 	{
-		std::vector<std::string> files;
-		if (vm.count("input"))
-			files = vm["input"].as<std::vector<std::string>>();
+		std::vector<std::string> files = config.operands();
+		files.erase(files.begin());
 
-		if (vm.count("recursive"))
+		if (config.has("recursive"))
 		{
 			if (files.empty())
 				files.push_back(fs::current_path());

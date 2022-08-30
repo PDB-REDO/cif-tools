@@ -106,10 +106,10 @@ list(APPEND programs
 	cif2pdb
 	cif-diff
 	# # cif-drop
-	# cif-grep
-	# cif-merge
+	cif-grep
+	cif-merge
 	cif-validate
-	# mmCQL
+	mmCQL
 	# cif-stats
 )
 

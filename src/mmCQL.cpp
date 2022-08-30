@@ -31,6 +31,8 @@
 #include <functional>
 #include <unordered_set>
 
+#include <cfg.hpp>
+#include <gxrio.hpp>
 #include <cif++.hpp>
 
 namespace fs = std::filesystem;
@@ -333,7 +335,11 @@ class Parser
 {
   public:
 	Parser(cif::datablock& db)
-		: mDb(db) {}
+		: mDb(db)
+	{
+		if (mDb.empty())
+			throw std::runtime_error("Empty datablock");
+	}
 
 	StatementPtr Parse(std::streambuf* is);
 
@@ -1303,65 +1309,59 @@ cif::condition Parser::ParseWhereClause(cif::category& cat)
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("mmCQL [options] input output");
-	visible_options.add_options()
-		("help,h",										"Display help message")
-		("version",										"Print version")
-		("verbose,v",									"Verbose output")
+	auto &config = cfg::config::instance();
 
-		("force",										"Force writing of output file, even if it is the same as the input file")
+	config.init(
+		cfg::make_option("help,h", "Display help message"),
+		cfg::make_option("version", "Print version"),
+		cfg::make_option("verbose,V", "Verbose output"),
 
-		("script,f",     po::value<std::string>(),   		"Read commands from script");
-	
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("input,i",		po::value<std::string>(),			"Input file")
-		("output,o",	po::value<std::string>(),			"Output file")
-		("debug,d",		po::value<int>(),				"Debug level (for even more verbose output)");
+		cfg::make_option("force",										"Force writing of output file, even if it is the same as the input file"),
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+		cfg::make_option<fs::path>("script,f",   		"Read commands from script"),
 
-	po::positional_options_description p;
-	p.add("input", 1);
-	p.add("output", 1);
-	
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
+		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+	);
 
-	if (vm.count("version"))
+	config.parse(argc, argv);
+
+	if (config.has("version"))
 	{
-		write_version_string(std::cout, vm.count("verbose"));
+		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
 	}
 
-	if (vm.count("help") or not vm.count("input"))
+	if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << visible_options << std::endl;
-		exit(vm.count("help") != 0);
+		std::cerr << "mmCQL [options] input [output]" << std::endl
+				  << std::endl
+				  << config << std::endl;
+		exit(config.has("help") ? 0 : 1);
 	}
 
-	if (vm.count("output") and vm["output"].as<std::string>() == vm["input"].as<std::string>() and vm.count("force") == 0)
+	cif::VERBOSE = config.count("verbose");
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
+
+	if (config.operands().size() == 2 and config.operands().front() == config.operands().back() and not config.has("force"))
 	{
 		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)" << std::endl;
 		exit(1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
-	
-	auto input = vm["input"].as<std::string>();
-	cif::file file{fs::path(input)};
+	gxrio::ifstream in(config.operands().front());
+	if (not in.is_open())
+		throw std::runtime_error("Could not open file " + config.operands().front());
+
+	cif::file file{in};
 
 	cql::Parser parser(file.front());
 
-	if (vm.count("script"))
+	if (config.has("script"))
 	{
-		std::ifstream cmdFile(vm["script"].as<std::string>());
+		std::ifstream cmdFile(config.get<fs::path>("script"));
 		if (not cmdFile.is_open())
-			throw std::runtime_error("Failed to open command file " + vm["script"].as<std::string>());
+			throw std::runtime_error("Failed to open command file " + config.get<fs::path>("script").string());
 
 		auto stmt = parser.Parse(cmdFile.rdbuf());
 		if (stmt)
@@ -1387,8 +1387,14 @@ int pr_main(int argc, char* argv[])
 		}
 	}
 
-	if (vm.count("output"))
-		file.save(vm["output"].as<std::string>());
+	if (config.operands().size() == 2)
+	{
+		gxrio::ofstream out(config.operands().back());
+		if (not out.is_open())
+			throw std::runtime_error("Could not open output file " + config.operands().back());
+
+		file.save(out);
+	}
 
 	return 0;	
 }

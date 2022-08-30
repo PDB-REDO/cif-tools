@@ -33,6 +33,8 @@
 #include <filesystem>
 
 #include <cif++.hpp>
+#include <cfg.hpp>
+#include <gxrio.hpp>
 
 namespace fs = std::filesystem;
 
@@ -53,6 +55,9 @@ void updateEntryID(cif::file& target, const std::string& entryID)
 
 void transplant(cif::file& target, cif::file& donor)
 {
+	if (target.empty() or donor.empty())
+		throw std::runtime_error("empty files?");
+
 	auto& dbt = target.front();
 	auto& dbd = donor.front();
 
@@ -192,48 +197,34 @@ void transplant(cif::file& target, cif::file& donor)
 
 int pr_main(int argc, char* argv[])
 {
-	po::options_description visible_options("cif-merge [options] inputFile donorFile ");
-	visible_options.add_options()
-		("help,h",									"Display help message")
-		("version",									"Print version")
-		("verbose,v",								"Verbose output")
-		("input,i",		po::value<std::string>(),	"Modified PDB file")
-		("output,o",	po::value<std::string>(),	"Output file, default is stdout (terminal)")
-		("donor",		po::value<std::string>(),	"CIF file (or PDB ID for this file) containing the data to collect data from")
-		// ("dict",		po::value<std::string>(),	"Dictionary file containing restraints for residues in this specific target")
-		;
-	
+	auto &config = cfg::config::instance();
 
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("debug,d",				po::value<int>(),		"Debug level (for even more verbose output)");
+	config.init(
+		cfg::make_option("help,h", "Display help message"),
+		cfg::make_option("version", "Print version"),
+		cfg::make_option("verbose,v", "Verbose output"),
+		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+	);
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+	config.parse(argc, argv);
 
-	po::positional_options_description p;
-	p.add("input", 1);
-	p.add("donor", 1);
-	
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-	po::notify(vm);
-
-	if (vm.count("version"))
+	if (config.has("version"))
 	{
-		write_version_string(std::cout, vm.count("verbose"));
+		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
 	}
 
-	if (vm.count("help") or vm.count("input") == 0 or vm.count("donor") == 0)
+	if (config.has("help") or config.operands().size() < 2)
 	{
-		std::cerr << visible_options << std::endl;
-		exit(1);
+		std::cerr << "cif-merge input-file donor-file [output-file]" << std::endl
+				  << std::endl
+				  << config << std::endl;
+		exit(config.has("help") ? 0 : 1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	cif::VERBOSE = config.count("verbose");
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
 
 	// Load dict, if any
 	
@@ -241,16 +232,22 @@ int pr_main(int argc, char* argv[])
 	// 	c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
 
 	// Read input file
-	cif::file cf{vm["input"].as<std::string>()};
+	gxrio::ifstream in(config.operands().front());
+	if (not in.is_open())
+		throw std::runtime_error("Could not open input file");
 	
-	// Read donor file
-	cif::file df{vm["donor"].as<std::string>()};
+	gxrio::ifstream donor(config.operands()[1]);
+	if (not donor.is_open())
+		throw std::runtime_error("Could not open donor file");
+	
+	cif::file cf{in};
+	cif::file df{donor};
 
 	updateEntryID(cf, df.front().name());
 	transplant(cf, df);
 	
-	if (vm.count("output"))
-		cf.save(vm["output"].as<std::string>());
+	if (config.operands().size() == 3)
+		cf.save(config.operands().back());
 	else
 		cf.save(std::cout);
 

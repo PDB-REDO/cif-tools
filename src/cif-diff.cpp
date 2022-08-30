@@ -32,6 +32,8 @@
 
 #include <cif++.hpp>
 #include <cfg.hpp>
+#include <gxrio.hpp>
+
 #include "revision.hpp"
 
 namespace fs = std::filesystem;
@@ -215,7 +217,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 			std::vector<std::string> v;
 			for (auto k : keys)
 				v.push_back(r[k].as<std::string>());
-			return "[" + ba::join(v, ", ") + "]";
+			return "[" + cif::join(v, ", ") + "]";
 		}
 
 		virtual void report(std::vector<std::string> &keys) = 0;
@@ -375,6 +377,9 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &categories, int maxDiffCount)
 {
+	if (dbA.empty() or dbB.empty())
+		throw std::runtime_error("Invalid emtpy datablocks");
+
 	std::vector<std::string> catA, catB;
 
 	for (auto &cat : dbA)
@@ -395,10 +400,10 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 	while (catA_i != catA.end() and catB_i != catB.end())
 	{
 		std::string nA = *catA_i;
-		ba::to_lower(nA);
+		cif::to_lower(nA);
 
 		std::string nB = *catB_i;
-		ba::to_lower(nB);
+		cif::to_lower(nB);
 
 		int d = nA.compare(nB);
 		if (d > 0)
@@ -428,11 +433,11 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 	if (categories.empty())
 	{
 		if (not missingA.empty())
-			std::cout << "Categories missing in A: " << ba::join(missingA, ", ") << std::endl
+			std::cout << "Categories missing in A: " << cif::join(missingA, ", ") << std::endl
 					  << std::endl;
 
 		if (not missingB.empty())
-			std::cout << "Categories missing in B: " << ba::join(missingB, ", ") << std::endl
+			std::cout << "Categories missing in B: " << cif::join(missingB, ", ") << std::endl
 					  << std::endl;
 	}
 
@@ -442,10 +447,10 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 	while (catA_i != catA.end() and catB_i != catB.end())
 	{
 		std::string nA = *catA_i;
-		ba::to_lower(nA);
+		cif::to_lower(nA);
 
 		std::string nB = *catB_i;
-		ba::to_lower(nB);
+		cif::to_lower(nB);
 
 		int d = nA.compare(nB);
 		if (d > 0)
@@ -540,13 +545,13 @@ int pr_main(int argc, char *argv[])
 	config.init(
 		cfg::make_option("help,h", "Display help message"),
 		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,v", "Verbose output")
-		cfg::make_option<std::string>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times")
-		cfg::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5")
-		cfg::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version")
-		cfg::make_option("icase", "Ignore case (vimdiff option)")
-		cfg::make_option("iwhite", "Ignore whitespace (vimdiff option)")
-		cfg::make_option<int>("debug,d", "Debug level (for even more verbose output)")
+		cfg::make_option("verbose,v", "Verbose output"),
+		cfg::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
+		cfg::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
+		cfg::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
+		cfg::make_option("icase", "Ignore case (vimdiff option)"),
+		cfg::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
+		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);
@@ -574,20 +579,25 @@ int pr_main(int argc, char *argv[])
 	cif::iset categories;
 	if (config.has("category"))
 	{
-		for (auto cs : vm["category"].as<std::vector<std::string>>())
+		for (auto cs : config.get<std::vector<std::string>>("category"))
 		{
-			for (auto si = ba::make_split_iterator(cs, ba::token_finder(ba::is_any_of(",; "), ba::token_compress_on)); not si.eof(); ++si)
-			{
-				std::string cat(si->begin(), si->end());
-				ba::to_lower(cat);
-				categories.insert(cat);
-			}
+			for (auto cat : cif::split(cs, ",; ", true))
+				categories.emplace(cif::to_lower_copy(cat));
 		}
 	}
 
-	auto input = vm["input"].as<std::vector<std::string>>();
-	cif::file file1{fs::path(input[0])};
-	cif::file file2{fs::path(input[1])};
+	auto input = config.operands();
+
+	gxrio::ifstream if1{input[0]};
+	if (not if1.is_open())
+		throw std::runtime_error("Could not open file " + input[0]);
+
+	gxrio::ifstream if2(input[1]);
+	if (not if2.is_open())
+		throw std::runtime_error("Could not open file " + input[1]);
+
+	cif::file file1{if1};
+	cif::file file2{if2};
 
 	if (config.has("text"))
 		compareCifsText(file1, file2, fs::path(input[0]), fs::path(input[1]), config.has("icase"), config.has("iwhite"));
