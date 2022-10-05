@@ -30,6 +30,7 @@
 #include <filesystem>
 #include <functional>
 #include <unordered_set>
+#include <stack>
 
 #include <cfg.hpp>
 #include <gxrio.hpp>
