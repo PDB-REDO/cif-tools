@@ -1321,6 +1321,8 @@ int pr_main(int argc, char* argv[])
 
 		cfg::make_option<fs::path>("script,f",   		"Read commands from script"),
 
+		cfg::make_option<std::string>("data-block,D", "Datablock to use, default is first"),
+
 		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
@@ -1356,7 +1358,7 @@ int pr_main(int argc, char* argv[])
 
 	cif::file file{in};
 
-	cql::Parser parser(file.front());
+	cql::Parser parser(config.has("data-block") ? file[config.get<std::string>("data-block")] : file.front());
 
 	if (config.has("script"))
 	{
