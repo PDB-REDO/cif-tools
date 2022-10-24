@@ -34,10 +34,7 @@
 #include <cfg.hpp>
 #include <gxrio.hpp>
 
-#include <cif++.hpp>
-#include <pdbx++.hpp>
-#include <pdbx++/PDB2Cif.hpp>
-#include <pdbx++/Compound.hpp>
+#include <cif++/pdb/io.hpp>
 
 #include "revision.hpp"
 
@@ -81,7 +78,7 @@ int pr_main(int argc, char* argv[])
 		// Load dict, if any
 		
 		if (config.has("dict"))
-			pdbx::CompoundFactory::instance().pushDictionary(config.get<std::string>("dict"));
+			cif::compound_factory::instance().push_dictionary(config.get<std::string>("dict"));
 	
 		input = config.operands().front();
 		std::regex pdbIdRx(R"(\d\w{3})");
@@ -93,8 +90,7 @@ int pr_main(int argc, char* argv[])
 		if (not in.is_open())
 			throw std::runtime_error("Could not open file " + file.string());
 		
-		cif::file f;
-		pdbx::ReadPDBFile(in, f);
+		cif::file f = cif::pdb::read(in);
 		
 		if (config.has("validate") and not f.is_valid())
 			throw std::runtime_error("The resulting mmCIF is not valid");

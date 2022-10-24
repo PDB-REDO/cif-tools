@@ -25,9 +25,9 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.1 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.4 LANGUAGES CXX)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
 include(CheckFunctionExists)
@@ -37,6 +37,7 @@ include(CMakePackageConfigHelpers)
 include(Dart)
 include(FindFilesystem)
 include(GenerateExportHeader)
+include(AddGitSubmodule)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -91,12 +92,11 @@ else()
 endif()
 
 if(USE_RSRC)
-	message("Using resources compiled with ${MRC}")
 	add_compile_definitions(USE_RSRC)
 endif()
 
-add_subdirectory(gxrio EXCLUDE_FROM_ALL)
-add_subdirectory(libconfig EXCLUDE_FROM_ALL)
+add_git_submodule(gxrio EXCLUDE_FROM_ALL)
+add_git_submodule(libconfig EXCLUDE_FROM_ALL)
 
 find_package(cifpp 5.0.0 CONFIG REQUIRED)
 # find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
@@ -121,7 +121,6 @@ foreach(PROGRAM IN LISTS programs)
 
 	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 	target_link_libraries(${PROGRAM} PRIVATE
-		#pdbxpp::pdbxpp
 		cifpp::cifpp
 		libconfig::libconfig
 		gxrio::gxrio)

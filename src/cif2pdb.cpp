@@ -33,10 +33,7 @@
 #include <cfg.hpp>
 #include <gxrio.hpp>
 
-#include <cif++.hpp>
-#include <pdbx++/pdbx_io.hpp>
-#include <pdbx++/Cif2PDB.hpp>
-#include <pdbx++/Compound.hpp>
+#include <cif++/pdb/io.hpp>
 
 #include "revision.hpp"
 
@@ -76,7 +73,7 @@ int pr_main(int argc, char* argv[])
 	// Load dict, if any
 	
 	if (config.has("dict"))
-		pdbx::CompoundFactory::instance().pushDictionary(config.get<std::string>("dict"));
+		cif::compound_factory::instance().push_dictionary(config.get<std::string>("dict"));
 
 	if (config.has("version"))
 	{
@@ -116,10 +113,10 @@ int pr_main(int argc, char* argv[])
 
 		gxrio::ofstream out(file);
 
-		pdbx::WritePDBFile(out, f.front());
+		cif::pdb::write(out, f.front());
 	}
 	else
-		pdbx::WritePDBFile(std::cout, f.front());
+		cif::pdb::write(std::cout, f.front());
 	
 	return 0;	
 }
