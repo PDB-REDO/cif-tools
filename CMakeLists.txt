@@ -99,7 +99,7 @@ add_subdirectory(gxrio EXCLUDE_FROM_ALL)
 add_subdirectory(libconfig EXCLUDE_FROM_ALL)
 
 find_package(cifpp 5.0.0 CONFIG REQUIRED)
-find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
+# find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
 
 list(APPEND programs
 	pdb2cif
@@ -120,7 +120,11 @@ foreach(PROGRAM IN LISTS programs)
 	endif()
 
 	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-	target_link_libraries(${PROGRAM} PRIVATE pdbxpp::pdbxpp libconfig::libconfig gxrio::gxrio)
+	target_link_libraries(${PROGRAM} PRIVATE
+		#pdbxpp::pdbxpp
+		cifpp::cifpp
+		libconfig::libconfig
+		gxrio::gxrio)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 
