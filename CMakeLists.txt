@@ -120,7 +120,7 @@ foreach(PROGRAM IN LISTS programs)
 	endif()
 
 	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp libconfig::libconfig gxrio::gxrio)
+	target_link_libraries(${PROGRAM} PRIVATE -static-libgcc -static-libstdc++ cifpp::cifpp libconfig::libconfig gxrio::gxrio)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 
