@@ -62,7 +62,8 @@ int pr_main(int argc, char* argv[])
 
 	if (config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << config << std::endl;
+		std::cerr << "usage: cif2pdb [options] inputfile [outputfile]" << std::endl
+				  << config << std::endl;
 		exit(1);
 	}
 

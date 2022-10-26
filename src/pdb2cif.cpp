@@ -67,7 +67,8 @@ int pr_main(int argc, char* argv[])
 
 		if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
 		{
-			std::cerr << config << std::endl;
+			std::cerr << "usage: pdb2cif [options] inputfile [outputfile]" << std::endl
+					  << config << std::endl;
 			exit(config.has("help") ? 0 : 1);
 		}
 	

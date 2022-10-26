@@ -150,7 +150,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << "cif-diff [options] file1 file2" << std::endl
+		std::cerr << "cif-grep [options] file1 file2" << std::endl
 				  << std::endl
 				  << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
