@@ -127,6 +127,8 @@ int pr_main(int argc, char *argv[])
 		cfg::make_option("version", "Print version"),
 		cfg::make_option("verbose,V", "Verbose output"),
 
+		cfg::make_option<std::string>("item,i", "The item (tag) to search"),
+
 		cfg::make_option("quiet,q", "Only print files matching pattern"),
 		cfg::make_option("count,c", "Only show number of hits"),
 		cfg::make_option("invert-match,v", "Select fields NOT matching the pattern"),
@@ -157,8 +159,6 @@ int pr_main(int argc, char *argv[])
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	bool quiet = config.has("quiet");
 	bool filenamesOnly = config.has("files-with-matches");
