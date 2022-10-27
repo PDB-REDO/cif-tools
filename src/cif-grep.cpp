@@ -123,6 +123,7 @@ int pr_main(int argc, char *argv[])
 	auto &config = cfg::config::instance();
 
 	config.init(
+		"cif-grep [options] file1 file2",
 		cfg::make_option("help,h", "Display help message"),
 		cfg::make_option("version", "Print version"),
 		cfg::make_option("verbose,V", "Verbose output"),
@@ -152,9 +153,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << "cif-grep [options] file1 file2" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 

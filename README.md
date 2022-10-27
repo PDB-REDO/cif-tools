@@ -18,9 +18,13 @@ Make sure you install libcif++ first before building.
 
 After that, building should be as easy as typing:
 
-```
-./configure
-make
-make install
+```bash
+git clone https://github.com/PDB-REDO/cif-tools.git
+cd cif-tools
+mkdir build
+cd build
+cmake ..
+cmake --build .
+cmake --install .
 ```
 

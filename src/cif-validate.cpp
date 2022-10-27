@@ -35,7 +35,7 @@ int pr_main(int argc, char *argv[])
 {
 	auto &config = cfg::config::instance();
 
-	config.init(
+	config.init("cif-validate [options...] file",
 		cfg::make_option("help,h", "Display help message"),
 		cfg::make_option("version", "Print version"),
 		cfg::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
@@ -53,9 +53,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << "cif-validate [options...] file" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
