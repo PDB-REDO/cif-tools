@@ -95,9 +95,6 @@ if(USE_RSRC)
 	add_compile_definitions(USE_RSRC)
 endif()
 
-add_git_submodule(gxrio EXCLUDE_FROM_ALL)
-add_git_submodule(libconfig EXCLUDE_FROM_ALL)
-
 find_package(cifpp 5.0.0 CONFIG REQUIRED)
 # find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
 
@@ -113,13 +110,13 @@ list(APPEND programs
 )
 
 foreach(PROGRAM IN LISTS programs)
-	add_executable(${PROGRAM} ${CMAKE_SOURCE_DIR}/src/${PROGRAM}.cpp ${CMAKE_SOURCE_DIR}/src/pr-main.cpp)
+	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp ${PROJECT_SOURCE_DIR}/src/pr-main.cpp)
 
 	if(USE_RSRC)
 		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ddl.dic)
 	endif()
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 	target_link_libraries(${PROGRAM} PRIVATE
 		-static-libgcc
 		-static-libstdc++
