@@ -48,24 +48,25 @@ find_package(Filesystem REQUIRED)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
 elseif(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
 if(NOT "$ENV{CCP4}" STREQUAL "")
 	set(CCP4 $ENV{CCP4})
 	list(PREPEND CMAKE_MODULE_PATH "${CCP4}/Lib")
 	list(APPEND CMAKE_PREFIX_PATH ${CCP4})
+
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 		set(CMAKE_PREFIX_PATH ${CCP4})
 	endif()
 endif()
 
 if(MSVC)
-    # make msvc standards compliant...
-    add_compile_options(/permissive-)
+	# make msvc standards compliant...
+	add_compile_options(/permissive-)
 
 	macro(get_WIN32_WINNT version)
-		if (WIN32 AND CMAKE_SYSTEM_VERSION)
+		if(WIN32 AND CMAKE_SYSTEM_VERSION)
 			set(ver ${CMAKE_SYSTEM_VERSION})
 			string(REPLACE "." "" ver ${ver})
 			string(REGEX REPLACE "([0-9])" "0\\1" ver ${ver})
@@ -86,16 +87,18 @@ write_version_header()
 find_package(Mrc)
 
 if(MRC_FOUND)
-option(USE_RSRC "Use mrc to create resources" ON)
+	option(USE_RSRC "Use mrc to create resources" ON)
 else()
-message(WARNING "Not using resources since mrc was not found")
+	message(WARNING "Not using resources since mrc was not found")
 endif()
 
 if(USE_RSRC)
-add_compile_definitions(USE_RSRC)
+	add_compile_definitions(USE_RSRC)
 endif()
 
-find_package(cifpp 5.0.0 CONFIG REQUIRED)
+if(NOT PDB_REDO_META)
+	find_package(cifpp 5.0.0 CONFIG REQUIRED)
+endif()
 
 list(APPEND programs
 	pdb2cif
@@ -105,6 +108,7 @@ list(APPEND programs
 	cif-merge
 	cif-validate
 	mmCQL
+
 	# cif-stats
 )
 
@@ -112,7 +116,10 @@ foreach(PROGRAM IN LISTS programs)
 	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp ${PROJECT_SOURCE_DIR}/src/pr-main.cpp)
 
 	if(USE_RSRC)
-		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ddl.dic)
+		mrc_target_resources(${PROGRAM}
+			${CIFPP_SHARE_DIR}/mmcif_ma.dic
+			${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
+			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
 	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
