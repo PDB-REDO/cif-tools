@@ -115,7 +115,7 @@ foreach(PROGRAM IN LISTS programs)
 		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ddl.dic)
 	endif()
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
 	target_link_libraries(${PROGRAM} PRIVATE
 		-static-libgcc
 		-static-libstdc++
