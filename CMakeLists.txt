@@ -86,17 +86,16 @@ write_version_header()
 find_package(Mrc)
 
 if(MRC_FOUND)
-	option(USE_RSRC "Use mrc to create resources" ON)
+option(USE_RSRC "Use mrc to create resources" ON)
 else()
-	message(WARNING "Not using resources since mrc was not found")
+message(WARNING "Not using resources since mrc was not found")
 endif()
 
 if(USE_RSRC)
-	add_compile_definitions(USE_RSRC)
+add_compile_definitions(USE_RSRC)
 endif()
 
 find_package(cifpp 5.0.0 CONFIG REQUIRED)
-# find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
 
 list(APPEND programs
 	pdb2cif

@@ -43,7 +43,7 @@ int pr_main(int argc, char* argv[])
 {
 	auto &config = cfg::config::instance();
 
-	config.init(
+	config.init("usage: cif2pdb [options] inputfile [outputfile]",
 		cfg::make_option("help,h",				"Display help message"),
 		cfg::make_option("version",				"Print version"),
 		cfg::make_option("verbose,v",			"Verbose output"),
@@ -52,7 +52,7 @@ int pr_main(int argc, char* argv[])
 		cfg::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
 	);
 
-	config.parse(argc, argv, true);
+	config.parse(argc, argv);
 
 	if (config.has("version"))
 	{
@@ -62,8 +62,7 @@ int pr_main(int argc, char* argv[])
 
 	if (config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << "usage: cif2pdb [options] inputfile [outputfile]" << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(1);
 	}
 

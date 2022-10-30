@@ -200,6 +200,7 @@ int pr_main(int argc, char* argv[])
 	auto &config = cfg::config::instance();
 
 	config.init(
+		"cif-merge input-file donor-file [output-file]",
 		cfg::make_option("help,h", "Display help message"),
 		cfg::make_option("version", "Print version"),
 		cfg::make_option("verbose,v", "Verbose output"),
@@ -216,9 +217,7 @@ int pr_main(int argc, char* argv[])
 
 	if (config.has("help") or config.operands().size() < 2)
 	{
-		std::cerr << "cif-merge input-file donor-file [output-file]" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
