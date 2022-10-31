@@ -97,6 +97,8 @@ if(USE_RSRC)
 endif()
 
 if(NOT PDB_REDO_META)
+	find_package(gxrio REQUIRED)
+	find_package(libconfig REQUIRED)
 	find_package(cifpp 5.0.0 CONFIG REQUIRED)
 endif()
 
