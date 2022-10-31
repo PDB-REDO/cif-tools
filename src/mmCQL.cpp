@@ -911,7 +911,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex1:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 10 + ch - 'a';
@@ -924,7 +924,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex2:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = 16 * hx + ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 16 * hx + 10 + ch - 'a';
@@ -937,7 +937,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex3:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = 16 * hx + ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 16 * hx + 10 + ch - 'a';
@@ -950,7 +950,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex4:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = 16 * hx + ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 16 * hx + 10 + ch - 'a';
