@@ -163,7 +163,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	auto keys = catValidator->m_keys;
 	std::vector<size_t> keyIx;
 
-	for (auto &tag : a.fields())
+	for (auto &tag : a.key_fields())
 	{
 		auto iv = catValidator->get_validator_for_item(tag);
 		if (iv == nullptr)
