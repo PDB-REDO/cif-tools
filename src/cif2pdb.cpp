@@ -102,9 +102,8 @@ int pr_main(int argc, char* argv[])
 	if (f.empty() or (not config.has("no-validate") and not f.is_valid()))
 	{
 		std::cerr << "This input mmCIF file is not valid";
-		if (not cif::VERBOSE)
+		if (cif::VERBOSE < 1)
 			std::cerr << ", use the --verbose option to see what errors were found" << std::endl;
-		exit(1);
 	}
 	
 	if (config.operands().size() == 2)
