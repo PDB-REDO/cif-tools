@@ -81,7 +81,7 @@ endif()
 
 # Create a revision file, containing the current git version info
 include(VersionString)
-write_version_header()
+write_version_header("${PROJECT_SOURCE_DIR}/src")
 
 # Optionally use mrc to create resources
 find_package(Mrc)
@@ -97,8 +97,11 @@ if(USE_RSRC)
 endif()
 
 if(NOT PDB_REDO_META)
-	find_package(gxrio REQUIRED)
-	find_package(libconfig REQUIRED)
+	find_package(libconfig QUIET)
+	if(NOT libconfig_FOUND)
+		add_git_submodule(libconfig EXCLUDE_FROM_ALL)
+	endif()
+
 	find_package(cifpp 5.0.0 CONFIG REQUIRED)
 endif()
 
@@ -124,15 +127,25 @@ foreach(PROGRAM IN LISTS programs)
 			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
+	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include)
 	target_link_libraries(${PROGRAM} PRIVATE
 		-static-libgcc
 		-static-libstdc++
 		cifpp::cifpp
-		libconfig::libconfig
-		gxrio::gxrio)
+		libconfig::libconfig)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_SOURCE_TGZ ON)
+set(CPACK_SOURCE_TBZ2 OFF)
+set(CPACK_SOURCE_TXZ OFF)
+set(CPACK_SOURCE_TZ OFF)
+set(CPACK_SOURCE_IGNORE_FILES "/build;/.vscode;/.git")
+set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
+set (CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
+include(CPack)
+
