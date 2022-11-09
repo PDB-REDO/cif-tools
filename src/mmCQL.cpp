@@ -33,8 +33,8 @@
 #include <stack>
 
 #include <cfg.hpp>
-#include <gxrio.hpp>
 #include <cif++.hpp>
+#include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;
 
@@ -1350,7 +1350,7 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	gxrio::ifstream in(config.operands().front());
+	cif::gzio::ifstream in(config.operands().front());
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + config.operands().front());
 
@@ -1390,7 +1390,7 @@ int pr_main(int argc, char* argv[])
 
 	if (config.operands().size() == 2)
 	{
-		gxrio::ofstream out(config.operands().back());
+		cif::gzio::ofstream out(config.operands().back());
 		if (not out.is_open())
 			throw std::runtime_error("Could not open output file " + config.operands().back());
 

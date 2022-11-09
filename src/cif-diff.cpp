@@ -32,7 +32,7 @@
 
 #include <cif++.hpp>
 #include <cfg.hpp>
-#include <gxrio.hpp>
+#include <cif++/gzio.hpp>
 
 #include "revision.hpp"
 
@@ -587,11 +587,11 @@ int pr_main(int argc, char *argv[])
 
 	auto input = config.operands();
 
-	gxrio::ifstream if1{input[0]};
+	cif::gzio::ifstream if1{input[0]};
 	if (not if1.is_open())
 		throw std::runtime_error("Could not open file " + input[0]);
 
-	gxrio::ifstream if2(input[1]);
+	cif::gzio::ifstream if2(input[1]);
 	if (not if2.is_open())
 		throw std::runtime_error("Could not open file " + input[1]);
 

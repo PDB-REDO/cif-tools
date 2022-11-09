@@ -66,6 +66,12 @@ int pr_main(int argc, char *argv[])
 	if (config.count("dict"))
 		f.load_dictionary(config.get<std::string>("dict"));
 
+	if (f.get_validator() == nullptr)
+	{
+		std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl;
+		exit(1);
+	}
+
 	int result = f.is_valid() ? 0 : 1;
 
 	if (config.has("validate-links"))

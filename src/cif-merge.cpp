@@ -34,7 +34,7 @@
 
 #include <cif++.hpp>
 #include <cfg.hpp>
-#include <gxrio.hpp>
+#include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;
 
@@ -231,11 +231,11 @@ int pr_main(int argc, char* argv[])
 	// 	c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
 
 	// Read input file
-	gxrio::ifstream in(config.operands().front());
+	cif::gzio::ifstream in(config.operands().front());
 	if (not in.is_open())
 		throw std::runtime_error("Could not open input file");
 	
-	gxrio::ifstream donor(config.operands()[1]);
+	cif::gzio::ifstream donor(config.operands()[1]);
 	if (not donor.is_open())
 		throw std::runtime_error("Could not open donor file");
 	
