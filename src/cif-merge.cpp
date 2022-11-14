@@ -34,7 +34,6 @@
 
 #include <cif++.hpp>
 #include <cfg.hpp>
-#include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;
 

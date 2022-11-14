@@ -32,7 +32,6 @@
 
 #include <cif++.hpp>
 #include <cfg.hpp>
-#include <cif++/gzio.hpp>
 
 #include "revision.hpp"
 
