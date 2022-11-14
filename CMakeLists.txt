@@ -101,7 +101,7 @@ if(NOT PDB_REDO_META)
 		add_subdirectory(libconfig EXCLUDE_FROM_ALL)
 	endif()
 
-	find_package(cifpp 5.0.3.1 CONFIG REQUIRED)
+	find_package(cifpp 5.0.4 CONFIG REQUIRED)
 endif()
 
 list(APPEND programs
