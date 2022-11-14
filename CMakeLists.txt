@@ -102,7 +102,7 @@ if(NOT PDB_REDO_META)
 		add_git_submodule(libconfig EXCLUDE_FROM_ALL)
 	endif()
 
-	find_package(cifpp 5.0.0 CONFIG REQUIRED)
+	find_package(cifpp 5.0.3.1 CONFIG REQUIRED)
 endif()
 
 list(APPEND programs
@@ -113,8 +113,6 @@ list(APPEND programs
 	cif-merge
 	cif-validate
 	mmCQL
-
-	# cif-stats
 )
 
 foreach(PROGRAM IN LISTS programs)

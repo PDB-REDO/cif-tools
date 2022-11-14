@@ -32,7 +32,6 @@
 #include <filesystem>
 #include <iomanip>
 
-#include <gxrio.hpp>
 #include <cif++.hpp>
 
 namespace fs = std::filesystem;
@@ -105,7 +104,7 @@ int pr_main(int argc, char* argv[])
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
-	gxrio::ifstream in(vm["input"].as<std::string>());
+	cif::gzio::ifstream in(vm["input"].as<std::string>());
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + vm["input"].as<std::string>());
 

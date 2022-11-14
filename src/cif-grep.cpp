@@ -31,7 +31,6 @@
 #include <functional>
 #include <regex>
 
-#include <gxrio.hpp>
 #include <cfg.hpp>
 #include <cif++.hpp>
 
@@ -255,7 +254,7 @@ int pr_main(int argc, char *argv[])
 			if (cif::VERBOSE)
 				std::cerr << f << std::endl;
 
-			gxrio::ifstream in(f);
+			cif::gzio::ifstream in(f);
 			if (not in.is_open())
 				throw std::runtime_error("Could not open file " + f.string());
 

@@ -32,7 +32,6 @@
 #include <filesystem>
 
 #include <cfg.hpp>
-#include <gxrio.hpp>
 
 #include <cif++/pdb/io.hpp>
 
@@ -85,7 +84,7 @@ int pr_main(int argc, char* argv[])
 		
 		fs::path file = input;
 
-		gxrio::ifstream in(file);
+		cif::gzio::ifstream in(file);
 
 		if (not in.is_open())
 			throw std::runtime_error("Could not open file " + file.string());
@@ -98,7 +97,7 @@ int pr_main(int argc, char* argv[])
 		if (config.operands().size() == 2)
 		{
 			file = config.operands().back();
-			gxrio::ofstream out(file);
+			cif::gzio::ofstream out(file);
 			f.save(out);
 		}
 		else
