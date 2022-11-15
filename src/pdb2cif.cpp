@@ -33,8 +33,7 @@
 
 #include <cfp/cfp.hpp>
 
-#include <cif++/pdb/io.hpp>
-#include <cif++/gzio.hpp>
+#include <cif++.hpp>
 
 #include "revision.hpp"
 
