@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.4 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.5 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -37,7 +37,6 @@ include(CMakePackageConfigHelpers)
 include(Dart)
 include(FindFilesystem)
 include(GenerateExportHeader)
-include(AddGitSubmodule)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -81,7 +80,7 @@ endif()
 
 # Create a revision file, containing the current git version info
 include(VersionString)
-write_version_header()
+write_version_header("${PROJECT_SOURCE_DIR}/src")
 
 # Optionally use mrc to create resources
 find_package(Mrc)
@@ -97,7 +96,7 @@ if(USE_RSRC)
 endif()
 
 if(NOT PDB_REDO_META)
-	find_package(gxrio REQUIRED)
+
 	find_package(libcfp REQUIRED)
 	find_package(cifpp 5.0.0 CONFIG REQUIRED)
 endif()
@@ -110,8 +109,6 @@ list(APPEND programs
 	cif-merge
 	cif-validate
 	mmCQL
-
-	# cif-stats
 )
 
 foreach(PROGRAM IN LISTS programs)
@@ -124,15 +121,25 @@ foreach(PROGRAM IN LISTS programs)
 			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
+	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include)
 	target_link_libraries(${PROGRAM} PRIVATE
 		-static-libgcc
 		-static-libstdc++
 		cifpp::cifpp
-		libcfp::libcfp
-		gxrio::gxrio)
+		libcfp::libcfp)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_SOURCE_TGZ ON)
+set(CPACK_SOURCE_TBZ2 OFF)
+set(CPACK_SOURCE_TXZ OFF)
+set(CPACK_SOURCE_TZ OFF)
+set(CPACK_SOURCE_IGNORE_FILES "/build;/.vscode;/.git")
+set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
+set (CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
+include(CPack)
+

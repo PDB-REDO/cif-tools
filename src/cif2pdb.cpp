@@ -31,9 +31,9 @@
 #include <filesystem>
 
 #include <cfp/cfp.hpp>
-#include <gxrio.hpp>
 
 #include <cif++/pdb/io.hpp>
+#include <cif++/gzio.hpp>
 
 #include "revision.hpp"
 
@@ -93,7 +93,7 @@ int pr_main(int argc, char* argv[])
 	// if (not fs::exists(file) and std::regex_match(input, pdbIdRx))
 	// 	file = fs::path(PDB_DIR) / "mmCIF" / input.substr(1, 2) / (input + ".cif.gz");
 	
-	gxrio::ifstream in(file);
+	cif::gzio::ifstream in(file);
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + file.string());
 
@@ -110,7 +110,7 @@ int pr_main(int argc, char* argv[])
 	{
 		file = config.operands().back();
 
-		gxrio::ofstream out(file);
+		cif::gzio::ofstream out(file);
 
 		cif::pdb::write(out, f.front());
 	}
