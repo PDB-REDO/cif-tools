@@ -32,7 +32,7 @@
 #include <unordered_set>
 #include <stack>
 
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <gxrio.hpp>
 #include <cif++.hpp>
 
@@ -1310,20 +1310,20 @@ cif::condition Parser::ParseWhereClause(cif::category& cat)
 
 int pr_main(int argc, char* argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	config.init("mmCQL [options] input [output]",
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,V", "Verbose output"),
+		cfp::make_option("help,h", "Display help message"),
+		cfp::make_option("version", "Print version"),
+		cfp::make_option("verbose,V", "Verbose output"),
 
-		cfg::make_option("force",										"Force writing of output file, even if it is the same as the input file"),
+		cfp::make_option("force",										"Force writing of output file, even if it is the same as the input file"),
 
-		cfg::make_option<fs::path>("script,f",   		"Read commands from script"),
+		cfp::make_option<fs::path>("script,f",   		"Read commands from script"),
 
-		cfg::make_option<std::string>("data-block,D", "Datablock to use, default is first"),
+		cfp::make_option<std::string>("data-block,D", "Datablock to use, default is first"),
 
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		cfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);

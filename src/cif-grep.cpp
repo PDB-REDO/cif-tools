@@ -32,7 +32,7 @@
 #include <regex>
 
 #include <gxrio.hpp>
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <cif++.hpp>
 
 namespace fs = std::filesystem;
@@ -120,27 +120,27 @@ size_t cifGrep(const std::string &pattern, const std::string &tag, const std::st
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	config.init(
 		"cif-grep [options] file1 file2",
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,V", "Verbose output"),
+		cfp::make_option("help,h", "Display help message"),
+		cfp::make_option("version", "Print version"),
+		cfp::make_option("verbose,V", "Verbose output"),
 
-		cfg::make_option<std::string>("item,i", "The item (tag) to search"),
+		cfp::make_option<std::string>("item,i", "The item (tag) to search"),
 
-		cfg::make_option("quiet,q", "Only print files matching pattern"),
-		cfg::make_option("count,c", "Only show number of hits"),
-		cfg::make_option("invert-match,v", "Select fields NOT matching the pattern"),
-		cfg::make_option("line-number,n", "Print line numbers"),
-		cfg::make_option("no-filename,h", "Don't print the filename"),
-		cfg::make_option("with-filename,H", "Do print the filename"),
+		cfp::make_option("quiet,q", "Only print files matching pattern"),
+		cfp::make_option("count,c", "Only show number of hits"),
+		cfp::make_option("invert-match,v", "Select fields NOT matching the pattern"),
+		cfp::make_option("line-number,n", "Print line numbers"),
+		cfp::make_option("no-filename,h", "Don't print the filename"),
+		cfp::make_option("with-filename,H", "Do print the filename"),
 
-		cfg::make_option("files-with-matches,l", "Print only names of files containing matches"),
-		cfg::make_option("recursive,r", "Search recursively"),
+		cfp::make_option("files-with-matches,l", "Print only names of files containing matches"),
+		cfp::make_option("recursive,r", "Search recursively"),
 
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		cfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);

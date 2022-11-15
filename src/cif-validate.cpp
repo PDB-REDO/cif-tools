@@ -26,22 +26,22 @@
 
 #include <fstream>
 
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <cif++.hpp>
 
 #include "revision.hpp"
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	config.init("cif-validate [options...] file",
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
-		cfg::make_option("validate-links", "Validate all links"),
-		cfg::make_option("verbose,v", "Verbose output"),
-		cfg::make_option<int>("debug,d", "Debug level (for even more verbose output)"));
+		cfp::make_option("help,h", "Display help message"),
+		cfp::make_option("version", "Print version"),
+		cfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		cfp::make_option("validate-links", "Validate all links"),
+		cfp::make_option("verbose,v", "Verbose output"),
+		cfp::make_option<int>("debug,d", "Debug level (for even more verbose output)"));
 
 	config.parse(argc, argv);
 

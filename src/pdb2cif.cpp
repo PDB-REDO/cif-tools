@@ -31,7 +31,7 @@
 #include <stdexcept>
 #include <filesystem>
 
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <gxrio.hpp>
 
 #include <cif++/pdb/io.hpp>
@@ -46,15 +46,15 @@ int pr_main(int argc, char* argv[])
 	
 	try
 	{
-		auto &config = cfg::config::instance();
+		auto &config = cfp::config::instance();
 
 		config.init("usage: pdb2cif [options] inputfile [outputfile]",
-			cfg::make_option("help,h",				"Display help message"),
-			cfg::make_option("version",				"Print version"),
-			cfg::make_option("verbose,v",			"Verbose output"),
-			cfg::make_option("validate",			"Validate output file before writing"),
-			cfg::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target"),
-			cfg::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+			cfp::make_option("help,h",				"Display help message"),
+			cfp::make_option("version",				"Print version"),
+			cfp::make_option("verbose,v",			"Verbose output"),
+			cfp::make_option("validate",			"Validate output file before writing"),
+			cfp::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target"),
+			cfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
 		);
 
 		config.parse(argc, argv);

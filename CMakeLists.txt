@@ -98,7 +98,7 @@ endif()
 
 if(NOT PDB_REDO_META)
 	find_package(gxrio REQUIRED)
-	find_package(libconfig REQUIRED)
+	find_package(libcfp REQUIRED)
 	find_package(cifpp 5.0.0 CONFIG REQUIRED)
 endif()
 
@@ -129,7 +129,7 @@ foreach(PROGRAM IN LISTS programs)
 		-static-libgcc
 		-static-libstdc++
 		cifpp::cifpp
-		libconfig::libconfig
+		libcfp::libcfp
 		gxrio::gxrio)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})

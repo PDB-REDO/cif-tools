@@ -31,7 +31,7 @@
 #include <functional>
 
 #include <cif++.hpp>
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <gxrio.hpp>
 
 #include "revision.hpp"
@@ -540,19 +540,19 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	config.init(
 		"cif-diff [options] file1 file2",
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,v", "Verbose output"),
-		cfg::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
-		cfg::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
-		cfg::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
-		cfg::make_option("icase", "Ignore case (vimdiff option)"),
-		cfg::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		cfp::make_option("help,h", "Display help message"),
+		cfp::make_option("version", "Print version"),
+		cfp::make_option("verbose,v", "Verbose output"),
+		cfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
+		cfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
+		cfp::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
+		cfp::make_option("icase", "Ignore case (vimdiff option)"),
+		cfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
+		cfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);
