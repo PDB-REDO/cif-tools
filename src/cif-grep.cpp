@@ -186,7 +186,7 @@ int pr_main(int argc, char *argv[])
 		if (item.empty())
 			throw std::runtime_error("Invalid item: '" + item + '\'');
 
-		if (cif::VERBOSE)
+		if (cif::VERBOSE > 0)
 			std::cerr << "matching only for category: " << cat << " and item " << item << std::endl;
 	}
 
@@ -252,7 +252,7 @@ int pr_main(int argc, char *argv[])
 			if (not fs::is_regular_file(f))
 				continue;
 
-			if (cif::VERBOSE)
+			if (cif::VERBOSE > 0)
 				std::cerr << f << std::endl;
 
 			cif::gzio::ifstream in(f);

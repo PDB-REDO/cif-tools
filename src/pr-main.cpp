@@ -109,7 +109,7 @@ class RUsage
   public:
 	~RUsage()
 	{
-		if (cif::VERBOSE)
+		if (cif::VERBOSE > 0)
 		{
 			struct rusage u;
 			auto end = std::chrono::system_clock::now();

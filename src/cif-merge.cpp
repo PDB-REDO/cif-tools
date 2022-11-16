@@ -123,7 +123,7 @@ void transplant(cif::file& target, cif::file& donor)
 			
 			if (d.empty())
 			{
-				if (cif::VERBOSE)
+				if (cif::VERBOSE > 0)
 					std::cerr << "Cannot map entity " << id << " in target file to an entity in the donor" << std::endl;
 				continue;
 			}
@@ -155,7 +155,7 @@ void transplant(cif::file& target, cif::file& donor)
 			
 			if (d.empty())
 			{
-				if (cif::VERBOSE)
+				if (cif::VERBOSE > 0)
 					std::cerr << "Cannot map entity " << id << " in target file to an entity in the donor" << std::endl;
 				continue;
 			}
@@ -166,7 +166,7 @@ void transplant(cif::file& target, cif::file& donor)
 		{
 			dEntityID = dbd["entity"].find1<std::string>(cif::key("type") == type, "id");
 		}
-		else if (cif::VERBOSE)
+		else if (cif::VERBOSE > 0)
 			std::cerr << "Unsupported entity type: " << type << std::endl;
 		
 		if (dEntityID.empty())
