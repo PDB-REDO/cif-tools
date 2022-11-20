@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.5 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.6 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -96,7 +96,6 @@ if(USE_RSRC)
 endif()
 
 if(NOT PDB_REDO_META)
-
 	find_package(libcfp REQUIRED)
 	find_package(cifpp 5.0.0 CONFIG REQUIRED)
 endif()
@@ -121,14 +120,9 @@ foreach(PROGRAM IN LISTS programs)
 			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${PROJECT_SOURCE_DIR}/include)
-	target_link_libraries(${PROGRAM} PRIVATE
-		-static-libgcc
-		-static-libstdc++
-		cifpp::cifpp
-		libcfp::libcfp)
+	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp libcfp::libcfp)
 
-	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
