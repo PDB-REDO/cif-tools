@@ -33,7 +33,7 @@
 #include <filesystem>
 
 #include <cif++.hpp>
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 namespace fs = std::filesystem;
 
@@ -196,14 +196,14 @@ void transplant(cif::file& target, cif::file& donor)
 
 int pr_main(int argc, char* argv[])
 {
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	config.init(
 		"cif-merge input-file donor-file [output-file]",
-		cfp::make_option("help,h", "Display help message"),
-		cfp::make_option("version", "Print version"),
-		cfp::make_option("verbose,v", "Verbose output"),
-		cfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option("verbose,v", "Verbose output"),
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);

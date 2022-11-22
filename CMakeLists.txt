@@ -96,8 +96,8 @@ if(USE_RSRC)
 endif()
 
 if(NOT PDB_REDO_META)
-	find_package(libcfp REQUIRED)
-	find_package(cifpp 5.0.0 CONFIG REQUIRED)
+	find_package(libmcfp REQUIRED)
+	find_package(cifpp 5.0.4 CONFIG REQUIRED)
 endif()
 
 list(APPEND programs
@@ -120,7 +120,7 @@ foreach(PROGRAM IN LISTS programs)
 			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp libcfp::libcfp)
+	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp libmcfp::libmcfp)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

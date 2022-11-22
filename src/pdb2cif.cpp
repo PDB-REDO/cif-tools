@@ -31,7 +31,7 @@
 #include <stdexcept>
 #include <filesystem>
 
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include <cif++.hpp>
 
@@ -45,15 +45,15 @@ int pr_main(int argc, char* argv[])
 	
 	try
 	{
-		auto &config = cfp::config::instance();
+		auto &config = mcfp::config::instance();
 
 		config.init("usage: pdb2cif [options] inputfile [outputfile]",
-			cfp::make_option("help,h",				"Display help message"),
-			cfp::make_option("version",				"Print version"),
-			cfp::make_option("verbose,v",			"Verbose output"),
-			cfp::make_option("validate",			"Validate output file before writing"),
-			cfp::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target"),
-			cfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+			mcfp::make_option("help,h",				"Display help message"),
+			mcfp::make_option("version",				"Print version"),
+			mcfp::make_option("verbose,v",			"Verbose output"),
+			mcfp::make_option("validate",			"Validate output file before writing"),
+			mcfp::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target"),
+			mcfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
 		);
 
 		config.parse(argc, argv);

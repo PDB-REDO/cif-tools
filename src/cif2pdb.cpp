@@ -30,7 +30,7 @@
 #include <chrono>
 #include <filesystem>
 
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include <cif++.hpp>
 
@@ -40,15 +40,15 @@ namespace fs = std::filesystem;
 
 int pr_main(int argc, char* argv[])
 {
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	config.init("usage: cif2pdb [options] inputfile [outputfile]",
-		cfp::make_option("help,h",				"Display help message"),
-		cfp::make_option("version",				"Print version"),
-		cfp::make_option("verbose,v",			"Verbose output"),
-		cfp::make_option("no-validate",			"Omit validation of the mmCIF file, forcing output in case of errors"),
-		cfp::make_option<std::string>("dict",	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
-		cfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+		mcfp::make_option("help,h",				"Display help message"),
+		mcfp::make_option("version",				"Print version"),
+		mcfp::make_option("verbose,v",			"Verbose output"),
+		mcfp::make_option("no-validate",			"Omit validation of the mmCIF file, forcing output in case of errors"),
+		mcfp::make_option<std::string>("dict",	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		mcfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);

@@ -31,7 +31,7 @@
 #include <functional>
 
 #include <cif++.hpp>
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
 
@@ -539,19 +539,19 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	config.init(
 		"cif-diff [options] file1 file2",
-		cfp::make_option("help,h", "Display help message"),
-		cfp::make_option("version", "Print version"),
-		cfp::make_option("verbose,v", "Verbose output"),
-		cfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
-		cfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
-		cfp::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
-		cfp::make_option("icase", "Ignore case (vimdiff option)"),
-		cfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
-		cfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option("verbose,v", "Verbose output"),
+		mcfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
+		mcfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
+		mcfp::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
+		mcfp::make_option("icase", "Ignore case (vimdiff option)"),
+		mcfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);
