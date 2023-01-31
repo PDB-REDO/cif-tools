@@ -40,8 +40,7 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
 		mcfp::make_option("validate-links", "Validate all links"),
-		mcfp::make_option("verbose,v", "Verbose output"),
-		mcfp::make_option<int>("debug,d", "Debug level (for even more verbose output)"));
+		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"));
 
 	config.parse(argc, argv);
 
@@ -58,8 +57,6 @@ int pr_main(int argc, char *argv[])
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	cif::file f(config.operands().front());
 

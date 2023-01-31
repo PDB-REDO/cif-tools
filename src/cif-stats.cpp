@@ -101,9 +101,7 @@ int pr_main(int argc, char* argv[])
 		exit(vm.count("help") ? 0 : 1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	cif::VERBOSE = vm.count("verbose");
 
 	cif::gzio::ifstream in(vm["input"].as<std::string>());
 	if (not in.is_open())

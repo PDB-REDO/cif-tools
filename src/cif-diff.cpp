@@ -569,8 +569,6 @@ int pr_main(int argc, char *argv[])
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	int maxDiffCount = config.get<int>("max-diff-count");
 

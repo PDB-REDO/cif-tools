@@ -52,8 +52,7 @@ int pr_main(int argc, char* argv[])
 			mcfp::make_option("version",				"Print version"),
 			mcfp::make_option("verbose,v",			"Verbose output"),
 			mcfp::make_option("validate",			"Validate output file before writing"),
-			mcfp::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target"),
-			mcfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+			mcfp::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target")
 		);
 
 		config.parse(argc, argv);
@@ -70,9 +69,7 @@ int pr_main(int argc, char* argv[])
 			exit(config.has("help") ? 0 : 1);
 		}
 	
-		cif::VERBOSE = config.has("verbose") != 0;
-		if (config.has("debug"))
-			cif::VERBOSE = config.get<int>("debug");
+		cif::VERBOSE = config.count("verbose");
 		
 		// Load dict, if any
 		

@@ -221,25 +221,11 @@ int pr_main(int argc, char* argv[])
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	// Load dict, if any
 	
-	// if (vm.count("dict"))
-	// 	c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
-
-	// Read input file
-	cif::gzio::ifstream in(config.operands().front());
-	if (not in.is_open())
-		throw std::runtime_error("Could not open input file");
-	
-	cif::gzio::ifstream donor(config.operands()[1]);
-	if (not donor.is_open())
-		throw std::runtime_error("Could not open donor file");
-	
-	cif::file cf{in};
-	cif::file df{donor};
+	cif::file cf = cif::pdb::read(config.operands()[0]);
+	cif::file df = cif::pdb::read(config.operands()[1]);
 
 	updateEntryID(cf, df.front().name());
 	transplant(cf, df);
