@@ -132,7 +132,7 @@ void transplant(cif::file& target, cif::file& donor)
 			
 			// copy over refseq
 			
-			auto sr = dbd["struct_ref"].find1(cif::key("entity_id") == dEntityID);
+			auto sr = dbd["struct_ref"].find_first(cif::key("entity_id") == dEntityID);
 			if (not sr.empty())
 			{
 				sr["entity_id"] = id;
@@ -151,7 +151,7 @@ void transplant(cif::file& target, cif::file& donor)
 			std::string compID;
 			cif::tie(compID) = t.get("comp_id");
 			
-			auto d = dbd["pdbx_entity_nonpoly"].find1(cif::key("comp_id") == compID);
+			auto d = dbd["pdbx_entity_nonpoly"].find_first(cif::key("comp_id") == compID);
 			
 			if (d.empty())
 			{
@@ -183,7 +183,7 @@ void transplant(cif::file& target, cif::file& donor)
 		{
 			std::string srcRec = kSrcMap.at(srcMethod);
 
-			auto d = dbd[srcRec].find1(cif::key("entity_id") == dEntityID);
+			auto d = dbd[srcRec].find_first(cif::key("entity_id") == dEntityID);
 			if (not d.empty())
 			{
 				d["entity_id"] = id;
