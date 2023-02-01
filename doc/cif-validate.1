@@ -1,10 +1,10 @@
-.TH cif-validate 1 "2022-11-20" "version 1.0.5" "User Commands"
+.TH cif-validate 1 "2023-01-06" "version 1.0.8" "User Commands"
 .if n .ad l
 .nh
 .SH NAME
 cif\-validate \- Validate the content of a mmCIF file
 .SH SYNOPSIS
-cif\-validate [OPTION] file
+cif\-validate [OPTION] file [output-file]
 .SH DESCRIPTION
 The mmCIF format is not really new, but the implementation of this format has been
 taken up slowly. Unfornately, the knowledge of the ins and outs of the format are
@@ -23,7 +23,12 @@ The mmCIF dictionary file to use. The default is \fImmcif_pdbx.dic\fR.
 Validate all links. Will output information about missing parent category items.
 .TP
 \fB--verbose\fR,\fB-v\fR
-Be more verbose, useful to diagnose validation errors.
+Be more verbose, useful to diagnose validation errors. Can be specified multiple times
+to increase verbosity level.
+.TP
+\fB--print\fR
+Print a formatted version of the input file to \fIstdout\fR or to \fIoutput-file\fR
+if specified.
 .SH AUTHOR
 Written by Maarten L. Hekkelman <maarten@hekkelman.com>
 .SH "REPORTING BUGS"

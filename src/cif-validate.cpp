@@ -35,12 +35,14 @@ int pr_main(int argc, char *argv[])
 {
 	auto &config = mcfp::config::instance();
 
-	config.init("cif-validate [options...] file",
+	config.init("cif-validate [options...] file [output-file]",
 		mcfp::make_option("help,h", "Display help message"),
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
 		mcfp::make_option("validate-links", "Validate all links"),
-		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"));
+		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
+		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'")
+		);
 
 	config.parse(argc, argv);
 
@@ -73,6 +75,20 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("validate-links"))
 		f.validate_links();
+
+	if (config.has("print"))
+	{
+		if (config.operands().size() == 1)
+			f.save(std::cout);
+		else
+		{
+			std::ofstream out(config.operands()[1]);
+			if (not out.is_open())
+				std::cerr << "Could not open output file" << std::endl;
+			else
+				f.save(out);
+		}
+	}
 
 	return result;
 }
