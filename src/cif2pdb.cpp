@@ -69,11 +69,6 @@ int pr_main(int argc, char* argv[])
 	if (config.has("debug"))
 		cif::VERBOSE = config.get<int>("debug");
 	
-	// Load dict, if any
-	
-	if (config.has("dict"))
-		cif::compound_factory::instance().push_dictionary(config.get<std::string>("dict"));
-
 	if (config.has("version"))
 	{
 		write_version_string(std::cout, config.has("verbose"));
@@ -97,6 +92,12 @@ int pr_main(int argc, char* argv[])
 		throw std::runtime_error("Could not open file " + file.string());
 
 	cif::file f(in);
+
+	// Load dict, if any
+	if (config.has("dict"))
+		f.load_dictionary(config.get<std::string>("dict"));
+	else if (f.get_validator() == nullptr)
+		f.load_dictionary("mmcif_pdbx");
 
 	if (f.empty() or (not config.has("no-validate") and not f.is_valid()))
 	{
