@@ -26,22 +26,23 @@
 
 #include <fstream>
 
-#include <cfg.hpp>
+#include <mcfp/mcfp.hpp>
 #include <cif++.hpp>
 
 #include "revision.hpp"
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = mcfp::config::instance();
 
-	config.init(
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
-		cfg::make_option("validate-links", "Validate all links"),
-		cfg::make_option("verbose,v", "Verbose output"),
-		cfg::make_option<int>("debug,d", "Debug level (for even more verbose output)"));
+	config.init("cif-validate [options...] file [output-file]",
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		mcfp::make_option("validate-links", "Validate all links"),
+		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
+		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'")
+		);
 
 	config.parse(argc, argv);
 
@@ -53,25 +54,41 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << "cif-validate [options...] file" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	cif::file f(config.operands().front());
 
 	if (config.count("dict"))
 		f.load_dictionary(config.get<std::string>("dict"));
 
+	if (f.get_validator() == nullptr)
+	{
+		std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl;
+		exit(1);
+	}
+
 	int result = f.is_valid() ? 0 : 1;
 
 	if (config.has("validate-links"))
 		f.validate_links();
+
+	if (config.has("print"))
+	{
+		if (config.operands().size() == 1)
+			f.save(std::cout);
+		else
+		{
+			std::ofstream out(config.operands()[1]);
+			if (not out.is_open())
+				std::cerr << "Could not open output file" << std::endl;
+			else
+				f.save(out);
+		}
+	}
 
 	return result;
 }

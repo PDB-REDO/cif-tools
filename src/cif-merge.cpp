@@ -33,8 +33,7 @@
 #include <filesystem>
 
 #include <cif++.hpp>
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <mcfp/mcfp.hpp>
 
 namespace fs = std::filesystem;
 
@@ -124,7 +123,7 @@ void transplant(cif::file& target, cif::file& donor)
 			
 			if (d.empty())
 			{
-				if (cif::VERBOSE)
+				if (cif::VERBOSE > 0)
 					std::cerr << "Cannot map entity " << id << " in target file to an entity in the donor" << std::endl;
 				continue;
 			}
@@ -133,7 +132,7 @@ void transplant(cif::file& target, cif::file& donor)
 			
 			// copy over refseq
 			
-			auto sr = dbd["struct_ref"].find1(cif::key("entity_id") == dEntityID);
+			auto sr = dbd["struct_ref"].find_first(cif::key("entity_id") == dEntityID);
 			if (not sr.empty())
 			{
 				sr["entity_id"] = id;
@@ -152,11 +151,11 @@ void transplant(cif::file& target, cif::file& donor)
 			std::string compID;
 			cif::tie(compID) = t.get("comp_id");
 			
-			auto d = dbd["pdbx_entity_nonpoly"].find1(cif::key("comp_id") == compID);
+			auto d = dbd["pdbx_entity_nonpoly"].find_first(cif::key("comp_id") == compID);
 			
 			if (d.empty())
 			{
-				if (cif::VERBOSE)
+				if (cif::VERBOSE > 0)
 					std::cerr << "Cannot map entity " << id << " in target file to an entity in the donor" << std::endl;
 				continue;
 			}
@@ -167,7 +166,7 @@ void transplant(cif::file& target, cif::file& donor)
 		{
 			dEntityID = dbd["entity"].find1<std::string>(cif::key("type") == type, "id");
 		}
-		else if (cif::VERBOSE)
+		else if (cif::VERBOSE > 0)
 			std::cerr << "Unsupported entity type: " << type << std::endl;
 		
 		if (dEntityID.empty())
@@ -184,7 +183,7 @@ void transplant(cif::file& target, cif::file& donor)
 		{
 			std::string srcRec = kSrcMap.at(srcMethod);
 
-			auto d = dbd[srcRec].find1(cif::key("entity_id") == dEntityID);
+			auto d = dbd[srcRec].find_first(cif::key("entity_id") == dEntityID);
 			if (not d.empty())
 			{
 				d["entity_id"] = id;
@@ -197,13 +196,14 @@ void transplant(cif::file& target, cif::file& donor)
 
 int pr_main(int argc, char* argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = mcfp::config::instance();
 
 	config.init(
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,v", "Verbose output"),
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		"cif-merge input-file donor-file [output-file]",
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option("verbose,v", "Verbose output"),
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);
@@ -216,32 +216,16 @@ int pr_main(int argc, char* argv[])
 
 	if (config.has("help") or config.operands().size() < 2)
 	{
-		std::cerr << "cif-merge input-file donor-file [output-file]" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	// Load dict, if any
 	
-	// if (vm.count("dict"))
-	// 	c::CompoundFactory::instance().pushDictionary(vm["dict"].as<std::string>());
-
-	// Read input file
-	gxrio::ifstream in(config.operands().front());
-	if (not in.is_open())
-		throw std::runtime_error("Could not open input file");
-	
-	gxrio::ifstream donor(config.operands()[1]);
-	if (not donor.is_open())
-		throw std::runtime_error("Could not open donor file");
-	
-	cif::file cf{in};
-	cif::file df{donor};
+	cif::file cf = cif::pdb::read(config.operands()[0]);
+	cif::file df = cif::pdb::read(config.operands()[1]);
 
 	updateEntryID(cf, df.front().name());
 	transplant(cf, df);

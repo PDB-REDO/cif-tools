@@ -32,9 +32,9 @@
 #include <unordered_set>
 #include <stack>
 
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <mcfp/mcfp.hpp>
 #include <cif++.hpp>
+#include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;
 
@@ -911,7 +911,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex1:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 10 + ch - 'a';
@@ -924,7 +924,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex2:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = 16 * hx + ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 16 * hx + 10 + ch - 'a';
@@ -937,7 +937,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex3:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = 16 * hx + ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 16 * hx + 10 + ch - 'a';
@@ -950,7 +950,7 @@ Parser::Token Parser::GetNextToken()
 			break;
 
 		case State::EscapeHex4:
-			if (ch >= 0 and ch <= '9')
+			if (/*ch >= 0 and*/ ch <= '9')
 				hx = 16 * hx + ch - '0';
 			else if (ch >= 'a' and ch <= 'f')
 				hx = 16 * hx + 10 + ch - 'a';
@@ -1310,20 +1310,18 @@ cif::condition Parser::ParseWhereClause(cif::category& cat)
 
 int pr_main(int argc, char* argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = mcfp::config::instance();
 
-	config.init(
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,V", "Verbose output"),
+	config.init("mmCQL [options] input [output]",
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option("verbose,V", "Verbose output, repeat to increase verbosity level"),
 
-		cfg::make_option("force",										"Force writing of output file, even if it is the same as the input file"),
+		mcfp::make_option("force",										"Force writing of output file, even if it is the same as the input file"),
 
-		cfg::make_option<fs::path>("script,f",   		"Read commands from script"),
+		mcfp::make_option<fs::path>("script,f",   		"Read commands from script"),
 
-		cfg::make_option<std::string>("data-block,D", "Datablock to use, default is first"),
-
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		mcfp::make_option<std::string>("data-block,D", "Datablock to use, default is first")
 	);
 
 	config.parse(argc, argv);
@@ -1336,15 +1334,11 @@ int pr_main(int argc, char* argv[])
 
 	if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << "mmCQL [options] input [output]" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	if (config.operands().size() == 2 and config.operands().front() == config.operands().back() and not config.has("force"))
 	{
@@ -1352,7 +1346,7 @@ int pr_main(int argc, char* argv[])
 		exit(1);
 	}
 
-	gxrio::ifstream in(config.operands().front());
+	cif::gzio::ifstream in(config.operands().front());
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + config.operands().front());
 
@@ -1392,7 +1386,7 @@ int pr_main(int argc, char* argv[])
 
 	if (config.operands().size() == 2)
 	{
-		gxrio::ofstream out(config.operands().back());
+		cif::gzio::ofstream out(config.operands().back());
 		if (not out.is_open())
 			throw std::runtime_error("Could not open output file " + config.operands().back());
 

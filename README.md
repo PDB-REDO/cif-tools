@@ -14,13 +14,17 @@ of handling C++17 code.
 Building
 --------
 
-Make sure you install libcif++ first before building.
+Make sure you install libcif++ first before building. You will also need
+to install [libcfp](https://github.com/mhekkel/libcfp).
 
 After that, building should be as easy as typing:
 
+```bash
+git clone https://github.com/PDB-REDO/cif-tools.git
+cd cif-tools
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+cmake --install .
 ```
-./configure
-make
-make install
-```
-

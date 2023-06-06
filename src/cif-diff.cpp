@@ -31,8 +31,7 @@
 #include <functional>
 
 #include <cif++.hpp>
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
 
@@ -164,7 +163,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	auto keys = catValidator->m_keys;
 	std::vector<size_t> keyIx;
 
-	for (auto &tag : a.fields())
+	for (auto &tag : a.key_fields())
 	{
 		auto iv = catValidator->get_validator_for_item(tag);
 		if (iv == nullptr)
@@ -541,18 +540,19 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = mcfp::config::instance();
 
 	config.init(
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,v", "Verbose output"),
-		cfg::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
-		cfg::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
-		cfg::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
-		cfg::make_option("icase", "Ignore case (vimdiff option)"),
-		cfg::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		"cif-diff [options] file1 file2",
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option("verbose,v", "Verbose output"),
+		mcfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
+		mcfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
+		mcfp::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
+		mcfp::make_option("icase", "Ignore case (vimdiff option)"),
+		mcfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);
@@ -565,15 +565,11 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().size() != 2)
 	{
-		std::cerr << "cif-diff [options] file1 file2" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	int maxDiffCount = config.get<int>("max-diff-count");
 
@@ -589,11 +585,11 @@ int pr_main(int argc, char *argv[])
 
 	auto input = config.operands();
 
-	gxrio::ifstream if1{input[0]};
+	cif::gzio::ifstream if1{input[0]};
 	if (not if1.is_open())
 		throw std::runtime_error("Could not open file " + input[0]);
 
-	gxrio::ifstream if2(input[1]);
+	cif::gzio::ifstream if2(input[1]);
 	if (not if2.is_open())
 		throw std::runtime_error("Could not open file " + input[1]);
 

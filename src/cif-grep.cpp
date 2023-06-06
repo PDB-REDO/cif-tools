@@ -31,9 +31,9 @@
 #include <functional>
 #include <regex>
 
-#include <gxrio.hpp>
-#include <cfg.hpp>
+#include <mcfp/mcfp.hpp>
 #include <cif++.hpp>
+#include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;
 
@@ -120,24 +120,27 @@ size_t cifGrep(const std::string &pattern, const std::string &tag, const std::st
 
 int pr_main(int argc, char *argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = mcfp::config::instance();
 
 	config.init(
-		cfg::make_option("help,h", "Display help message"),
-		cfg::make_option("version", "Print version"),
-		cfg::make_option("verbose,V", "Verbose output"),
+		"cif-grep [options] file1 file2",
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("version", "Print version"),
+		mcfp::make_option("verbose,V", "Verbose output"),
 
-		cfg::make_option("quiet,q", "Only print files matching pattern"),
-		cfg::make_option("count,c", "Only show number of hits"),
-		cfg::make_option("invert-match,v", "Select fields NOT matching the pattern"),
-		cfg::make_option("line-number,n", "Print line numbers"),
-		cfg::make_option("no-filename,h", "Don't print the filename"),
-		cfg::make_option("with-filename,H", "Do print the filename"),
+		mcfp::make_option<std::string>("item,i", "The item (tag) to search"),
 
-		cfg::make_option("files-with-matches,l", "Print only names of files containing matches"),
-		cfg::make_option("recursive,r", "Search recursively"),
+		mcfp::make_option("quiet,q", "Only print files matching pattern"),
+		mcfp::make_option("count,c", "Only show number of hits"),
+		mcfp::make_option("invert-match,v", "Select fields NOT matching the pattern"),
+		mcfp::make_option("line-number,n", "Print line numbers"),
+		mcfp::make_option("no-filename,h", "Don't print the filename"),
+		mcfp::make_option("with-filename,H", "Do print the filename"),
 
-		cfg::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
+		mcfp::make_option("files-with-matches,l", "Print only names of files containing matches"),
+		mcfp::make_option("recursive,r", "Search recursively"),
+
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
 	);
 
 	config.parse(argc, argv);
@@ -150,15 +153,11 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << "cif-diff [options] file1 file2" << std::endl
-				  << std::endl
-				  << config << std::endl;
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
 	cif::VERBOSE = config.count("verbose");
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
 
 	bool quiet = config.has("quiet");
 	bool filenamesOnly = config.has("files-with-matches");
@@ -187,7 +186,7 @@ int pr_main(int argc, char *argv[])
 		if (item.empty())
 			throw std::runtime_error("Invalid item: '" + item + '\'');
 
-		if (cif::VERBOSE)
+		if (cif::VERBOSE > 0)
 			std::cerr << "matching only for category: " << cat << " and item " << item << std::endl;
 	}
 
@@ -253,10 +252,10 @@ int pr_main(int argc, char *argv[])
 			if (not fs::is_regular_file(f))
 				continue;
 
-			if (cif::VERBOSE)
+			if (cif::VERBOSE > 0)
 				std::cerr << f << std::endl;
 
-			gxrio::ifstream in(f);
+			cif::gzio::ifstream in(f);
 			if (not in.is_open())
 				throw std::runtime_error("Could not open file " + f.string());
 

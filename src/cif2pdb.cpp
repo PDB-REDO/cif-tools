@@ -30,10 +30,9 @@
 #include <chrono>
 #include <filesystem>
 
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <mcfp/mcfp.hpp>
 
-#include <cif++/pdb/io.hpp>
+#include <cif++.hpp>
 
 #include "revision.hpp"
 
@@ -41,18 +40,18 @@ namespace fs = std::filesystem;
 
 int pr_main(int argc, char* argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = mcfp::config::instance();
 
-	config.init(
-		cfg::make_option("help,h",				"Display help message"),
-		cfg::make_option("version",				"Print version"),
-		cfg::make_option("verbose,v",			"Verbose output"),
-		cfg::make_option("no-validate",			"Omit validation of the mmCIF file, forcing output in case of errors"),
-		cfg::make_option<std::string>("dict",	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
-		cfg::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+	config.init("usage: cif2pdb [options] inputfile [outputfile]",
+		mcfp::make_option("help,h",				"Display help message"),
+		mcfp::make_option("version",				"Print version"),
+		mcfp::make_option("verbose,v",			"Verbose output"),
+		mcfp::make_option("no-validate",			"Omit validation of the mmCIF file, forcing output in case of errors"),
+		mcfp::make_option<std::string>("dict",	"The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		mcfp::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
 	);
 
-	config.parse(argc, argv, true);
+	config.parse(argc, argv);
 
 	if (config.has("version"))
 	{
@@ -70,11 +69,6 @@ int pr_main(int argc, char* argv[])
 	if (config.has("debug"))
 		cif::VERBOSE = config.get<int>("debug");
 	
-	// Load dict, if any
-	
-	if (config.has("dict"))
-		cif::compound_factory::instance().push_dictionary(config.get<std::string>("dict"));
-
 	if (config.has("version"))
 	{
 		write_version_string(std::cout, config.has("verbose"));
@@ -93,25 +87,30 @@ int pr_main(int argc, char* argv[])
 	// if (not fs::exists(file) and std::regex_match(input, pdbIdRx))
 	// 	file = fs::path(PDB_DIR) / "mmCIF" / input.substr(1, 2) / (input + ".cif.gz");
 	
-	gxrio::ifstream in(file);
+	cif::gzio::ifstream in(file);
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + file.string());
 
 	cif::file f(in);
 
+	// Load dict, if any
+	if (config.has("dict"))
+		f.load_dictionary(config.get<std::string>("dict"));
+	else if (f.get_validator() == nullptr)
+		f.load_dictionary("mmcif_pdbx");
+
 	if (f.empty() or (not config.has("no-validate") and not f.is_valid()))
 	{
 		std::cerr << "This input mmCIF file is not valid";
-		if (not cif::VERBOSE)
+		if (cif::VERBOSE < 1)
 			std::cerr << ", use the --verbose option to see what errors were found" << std::endl;
-		exit(1);
 	}
 	
 	if (config.operands().size() == 2)
 	{
 		file = config.operands().back();
 
-		gxrio::ofstream out(file);
+		cif::gzio::ofstream out(file);
 
 		cif::pdb::write(out, f.front());
 	}

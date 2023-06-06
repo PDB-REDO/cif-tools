@@ -1,3 +1,18 @@
+Version 1.0.8
+- Print option in cif-validate
+
+Version 1.0.7
+- To keep us busy, libcfp is now libmcfp
+
+Version 1.0.6
+- Switch to new libcfp
+
+Version 1.0.5
+- Remove git submodules to ease packaging
+
+Version 1.0.4
+- Based on new libcifpp
+
 Version 1.0.1a
 - Remove GNU autoconf files.
 

@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.4 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.7 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -37,7 +37,6 @@ include(CMakePackageConfigHelpers)
 include(Dart)
 include(FindFilesystem)
 include(GenerateExportHeader)
-include(AddGitSubmodule)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -48,24 +47,25 @@ find_package(Filesystem REQUIRED)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
 elseif(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
 if(NOT "$ENV{CCP4}" STREQUAL "")
 	set(CCP4 $ENV{CCP4})
 	list(PREPEND CMAKE_MODULE_PATH "${CCP4}/Lib")
 	list(APPEND CMAKE_PREFIX_PATH ${CCP4})
+
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 		set(CMAKE_PREFIX_PATH ${CCP4})
 	endif()
 endif()
 
 if(MSVC)
-    # make msvc standards compliant...
-    add_compile_options(/permissive-)
+	# make msvc standards compliant...
+	add_compile_options(/permissive-)
 
 	macro(get_WIN32_WINNT version)
-		if (WIN32 AND CMAKE_SYSTEM_VERSION)
+		if(WIN32 AND CMAKE_SYSTEM_VERSION)
 			set(ver ${CMAKE_SYSTEM_VERSION})
 			string(REPLACE "." "" ver ${ver})
 			string(REGEX REPLACE "([0-9])" "0\\1" ver ${ver})
@@ -80,26 +80,25 @@ endif()
 
 # Create a revision file, containing the current git version info
 include(VersionString)
-write_version_header()
+write_version_header("${PROJECT_SOURCE_DIR}/src")
 
 # Optionally use mrc to create resources
-find_package(Mrc)
+find_package(Mrc QUIET)
 
 if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
 else()
-	message(WARNING "Not using resources since mrc was not found")
+	message(STATUS "Not using resources since mrc was not found")
 endif()
 
 if(USE_RSRC)
 	add_compile_definitions(USE_RSRC)
 endif()
 
-add_git_submodule(gxrio EXCLUDE_FROM_ALL)
-add_git_submodule(libconfig EXCLUDE_FROM_ALL)
-
-find_package(cifpp 5.0.0 CONFIG REQUIRED)
-# find_package(pdbxpp 5.0.0 CONFIG REQUIRED)
+if(NOT PDB_REDO_META)
+	find_package(libmcfp REQUIRED)
+	find_package(cifpp 5.0.8 CONFIG REQUIRED)
+endif()
 
 list(APPEND programs
 	pdb2cif
@@ -109,25 +108,32 @@ list(APPEND programs
 	cif-merge
 	cif-validate
 	mmCQL
-	# cif-stats
 )
 
 foreach(PROGRAM IN LISTS programs)
-	add_executable(${PROGRAM} ${CMAKE_SOURCE_DIR}/src/${PROGRAM}.cpp ${CMAKE_SOURCE_DIR}/src/pr-main.cpp)
+	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp ${PROJECT_SOURCE_DIR}/src/pr-main.cpp)
 
 	if(USE_RSRC)
-		mrc_target_resources(${PROGRAM} ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ddl.dic)
+		mrc_target_resources(${PROGRAM}
+			${CIFPP_SHARE_DIR}/mmcif_ma.dic
+			${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
+			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_include_directories(${PROGRAM} PRIVATE cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-	target_link_libraries(${PROGRAM} PRIVATE
-		-static-libgcc
-		-static-libstdc++
-		cifpp::cifpp
-		libconfig::libconfig
-		gxrio::gxrio)
+	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp libmcfp::libmcfp)
 
-	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_SOURCE_TGZ ON)
+set(CPACK_SOURCE_TBZ2 OFF)
+set(CPACK_SOURCE_TXZ OFF)
+set(CPACK_SOURCE_TZ OFF)
+set(CPACK_SOURCE_IGNORE_FILES "/build;/.vscode;/.git")
+set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
+set (CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
+include(CPack)
+

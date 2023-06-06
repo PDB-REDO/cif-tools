@@ -31,10 +31,9 @@
 #include <stdexcept>
 #include <filesystem>
 
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <mcfp/mcfp.hpp>
 
-#include <cif++/pdb/io.hpp>
+#include <cif++.hpp>
 
 #include "revision.hpp"
 
@@ -46,18 +45,17 @@ int pr_main(int argc, char* argv[])
 	
 	try
 	{
-		auto &config = cfg::config::instance();
+		auto &config = mcfp::config::instance();
 
-		config.init(
-			cfg::make_option("help,h",				"Display help message"),
-			cfg::make_option("version",				"Print version"),
-			cfg::make_option("verbose,v",			"Verbose output"),
-			cfg::make_option("validate",			"Validate output file before writing"),
-			cfg::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target"),
-			cfg::make_hidden_option<int>("debug,d",	"Debug level (for even more verbose output)")
+		config.init("usage: pdb2cif [options] inputfile [outputfile]",
+			mcfp::make_option("help,h",				"Display help message"),
+			mcfp::make_option("version",				"Print version"),
+			mcfp::make_option("verbose,v",			"Verbose output"),
+			mcfp::make_option("validate",			"Validate output file before writing"),
+			mcfp::make_option<std::string>("dict",	"Dictionary file containing restraints for residues in this specific target")
 		);
 
-		config.parse(argc, argv, true);
+		config.parse(argc, argv);
 	
 		if (config.has("version"))
 		{
@@ -71,9 +69,7 @@ int pr_main(int argc, char* argv[])
 			exit(config.has("help") ? 0 : 1);
 		}
 	
-		cif::VERBOSE = config.has("verbose") != 0;
-		if (config.has("debug"))
-			cif::VERBOSE = config.get<int>("debug");
+		cif::VERBOSE = config.count("verbose");
 		
 		// Load dict, if any
 		
@@ -85,7 +81,7 @@ int pr_main(int argc, char* argv[])
 		
 		fs::path file = input;
 
-		gxrio::ifstream in(file);
+		cif::gzio::ifstream in(file);
 
 		if (not in.is_open())
 			throw std::runtime_error("Could not open file " + file.string());
@@ -98,7 +94,7 @@ int pr_main(int argc, char* argv[])
 		if (config.operands().size() == 2)
 		{
 			file = config.operands().back();
-			gxrio::ofstream out(file);
+			cif::gzio::ofstream out(file);
 			f.save(out);
 		}
 		else
