@@ -120,11 +120,11 @@ class templateParser : public cif::sac_parser
 	{
 	}
 
-	void produce_datablock(const std::string &name) override
+	void produce_datablock(std::string_view name) override
 	{
 	}
 
-	void produce_category(const std::string &name) override
+	void produce_category(std::string_view name) override
 	{
 	}
 
@@ -132,11 +132,12 @@ class templateParser : public cif::sac_parser
 	{
 	}
 
-	void produce_item(const std::string &category, const std::string &item, const std::string &value) override
+	void produce_item(std::string_view category, std::string_view item, std::string_view value) override
 	{
-		std::string tag = "_" + category + "." + item;
-		if (find(mOrder.rbegin(), mOrder.rend(), tag) == mOrder.rend())
-			mOrder.push_back(tag);
+		std::ostringstream tag;
+		tag << '_' << category << '.' << item;
+		if (find(mOrder.rbegin(), mOrder.rend(), tag.str()) == mOrder.rend())
+			mOrder.push_back(tag.str());
 	}
 
 	std::vector<std::string> mOrder;
