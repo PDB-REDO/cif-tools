@@ -1,3 +1,6 @@
+Version 1.0.9
+- Update for new api in libcifpp
+
 Version 1.0.8
 - Print option in cif-validate
 

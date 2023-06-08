@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(cif-tools VERSION 1.0.7 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.9 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -97,7 +97,7 @@ endif()
 
 if(NOT PDB_REDO_META)
 	find_package(libmcfp REQUIRED)
-	find_package(cifpp 5.0.8 CONFIG REQUIRED)
+	find_package(cifpp 5.1 CONFIG REQUIRED)
 endif()
 
 list(APPEND programs
