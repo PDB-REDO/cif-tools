@@ -40,6 +40,7 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
 		mcfp::make_option("validate-links", "Validate all links"),
+		mcfp::make_option("syntax-only", "Quickly check to see if the syntax is correct"),
 		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
 		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'")
 		);
@@ -59,6 +60,40 @@ int pr_main(int argc, char *argv[])
 	}
 
 	cif::VERBOSE = config.count("verbose");
+
+	if (config.has("syntax-only"))
+	{
+		class dummy_parser : public cif::sac_parser
+		{
+		public:
+			dummy_parser(std::istream &is)
+				: sac_parser(is)
+			{
+			}
+
+			void produce_datablock(std::string_view name) override
+			{
+			}
+
+			void produce_category(std::string_view name) override
+			{
+			}
+
+			void produce_row() override
+			{
+			}
+
+			void produce_item(std::string_view category, std::string_view item, std::string_view value) override
+			{
+			}
+		};
+
+		cif::gzio::ifstream in(config.operands().front());
+		dummy_parser parser(in);
+		parser.parse_file();
+
+		return 0;
+	}
 
 	cif::file f(config.operands().front());
 
