@@ -89,6 +89,7 @@ if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
 else()
 	message(STATUS "Not using resources since mrc was not found")
+	set(USE_RSRC FALSE)
 endif()
 
 if(USE_RSRC)
