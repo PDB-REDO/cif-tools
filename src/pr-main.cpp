@@ -24,8 +24,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cif-tools.hpp"
-
 #include <sys/time.h>
 #include <sys/resource.h>
 
