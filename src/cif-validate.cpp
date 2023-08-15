@@ -31,6 +31,38 @@
 
 #include "revision.hpp"
 
+class dummy_parser : public cif::sac_parser
+{
+public:
+	dummy_parser(std::istream &is)
+		: sac_parser(is)
+	{
+	}
+
+	void produce_datablock(std::string_view name) override
+	{
+	}
+
+	void produce_category(std::string_view name) override
+	{
+	}
+
+	void produce_row() override
+	{
+	}
+
+	void produce_item(std::string_view category, std::string_view item, std::string_view value) override
+	{
+	}
+};
+
+void validate_syntax(const std::string &file)
+{
+	cif::gzio::ifstream in(file);
+	dummy_parser parser(in);
+	parser.parse_file();
+}
+
 int pr_main(int argc, char *argv[])
 {
 	auto &config = mcfp::config::instance();
@@ -61,67 +93,45 @@ int pr_main(int argc, char *argv[])
 
 	cif::VERBOSE = config.count("verbose");
 
-	if (config.has("syntax-only"))
+	int result = 0;
+
+	if (config.has("syntax-only") and not config.has("print"))
+		validate_syntax(config.operands().front());
+	else
 	{
-		class dummy_parser : public cif::sac_parser
+		cif::file f(config.operands().front());
+
+		if (not config.has("syntax-only"))
 		{
-		public:
-			dummy_parser(std::istream &is)
-				: sac_parser(is)
+			if (config.count("dict"))
+				f.load_dictionary(config.get<std::string>("dict"));
+
+			if (f.get_validator() == nullptr)
 			{
+				std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl
+						<< "However, the syntax seems to be OK" << std::endl;
 			}
-
-			void produce_datablock(std::string_view name) override
-			{
-			}
-
-			void produce_category(std::string_view name) override
-			{
-			}
-
-			void produce_row() override
-			{
-			}
-
-			void produce_item(std::string_view category, std::string_view item, std::string_view value) override
-			{
-			}
-		};
-
-		cif::gzio::ifstream in(config.operands().front());
-		dummy_parser parser(in);
-		parser.parse_file();
-
-		return 0;
-	}
-
-	cif::file f(config.operands().front());
-
-	if (config.count("dict"))
-		f.load_dictionary(config.get<std::string>("dict"));
-
-	if (f.get_validator() == nullptr)
-	{
-		std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl;
-		exit(1);
-	}
-
-	int result = f.is_valid() ? 0 : 1;
-
-	if (config.has("validate-links"))
-		f.validate_links();
-
-	if (config.has("print"))
-	{
-		if (config.operands().size() == 1)
-			f.save(std::cout);
-		else
-		{
-			std::ofstream out(config.operands()[1]);
-			if (not out.is_open())
-				std::cerr << "Could not open output file" << std::endl;
 			else
-				f.save(out);
+			{
+				result = f.is_valid() ? 0 : 1;
+
+				if (config.has("validate-links"))
+					f.validate_links();
+			}
+		}
+
+		if (config.has("print"))
+		{
+			if (config.operands().size() == 1)
+				f.save(std::cout);
+			else
+			{
+				std::ofstream out(config.operands()[1]);
+				if (not out.is_open())
+					std::cerr << "Could not open output file" << std::endl;
+				else
+					f.save(out);
+			}
 		}
 	}
 

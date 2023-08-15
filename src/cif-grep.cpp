@@ -123,7 +123,7 @@ int pr_main(int argc, char *argv[])
 	auto &config = mcfp::config::instance();
 
 	config.init(
-		"cif-grep [options] file1 file2",
+		"cif-grep [options] pattern file1 [file2...]",
 		mcfp::make_option("help,h", "Display help message"),
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option("verbose,V", "Verbose output"),
