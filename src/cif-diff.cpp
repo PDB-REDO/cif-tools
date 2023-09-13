@@ -359,7 +359,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 	if (not diffs.empty())
 	{
-		std::cout << std::string(cif::get_terminal_width(), '-') << std::endl
+		std::cout << std::string(mcfp::get_terminal_width(), '-') << std::endl
 				  << "Differences in values for category " << a.name() << std::endl
 				  << std::endl;
 
