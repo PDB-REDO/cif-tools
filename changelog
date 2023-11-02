@@ -1,3 +1,6 @@
+Version 1.0.11
+- Changes required to build on Windows
+
 Version 1.0.10
 - Added --syntax-only option to cif-validate
 - updated version string module
