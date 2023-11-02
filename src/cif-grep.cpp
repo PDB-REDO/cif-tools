@@ -207,7 +207,7 @@ int pr_main(int argc, char *argv[])
 		if (config.has("recursive"))
 		{
 			if (files.empty())
-				files.push_back(fs::current_path());
+				files.push_back(fs::current_path().string());
 
 			std::vector<std::string> expanded;
 			for (auto file : files)

@@ -26,8 +26,6 @@
 
 #include "revision.hpp"
 
-#include <sys/wait.h>
-
 #include <fstream>
 #include <functional>
 #include <filesystem>

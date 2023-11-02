@@ -24,8 +24,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
+#endif
 
 #include <stdexcept>
 #include <iostream>
@@ -40,6 +42,7 @@ int pr_main(int argc, char* argv[]);
 
 // --------------------------------------------------------------------
 
+#ifndef WIN32
 std::ostream& operator<<(std::ostream& os, const struct timeval& t)
 {
 	uint64_t s = t.tv_sec;
@@ -125,6 +128,7 @@ class RUsage
 
 	std::chrono::time_point<std::chrono::system_clock>	start = std::chrono::system_clock::now();
 };
+#endif
 
 // --------------------------------------------------------------------
 
@@ -147,7 +151,9 @@ int main(int argc, char* argv[])
 {
 	int result = -1;
 	
+#ifndef WIN32
 	RUsage r;
+#endif
 	
 	try
 	{

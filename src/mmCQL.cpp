@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,26 +26,27 @@
 
 #include "revision.hpp"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 #include <functional>
-#include <unordered_set>
 #include <stack>
+#include <unordered_set>
 
-#include <mcfp/mcfp.hpp>
 #include <cif++.hpp>
 #include <cif++/gzio.hpp>
+#include <mcfp/mcfp.hpp>
 
 namespace fs = std::filesystem;
 
 using unicode = char32_t;
 
-namespace zeep {
+namespace zeep
+{
 
 // inlines
 
 /// \brief Append a single unicode character to an utf-8 string
-inline void append(std::string& s, unicode uc)
+inline void append(std::string &s, unicode uc)
 {
 	if (uc < 0x080)
 		s += (static_cast<char>(uc));
@@ -79,14 +80,14 @@ inline void append(std::string& s, unicode uc)
 }
 
 /// \brief remove the last unicode character from an utf-8 string
-inline unicode pop_last_char(std::string& s)
+inline unicode pop_last_char(std::string &s)
 {
 	unicode result = 0;
 
 	if (not s.empty())
 	{
 		std::string::iterator ch = s.end() - 1;
-		
+
 		if ((*ch & 0x0080) == 0)
 		{
 			result = *ch;
@@ -95,33 +96,32 @@ inline unicode pop_last_char(std::string& s)
 		else
 		{
 			int o = 0;
-			
+
 			do
 			{
 				result |= (*ch & 0x03F) << o;
 				o += 6;
 				--ch;
-			}
-			while (ch != s.begin() and (*ch & 0x0C0) == 0x080);
-			
+			} while (ch != s.begin() and (*ch & 0x0C0) == 0x080);
+
 			switch (o)
 			{
-				case  6: result |= (*ch & 0x01F) <<  6; break;
+				case 6: result |= (*ch & 0x01F) << 6; break;
 				case 12: result |= (*ch & 0x00F) << 12; break;
 				case 18: result |= (*ch & 0x007) << 18; break;
 			}
-			
+
 			s.erase(ch, s.end());
 		}
 	}
-	
+
 	return result;
 }
 
 // this code only works if the input is valid utf-8
 /// \brief return the first unicode and the advanced pointer from a string
-template<typename Iter>
-std::tuple<unicode,Iter> get_first_char(Iter ptr)
+template <typename Iter>
+std::tuple<unicode, Iter> get_first_char(Iter ptr)
 {
 	unicode result = static_cast<unsigned char>(*ptr);
 	++ptr;
@@ -129,23 +129,29 @@ std::tuple<unicode,Iter> get_first_char(Iter ptr)
 	if (result > 0x07f)
 	{
 		unsigned char ch[3];
-		
+
 		if ((result & 0x0E0) == 0x0C0)
 		{
-			ch[0] = static_cast<unsigned char>(*ptr); ++ptr;
+			ch[0] = static_cast<unsigned char>(*ptr);
+			++ptr;
 			result = ((result & 0x01F) << 6) | (ch[0] & 0x03F);
 		}
 		else if ((result & 0x0F0) == 0x0E0)
 		{
-			ch[0] = static_cast<unsigned char>(*ptr); ++ptr;
-			ch[1] = static_cast<unsigned char>(*ptr); ++ptr;
+			ch[0] = static_cast<unsigned char>(*ptr);
+			++ptr;
+			ch[1] = static_cast<unsigned char>(*ptr);
+			++ptr;
 			result = ((result & 0x00F) << 12) | ((ch[0] & 0x03F) << 6) | (ch[1] & 0x03F);
 		}
 		else if ((result & 0x0F8) == 0x0F0)
 		{
-			ch[0] = static_cast<unsigned char>(*ptr); ++ptr;
-			ch[1] = static_cast<unsigned char>(*ptr); ++ptr;
-			ch[2] = static_cast<unsigned char>(*ptr); ++ptr;
+			ch[0] = static_cast<unsigned char>(*ptr);
+			++ptr;
+			ch[1] = static_cast<unsigned char>(*ptr);
+			++ptr;
+			ch[2] = static_cast<unsigned char>(*ptr);
+			++ptr;
 			result = ((result & 0x007) << 18) | ((ch[0] & 0x03F) << 12) | ((ch[1] & 0x03F) << 6) | (ch[2] & 0x03F);
 		}
 	}
@@ -158,7 +164,7 @@ std::tuple<unicode,Iter> get_first_char(Iter ptr)
 inline std::string to_hex(uint32_t i)
 {
 	char s[sizeof(i) * 2 + 3];
-	char* p = s + sizeof(s);
+	char *p = s + sizeof(s);
 	*--p = 0;
 
 	const char kHexChars[] = "0123456789abcdef";
@@ -173,8 +179,8 @@ inline std::string to_hex(uint32_t i)
 	*--p = '0';
 
 	return p;
-}	
 }
+} // namespace zeep
 
 // -----------------------------------------------------------------------
 
@@ -192,8 +198,8 @@ typedef std::shared_ptr<Statement> StatementPtr;
 class Statement
 {
   public:
-	Statement(const Statement& ) = delete;
-	Statement& operator=(const Statement&) = delete;
+	Statement(const Statement &) = delete;
+	Statement &operator=(const Statement &) = delete;
 
 	virtual ~Statement() {}
 
@@ -217,7 +223,7 @@ class StatementList : public Statement
 
 	virtual void Execute()
 	{
-		for (auto stmt: mStatements)
+		for (auto stmt : mStatements)
 			stmt->Execute();
 	}
 
@@ -230,8 +236,13 @@ class StatementList : public Statement
 class SelectStatement : public Statement
 {
   public:
-	SelectStatement(cif::category& category, bool distinct, std::vector<std::string>&& items, cif::condition&& where)
-		: mCategory(category), mDistinct(distinct), mItems(std::move(items)), mWhere(std::move(where)) {}
+	SelectStatement(cif::category &category, bool distinct, std::vector<std::string> &&items, cif::condition &&where)
+		: mCategory(category)
+		, mDistinct(distinct)
+		, mItems(std::move(items))
+		, mWhere(std::move(where))
+	{
+	}
 
 	virtual void Execute()
 	{
@@ -240,12 +251,13 @@ class SelectStatement : public Statement
 
 		std::cout << cif::join(mItems, "\t") << std::endl;
 
-		for (auto r: mCategory.find(std::move(mWhere)))
+		for (auto r : mCategory.find(std::move(mWhere)))
 		{
 			transform(mItems.begin(), mItems.end(), fields.begin(),
-				[r](auto item) {
+				[r](auto item)
+				{
 					return r[item].template as<std::string>();
-					});
+				});
 
 			std::string line = cif::join(fields, "\t");
 			bool seenLine = seen.count(line);
@@ -259,7 +271,7 @@ class SelectStatement : public Statement
 	}
 
   private:
-	cif::category& mCategory;
+	cif::category &mCategory;
 	bool mDistinct;
 	std::vector<std::string> mItems;
 	cif::condition mWhere;
@@ -270,29 +282,32 @@ class SelectStatement : public Statement
 class DeleteStatement : public Statement
 {
   public:
-	DeleteStatement(cif::category& category, cif::condition&& where)
-		: mCategory(category), mWhere(std::move(where)) {}
+	DeleteStatement(cif::category &category, cif::condition &&where)
+		: mCategory(category)
+		, mWhere(std::move(where))
+	{
+	}
 
 	virtual void Execute()
 	{
 		std::vector<cif::row_handle> remove;
-		
+
 		mWhere.prepare(mCategory);
 
-		for (auto r: mCategory)
+		for (auto r : mCategory)
 		{
 			if (mWhere(r))
 				remove.insert(remove.end(), r);
 		}
 
-		for (auto r: remove)
+		for (auto r : remove)
 			mCategory.erase(r);
 
 		std::cout << "Number of removed rows " << remove.size() << std::endl;
 	}
 
   private:
-	cif::category& mCategory;
+	cif::category &mCategory;
 	cif::condition mWhere;
 };
 
@@ -301,8 +316,12 @@ class DeleteStatement : public Statement
 class UpdateStatement : public Statement
 {
   public:
-	UpdateStatement(cif::category& category, std::vector<std::pair<std::string,std::string>>&& itemValuePairs, cif::condition&& where)
-		: mCategory(category), mItemValuePairs(std::move(itemValuePairs)), mWhere(std::move(where)) {}
+	UpdateStatement(cif::category &category, std::vector<std::pair<std::string, std::string>> &&itemValuePairs, cif::condition &&where)
+		: mCategory(category)
+		, mItemValuePairs(std::move(itemValuePairs))
+		, mWhere(std::move(where))
+	{
+	}
 
 	virtual void Execute()
 	{
@@ -310,11 +329,11 @@ class UpdateStatement : public Statement
 
 		mWhere.prepare(mCategory);
 
-		for (auto r: mCategory)
+		for (auto r : mCategory)
 		{
 			if (mWhere(r))
 			{
-				for (auto iv: mItemValuePairs)
+				for (auto iv : mItemValuePairs)
 					r[iv.first] = iv.second;
 
 				++updated;
@@ -325,8 +344,8 @@ class UpdateStatement : public Statement
 	}
 
   private:
-	cif::category& mCategory;
-	std::vector<std::pair<std::string,std::string>> mItemValuePairs;
+	cif::category &mCategory;
+	std::vector<std::pair<std::string, std::string>> mItemValuePairs;
 	cif::condition mWhere;
 };
 
@@ -335,17 +354,16 @@ class UpdateStatement : public Statement
 class Parser
 {
   public:
-	Parser(cif::datablock& db)
+	Parser(cif::datablock &db)
 		: mDb(db)
 	{
 		if (mDb.empty())
 			throw std::runtime_error("Empty datablock");
 	}
 
-	StatementPtr Parse(std::streambuf* is);
+	StatementPtr Parse(std::streambuf *is);
 
   private:
-
 	enum class Token
 	{
 		eoln,
@@ -395,46 +413,46 @@ class Parser
 	{
 		switch (token)
 		{
-			case Token::eoln:   	return "<EOLN>";
-			case Token::undef:		return "<UNDEFINED>";
-			case Token::braceopen:	return "'('";
-			case Token::braceclose:	return "')'";
+			case Token::eoln: return "<EOLN>";
+			case Token::undef: return "<UNDEFINED>";
+			case Token::braceopen: return "'('";
+			case Token::braceclose: return "')'";
 
-			case Token::dot:		return "'.'";
-			case Token::comma:		return "','";
-			case Token::colon:		return "':'";
-			case Token::semicolon:	return "';'";
-			case Token::asterisk:	return "'*'";
+			case Token::dot: return "'.'";
+			case Token::comma: return "','";
+			case Token::colon: return "':'";
+			case Token::semicolon: return "';'";
+			case Token::asterisk: return "'*'";
 
-			case Token::eq_:		return "'='";
-			case Token::lt_:		return "'<'";
-			case Token::le_:		return "'<='";
-			case Token::gt_:		return "'>'";
-			case Token::ge_:		return "'>='";
-			case Token::ne_:		return "'<>'";
+			case Token::eq_: return "'='";
+			case Token::lt_: return "'<'";
+			case Token::le_: return "'<='";
+			case Token::gt_: return "'>'";
+			case Token::ge_: return "'>='";
+			case Token::ne_: return "'<>'";
 
-			case Token::string:		return "string";
-			case Token::integer:	return "integer";
-			case Token::number:		return "number";
-			case Token::ident:		return "identifier";
+			case Token::string: return "string";
+			case Token::integer: return "integer";
+			case Token::number: return "number";
+			case Token::ident: return "identifier";
 
-			case Token::select:		return "SELECT";
-			case Token::distinct:	return "DISTINCT";
-			case Token::from:		return "FROM";
-			case Token::update:		return "UPDATE";
-			case Token::set:		return "SET";
-			case Token::where:		return "WHERE";
-			case Token::and_:		return "AND";
-			case Token::or_:		return "OR";
-			case Token::not_:		return "NOT";
-			case Token::insert:		return "INSERT";
-			case Token::delete_:	return "DELETE";
-			case Token::into:		return "INTO";
-			case Token::values:		return "VALUES";
-			case Token::is_:		return "IS";
-			case Token::null_:		return "NULL";
+			case Token::select: return "SELECT";
+			case Token::distinct: return "DISTINCT";
+			case Token::from: return "FROM";
+			case Token::update: return "UPDATE";
+			case Token::set: return "SET";
+			case Token::where: return "WHERE";
+			case Token::and_: return "AND";
+			case Token::or_: return "OR";
+			case Token::not_: return "NOT";
+			case Token::insert: return "INSERT";
+			case Token::delete_: return "DELETE";
+			case Token::into: return "INTO";
+			case Token::values: return "VALUES";
+			case Token::is_: return "IS";
+			case Token::null_: return "NULL";
 
-			default:			assert(false); return "unknown token";
+			default: assert(false); return "unknown token";
 		}
 	}
 
@@ -453,11 +471,11 @@ class Parser
 	StatementPtr ParseUpdate();
 	std::vector<std::string> ParseItemList();
 
-	cif::condition ParseWhereClause(cif::category& cat);
-	cif::condition ParseNotWhereClause(cif::category& cat);
+	cif::condition ParseWhereClause(cif::category &cat);
+	cif::condition ParseNotWhereClause(cif::category &cat);
 
-	cif::datablock& mDb;
-	std::streambuf* mIs;
+	cif::datablock &mDb;
+	std::streambuf *mIs;
 	Token mLookahead;
 	std::stack<unicode> mBuffer;
 	std::string mToken;
@@ -557,7 +575,8 @@ unicode Parser::GetNextChar()
 	{
 		char ch[2] = {
 			static_cast<char>(0x0c0 | (result >> 6)),
-			static_cast<char>(0x080 | (result & 0x3f))};
+			static_cast<char>(0x080 | (result & 0x3f))
+		};
 		mToken.append(ch, 2);
 	}
 	else if (result < 0x00010000)
@@ -565,7 +584,8 @@ unicode Parser::GetNextChar()
 		char ch[3] = {
 			static_cast<char>(0x0e0 | (result >> 12)),
 			static_cast<char>(0x080 | ((result >> 6) & 0x3f)),
-			static_cast<char>(0x080 | (result & 0x3f))};
+			static_cast<char>(0x080 | (result & 0x3f))
+		};
 		mToken.append(ch, 3);
 	}
 	else
@@ -574,7 +594,8 @@ unicode Parser::GetNextChar()
 			static_cast<char>(0x0f0 | (result >> 18)),
 			static_cast<char>(0x080 | ((result >> 12) & 0x3f)),
 			static_cast<char>(0x080 | ((result >> 6) & 0x3f)),
-			static_cast<char>(0x080 | (result & 0x3f))};
+			static_cast<char>(0x080 | (result & 0x3f))
+		};
 		mToken.append(ch, 4);
 	}
 
@@ -589,39 +610,37 @@ void Parser::Retract()
 
 bool is_name_start_char(unicode uc)
 {
-	return
-		(uc >= L'A' and uc <= L'Z') or
-		uc == L'_' or
-		(uc >= L'a' and uc <= L'z') or
-		(uc >= 0x0C0 and uc <= 0x0D6) or
-		(uc >= 0x0D8 and uc <= 0x0F6) or
-		(uc >= 0x0F8 and uc <= 0x02FF) or
-		(uc >= 0x0370 and uc <= 0x037D) or
-		(uc >= 0x037F and uc <= 0x01FFF) or
-		(uc >= 0x0200C and uc <= 0x0200D) or
-		(uc >= 0x02070 and uc <= 0x0218F) or
-		(uc >= 0x02C00 and uc <= 0x02FEF) or
-		(uc >= 0x03001 and uc <= 0x0D7FF) or
-		(uc >= 0x0F900 and uc <= 0x0FDCF) or
-		(uc >= 0x0FDF0 and uc <= 0x0FFFD) or
-		(uc >= 0x010000 and uc <= 0x0EFFFF);	
+	return (uc >= L'A' and uc <= L'Z') or
+	       uc == L'_' or
+	       (uc >= L'a' and uc <= L'z') or
+	       (uc >= 0x0C0 and uc <= 0x0D6) or
+	       (uc >= 0x0D8 and uc <= 0x0F6) or
+	       (uc >= 0x0F8 and uc <= 0x02FF) or
+	       (uc >= 0x0370 and uc <= 0x037D) or
+	       (uc >= 0x037F and uc <= 0x01FFF) or
+	       (uc >= 0x0200C and uc <= 0x0200D) or
+	       (uc >= 0x02070 and uc <= 0x0218F) or
+	       (uc >= 0x02C00 and uc <= 0x02FEF) or
+	       (uc >= 0x03001 and uc <= 0x0D7FF) or
+	       (uc >= 0x0F900 and uc <= 0x0FDCF) or
+	       (uc >= 0x0FDF0 and uc <= 0x0FFFD) or
+	       (uc >= 0x010000 and uc <= 0x0EFFFF);
 }
 
 bool is_name_char(unicode uc)
 {
-	return
-		(uc >= '0' and uc <= '9') or
-		uc == 0x0B7 or
-		is_name_start_char(uc) or
-		(uc >= 0x00300 and uc <= 0x0036F) or
-		(uc >= 0x0203F and uc <= 0x02040);
+	return (uc >= '0' and uc <= '9') or
+	       uc == 0x0B7 or
+	       is_name_start_char(uc) or
+	       (uc >= 0x00300 and uc <= 0x0036F) or
+	       (uc >= 0x0203F and uc <= 0x02040);
 }
 
 Parser::Token Parser::GetNextToken()
 {
 	enum class State
 	{
- 		Start,
+		Start,
 		Negative,
 		Zero,
 		NegativeZero,
@@ -646,7 +665,7 @@ Parser::Token Parser::GetNextToken()
 	double fraction = 1.0, exponent = 1;
 	bool negative = false, negativeExp = false;
 
-	unicode hx;
+	unicode hx = 0;
 
 	mToken.clear();
 
@@ -656,312 +675,328 @@ Parser::Token Parser::GetNextToken()
 
 		switch (state)
 		{
-		case State::Start:
-			switch (ch)
-			{
-			case 0:
-				token = Token::eoln;
-				break;
-			case '(':
-				token = Token::braceopen;
-				break;
-			case ')':
-				token = Token::braceclose;
-				break;
-			// case '[':
-			// 	token = Token::LeftBracket;
-			// 	break;
-			// case ']':
-			// 	token = Token::RightBracket;
-			// 	break;
-			case '.':
-				token = Token::dot;
-				break;
-			case ',':
-				token = Token::comma;
-				break;
-			case ':':
-				token  = Token::colon;
-				break;
-			case ';':
-				token  = Token::semicolon;
-				break;
-			case '*':
-				token = Token::asterisk;
-				break;
-			case '=':
-				token = Token::eq_;
-				break;
-			case '<':
-				state = State::Less;
-				break;
-			case '>':
-				state = State::Greater;
-				break;
-			case ' ':
-			case '\n':
-			case '\r':
-			case '\t':
-				mToken.clear();
-				break;
-			case '\'':
-				mToken.pop_back();
-				state = State::String;
-				break;
-			case '-':
-				state = State::Negative;
-				break;
-			default:
-				if (ch == '0')
+			case State::Start:
+				switch (ch)
 				{
-					state = State::Zero;
-					mTokenInteger = 0;
+					case 0:
+						token = Token::eoln;
+						break;
+					case '(':
+						token = Token::braceopen;
+						break;
+					case ')':
+						token = Token::braceclose;
+						break;
+					// case '[':
+					// 	token = Token::LeftBracket;
+					// 	break;
+					// case ']':
+					// 	token = Token::RightBracket;
+					// 	break;
+					case '.':
+						token = Token::dot;
+						break;
+					case ',':
+						token = Token::comma;
+						break;
+					case ':':
+						token = Token::colon;
+						break;
+					case ';':
+						token = Token::semicolon;
+						break;
+					case '*':
+						token = Token::asterisk;
+						break;
+					case '=':
+						token = Token::eq_;
+						break;
+					case '<':
+						state = State::Less;
+						break;
+					case '>':
+						state = State::Greater;
+						break;
+					case ' ':
+					case '\n':
+					case '\r':
+					case '\t':
+						mToken.clear();
+						break;
+					case '\'':
+						mToken.pop_back();
+						state = State::String;
+						break;
+					case '-':
+						state = State::Negative;
+						break;
+					default:
+						if (ch == '0')
+						{
+							state = State::Zero;
+							mTokenInteger = 0;
+						}
+						else if (ch >= '1' and ch <= '9')
+						{
+							mTokenInteger = ch - '0';
+							state = State::Number;
+						}
+						else if (is_name_start_char(ch))
+							state = State::Literal;
+						else
+							throw std::runtime_error("invalid character (" + zeep::to_hex(ch) + "/'" + (isprint(ch) ? static_cast<char>(ch) : '.') + "') in command");
 				}
+				break;
+
+			case State::Less:
+				if (ch == '=')
+					token = Token::le_;
+				else if (ch == '>')
+					token = Token::ne_;
+				else
+				{
+					Retract();
+					token = Token::lt_;
+				}
+				break;
+
+			case State::Greater:
+				if (ch == '=')
+					token = Token::ge_;
+				else
+				{
+					Retract();
+					token = Token::gt_;
+				}
+				break;
+
+			case State::Negative:
+				if (ch == '0')
+					state = State::NegativeZero;
 				else if (ch >= '1' and ch <= '9')
 				{
-					mTokenInteger = ch - '0';
 					state = State::Number;
+					mTokenInteger = ch - '0';
+					negative = true;
 				}
-				else if (is_name_start_char(ch))
-					state = State::Literal;
 				else
-					throw std::runtime_error("invalid character (" + zeep::to_hex(ch) + "/'" + (isprint(ch) ? static_cast<char>(ch) : '.') + "') in command");
-			}
-			break;
-		
-		case State::Less:
-			if (ch == '=')
-				token = Token::le_;
-			else if (ch == '>')
-				token = Token::ne_;
-			else
-			{
-				Retract();
-				token = Token::lt_;
-			}
-			break;
+					throw std::runtime_error("invalid character '-' in command");
+				break;
 
-		case State::Greater:
-			if (ch == '=')
-				token = Token::ge_;
-			else
-			{
-				Retract();
-				token = Token::gt_;
-			}
-			break;
-
-		case State::Negative:
-			if (ch == '0')
-				state = State::NegativeZero;
-			else if (ch >= '1' and ch <= '9')
-			{
-				state = State::Number;
-				mTokenInteger = ch - '0';
-				negative = true;
-			}
-			else
-				throw std::runtime_error("invalid character '-' in command");
-			break;
-
-		case State::NegativeZero:
-			if (ch >= '0' or ch <= '9')
-				throw std::runtime_error("invalid number in command, should not start with zero");
-			token = Token::number;
-			break;
-
-		case State::Zero:
-			if (ch >= '0' or ch <= '9')
-				throw std::runtime_error("invalid number in command, should not start with zero");
-			token = Token::number;
-			break;
-
-		case State::Number:
-			if (ch >= '0' and ch <= '9')
-				mTokenInteger = 10 * mTokenInteger + (ch - '0');
-			else if (ch == '.')
-			{
-				mTokenFloat = mTokenInteger;
-				fraction = 0.1;
-				state = State::NumberFraction;
-			}
-			else
-			{
-				Retract();
-				token = Token::integer;
-			}
-			break;
-
-		case State::NumberFraction:
-			if (ch >= '0' and ch <= '9')
-			{
-				mTokenFloat += fraction * (ch - '0');
-				fraction /= 10;
-			}
-			else if (ch == 'e' or ch == 'E')
-				state = State::NumberExpSign;
-			else
-			{
-				Retract();
+			case State::NegativeZero:
+				if (ch >= '0' or ch <= '9')
+					throw std::runtime_error("invalid number in command, should not start with zero");
 				token = Token::number;
-			}
-			break;
+				break;
 
-		case State::NumberExpSign:
-			if (ch == '+')
-				state = State::NumberExpDigit1;
-			else if (ch == '-')
-			{
-				negativeExp = true;
-				state = State::NumberExpDigit1;
-			}
-			else if (ch >= '0' and ch <= '9')
-			{
-				exponent = (ch - '0');
-				state = State::NumberExpDigit2;
-			}
-			break;
-		
-		case State::NumberExpDigit1:
-			if (ch >= '0' and ch <= '9')
-			{
-				exponent = (ch - '0');
-				state = State::NumberExpDigit2;
-			}
-			else
-				throw std::runtime_error("invalid floating point format in command");
-			break;
-
-		case State::NumberExpDigit2:
-			if (ch >= '0' and ch <= '9')
-				exponent = 10 * exponent + (ch - '0');
-			else
-			{
-				Retract();
-				mTokenFloat *= pow(10, (negativeExp ? -1 : 1) * exponent);
-				if (negative)
-					mTokenFloat = -mTokenFloat;
+			case State::Zero:
+				if (ch >= '0' or ch <= '9')
+					throw std::runtime_error("invalid number in command, should not start with zero");
 				token = Token::number;
-			}
-			break;
+				break;
 
-		case State::Literal:
-			if (not is_name_char(ch))
-			{
-				Retract();
+			case State::Number:
+				if (ch >= '0' and ch <= '9')
+					mTokenInteger = 10 * mTokenInteger + (ch - '0');
+				else if (ch == '.')
+				{
+					mTokenFloat = mTokenInteger;
+					fraction = 0.1;
+					state = State::NumberFraction;
+				}
+				else
+				{
+					Retract();
+					token = Token::integer;
+				}
+				break;
 
-					 if (iequals(mToken, "SELECT")) 	token = Token::select;
-				else if (iequals(mToken, "DISTINCT")) 	token = Token::distinct;
-				else if (iequals(mToken, "FROM")) 		token = Token::from;
-				else if (iequals(mToken, "UPDATE")) 	token = Token::update;
-				else if (iequals(mToken, "SET")) 		token = Token::set;
-				else if (iequals(mToken, "WHERE")) 		token = Token::where;
-				else if (iequals(mToken, "AND")) 		token = Token::and_;
-				else if (iequals(mToken, "OR")) 		token = Token::or_;
-				else if (iequals(mToken, "NOT")) 		token = Token::not_;
-				else if (iequals(mToken, "INSERT")) 	token = Token::insert;
-				else if (iequals(mToken, "DELETE")) 	token = Token::delete_;
-				else if (iequals(mToken, "INTO")) 		token = Token::into;
-				else if (iequals(mToken, "VALUES")) 	token = Token::values;
-				else if (iequals(mToken, "IS")) 		token = Token::is_;
-				else if (iequals(mToken, "NULL")) 		token = Token::null_;
-				else									token = Token::ident;
-			}
-			break;
-		
-		case State::String:
-			if (ch == '\'')
-			{
-				token = Token::string;
-				mToken.pop_back();
-			}
-			else if (ch == 0)
-				throw std::runtime_error("Invalid unterminated std::string in command");
-			else if (ch == '\\')
-			{
-				state = State::Escape;
-				mToken.pop_back();
-			}
-			break;
-		
-		case State::Escape:
-			switch (ch)
-			{
-				case '\'':	
-				case '\\':	
-				case '/':	
-					break;
-				
-				case 'n':	mToken.back() = '\n'; break;
-				case 't':	mToken.back() = '\t'; break;
-				case 'r':	mToken.back() = '\r'; break;
-				case 'f':	mToken.back() = '\f'; break;
-				case 'b':	mToken.back() = '\b'; break;
+			case State::NumberFraction:
+				if (ch >= '0' and ch <= '9')
+				{
+					mTokenFloat += fraction * (ch - '0');
+					fraction /= 10;
+				}
+				else if (ch == 'e' or ch == 'E')
+					state = State::NumberExpSign;
+				else
+				{
+					Retract();
+					token = Token::number;
+				}
+				break;
 
-				case 'u':
-					state = State::EscapeHex1;
+			case State::NumberExpSign:
+				if (ch == '+')
+					state = State::NumberExpDigit1;
+				else if (ch == '-')
+				{
+					negativeExp = true;
+					state = State::NumberExpDigit1;
+				}
+				else if (ch >= '0' and ch <= '9')
+				{
+					exponent = (ch - '0');
+					state = State::NumberExpDigit2;
+				}
+				break;
+
+			case State::NumberExpDigit1:
+				if (ch >= '0' and ch <= '9')
+				{
+					exponent = (ch - '0');
+					state = State::NumberExpDigit2;
+				}
+				else
+					throw std::runtime_error("invalid floating point format in command");
+				break;
+
+			case State::NumberExpDigit2:
+				if (ch >= '0' and ch <= '9')
+					exponent = 10 * exponent + (ch - '0');
+				else
+				{
+					Retract();
+					mTokenFloat *= pow(10, (negativeExp ? -1 : 1) * exponent);
+					if (negative)
+						mTokenFloat = -mTokenFloat;
+					token = Token::number;
+				}
+				break;
+
+			case State::Literal:
+				if (not is_name_char(ch))
+				{
+					Retract();
+
+					if (iequals(mToken, "SELECT"))
+						token = Token::select;
+					else if (iequals(mToken, "DISTINCT"))
+						token = Token::distinct;
+					else if (iequals(mToken, "FROM"))
+						token = Token::from;
+					else if (iequals(mToken, "UPDATE"))
+						token = Token::update;
+					else if (iequals(mToken, "SET"))
+						token = Token::set;
+					else if (iequals(mToken, "WHERE"))
+						token = Token::where;
+					else if (iequals(mToken, "AND"))
+						token = Token::and_;
+					else if (iequals(mToken, "OR"))
+						token = Token::or_;
+					else if (iequals(mToken, "NOT"))
+						token = Token::not_;
+					else if (iequals(mToken, "INSERT"))
+						token = Token::insert;
+					else if (iequals(mToken, "DELETE"))
+						token = Token::delete_;
+					else if (iequals(mToken, "INTO"))
+						token = Token::into;
+					else if (iequals(mToken, "VALUES"))
+						token = Token::values;
+					else if (iequals(mToken, "IS"))
+						token = Token::is_;
+					else if (iequals(mToken, "NULL"))
+						token = Token::null_;
+					else
+						token = Token::ident;
+				}
+				break;
+
+			case State::String:
+				if (ch == '\'')
+				{
+					token = Token::string;
 					mToken.pop_back();
-					break;
+				}
+				else if (ch == 0)
+					throw std::runtime_error("Invalid unterminated std::string in command");
+				else if (ch == '\\')
+				{
+					state = State::Escape;
+					mToken.pop_back();
+				}
+				break;
 
-				default:
-					throw std::runtime_error("Invalid escape sequence in command (\\" + std::string{static_cast<char>(ch)} + ')');
-			}
-			if (state == State::Escape)
+			case State::Escape:
+				switch (ch)
+				{
+					case '\'':
+					case '\\':
+					case '/':
+						break;
+
+					case 'n': mToken.back() = '\n'; break;
+					case 't': mToken.back() = '\t'; break;
+					case 'r': mToken.back() = '\r'; break;
+					case 'f': mToken.back() = '\f'; break;
+					case 'b': mToken.back() = '\b'; break;
+
+					case 'u':
+						state = State::EscapeHex1;
+						mToken.pop_back();
+						break;
+
+					default:
+						throw std::runtime_error("Invalid escape sequence in command (\\" + std::string{ static_cast<char>(ch) } + ')');
+				}
+				if (state == State::Escape)
+					state = State::String;
+				break;
+
+			case State::EscapeHex1:
+				if (/*ch >= 0 and*/ ch <= '9')
+					hx = ch - '0';
+				else if (ch >= 'a' and ch <= 'f')
+					hx = 10 + ch - 'a';
+				else if (ch >= 'A' and ch <= 'F')
+					hx = 10 + ch - 'A';
+				else
+					throw std::runtime_error("Invalid hex sequence in command");
+				mToken.pop_back();
+				state = State::EscapeHex2;
+				break;
+
+			case State::EscapeHex2:
+				if (/*ch >= 0 and*/ ch <= '9')
+					hx = 16 * hx + ch - '0';
+				else if (ch >= 'a' and ch <= 'f')
+					hx = 16 * hx + 10 + ch - 'a';
+				else if (ch >= 'A' and ch <= 'F')
+					hx = 16 * hx + 10 + ch - 'A';
+				else
+					throw std::runtime_error("Invalid hex sequence in command");
+				mToken.pop_back();
+				state = State::EscapeHex3;
+				break;
+
+			case State::EscapeHex3:
+				if (/*ch >= 0 and*/ ch <= '9')
+					hx = 16 * hx + ch - '0';
+				else if (ch >= 'a' and ch <= 'f')
+					hx = 16 * hx + 10 + ch - 'a';
+				else if (ch >= 'A' and ch <= 'F')
+					hx = 16 * hx + 10 + ch - 'A';
+				else
+					throw std::runtime_error("Invalid hex sequence in command");
+				mToken.pop_back();
+				state = State::EscapeHex4;
+				break;
+
+			case State::EscapeHex4:
+				if (/*ch >= 0 and*/ ch <= '9')
+					hx = 16 * hx + ch - '0';
+				else if (ch >= 'a' and ch <= 'f')
+					hx = 16 * hx + 10 + ch - 'a';
+				else if (ch >= 'A' and ch <= 'F')
+					hx = 16 * hx + 10 + ch - 'A';
+				else
+					throw std::runtime_error("Invalid hex sequence in command");
+				mToken.pop_back();
+				zeep::append(mToken, hx);
 				state = State::String;
-			break;
-
-		case State::EscapeHex1:
-			if (/*ch >= 0 and*/ ch <= '9')
-				hx = ch - '0';
-			else if (ch >= 'a' and ch <= 'f')
-				hx = 10 + ch - 'a';
-			else if (ch >= 'A' and ch <= 'F')
-				hx = 10 + ch - 'A';
-			else 
-				throw std::runtime_error("Invalid hex sequence in command");
-			mToken.pop_back();
-			state = State::EscapeHex2;
-			break;
-
-		case State::EscapeHex2:
-			if (/*ch >= 0 and*/ ch <= '9')
-				hx = 16 * hx + ch - '0';
-			else if (ch >= 'a' and ch <= 'f')
-				hx = 16 * hx + 10 + ch - 'a';
-			else if (ch >= 'A' and ch <= 'F')
-				hx = 16 * hx + 10 + ch - 'A';
-			else 
-				throw std::runtime_error("Invalid hex sequence in command");
-			mToken.pop_back();
-			state = State::EscapeHex3;
-			break;
-
-		case State::EscapeHex3:
-			if (/*ch >= 0 and*/ ch <= '9')
-				hx = 16 * hx + ch - '0';
-			else if (ch >= 'a' and ch <= 'f')
-				hx = 16 * hx + 10 + ch - 'a';
-			else if (ch >= 'A' and ch <= 'F')
-				hx = 16 * hx + 10 + ch - 'A';
-			else 
-				throw std::runtime_error("Invalid hex sequence in command");
-			mToken.pop_back();
-			state = State::EscapeHex4;
-			break;
-
-		case State::EscapeHex4:
-			if (/*ch >= 0 and*/ ch <= '9')
-				hx = 16 * hx + ch - '0';
-			else if (ch >= 'a' and ch <= 'f')
-				hx = 16 * hx + 10 + ch - 'a';
-			else if (ch >= 'A' and ch <= 'F')
-				hx = 16 * hx + 10 + ch - 'A';
-			else 
-				throw std::runtime_error("Invalid hex sequence in command");
-			mToken.pop_back();
-			zeep::append(mToken, hx);
-			state = State::String;
-			break;
+				break;
 		}
 	}
 
@@ -972,11 +1007,11 @@ void Parser::Match(Token expected)
 {
 	if (mLookahead != expected)
 		throw std::runtime_error("Syntax error in command, expected " + Describe(expected) + " but found " + Describe(mLookahead) + " (" + mToken + ")");
-	
+
 	mLookahead = GetNextToken();
 }
 
-StatementPtr Parser::Parse(std::streambuf* is)
+StatementPtr Parser::Parse(std::streambuf *is)
 {
 	mIs = is;
 
@@ -988,7 +1023,7 @@ StatementPtr Parser::Parse(std::streambuf* is)
 		auto stmt = ParseStatement();
 		result->Add(stmt);
 	}
-	
+
 	return result;
 }
 
@@ -1004,22 +1039,22 @@ StatementPtr Parser::ParseStatement()
 			Match(Token::select);
 			result = ParseSelect();
 			break;
-		
+
 		case Token::delete_:
 			Match(Token::delete_);
 			result = ParseDelete();
 			break;
-		
+
 		case Token::update:
 			Match(Token::update);
 			result = ParseUpdate();
 			break;
-		
+
 		default:
 			// force error
 			Match(Token::select);
 	}
-	
+
 	Match(Token::semicolon);
 
 	return result;
@@ -1052,25 +1087,28 @@ StatementPtr Parser::ParseSelect()
 	{
 		std::vector<std::string> nItems;
 
-		for (auto item: items)
+		for (auto item : items)
 		{
 			if (item == "*")
 				transform(cv->m_item_validators.begin(), cv->m_item_validators.end(), back_inserter(nItems),
-					[cat](auto iv) { return iv.m_tag; });
+					[cat](auto iv)
+					{ return iv.m_tag; });
 			else
 				nItems.push_back(item);
 		}
 
 		swap(items, nItems);
 
-		items.erase(remove_if(items.begin(), items.end(), [category](auto item) { return not category->has_column(item); }), items.end());
+		items.erase(remove_if(items.begin(), items.end(), [category](auto item)
+						{ return not category->has_column(item); }),
+			items.end());
 
-		for (auto item: items)
+		for (auto item : items)
 		{
 			auto iv = cv->get_validator_for_item(item);
 			if (iv == nullptr)
 				throw std::runtime_error("Item " + item + " is not defined in the PDBx dictionary for category " + cat);
-		}	
+		}
 	}
 
 	if (mLookahead == Token::where)
@@ -1119,7 +1157,7 @@ StatementPtr Parser::ParseUpdate()
 
 	Match(Token::set);
 
-	std::vector<std::pair<std::string,std::string>> itemValuePairs;
+	std::vector<std::pair<std::string, std::string>> itemValuePairs;
 	for (;;)
 	{
 		std::string item = mToken;
@@ -1128,7 +1166,7 @@ StatementPtr Parser::ParseUpdate()
 		auto iv = cv ? cv->get_validator_for_item(item) : nullptr;
 		if (cv and iv == nullptr)
 			throw std::runtime_error("Invalid item '" + item + "' for category '" + cat + '\'');
-		
+
 		Match(Token::eq_);
 
 		std::string value = mToken;
@@ -1190,7 +1228,7 @@ std::vector<std::string> Parser::ParseItemList()
 			Match(Token::comma);
 			continue;
 		}
-		
+
 		break;
 	}
 
@@ -1199,7 +1237,7 @@ std::vector<std::string> Parser::ParseItemList()
 
 // -----------------------------------------------------------------------
 
-cif::condition Parser::ParseNotWhereClause(cif::category& cat)
+cif::condition Parser::ParseNotWhereClause(cif::category &cat)
 {
 	cif::condition result;
 
@@ -1242,7 +1280,7 @@ cif::condition Parser::ParseNotWhereClause(cif::category& cat)
 
 // -----------------------------------------------------------------------
 
-cif::condition Parser::ParseWhereClause(cif::category& cat)
+cif::condition Parser::ParseWhereClause(cif::category &cat)
 {
 	std::string item = mToken;
 	Match(Token::ident);
@@ -1273,10 +1311,10 @@ cif::condition Parser::ParseWhereClause(cif::category& cat)
 	{
 		if (mLookahead < Token::eq_ or mLookahead > Token::ne_)
 			Match(Token::eq_);
-		
+
 		auto oper = mLookahead;
 		Match(mLookahead);
-		
+
 		cif::condition c;
 		std::string value = mToken;
 
@@ -1293,22 +1331,22 @@ cif::condition Parser::ParseWhereClause(cif::category& cat)
 
 		switch (oper)
 		{
-			case Token::eq_:	return cif::key(item) == value;
-			case Token::lt_:	return cif::key(item) <  value;
-			case Token::le_:	return cif::key(item) <= value;
-			case Token::gt_:	return cif::key(item) >  value;
-			case Token::ge_:	return cif::key(item) >= value;
-			case Token::ne_:	return cif::key(item) != value;
-			default:			throw std::logic_error("should never happen");
+			case Token::eq_: return cif::key(item) == value;
+			case Token::lt_: return cif::key(item) < value;
+			case Token::le_: return cif::key(item) <= value;
+			case Token::gt_: return cif::key(item) > value;
+			case Token::ge_: return cif::key(item) >= value;
+			case Token::ne_: return cif::key(item) != value;
+			default: throw std::logic_error("should never happen");
 		}
 	}
 }
 
-}
+} // namespace cql
 
 // -----------------------------------------------------------------------
 
-int pr_main(int argc, char* argv[])
+int pr_main(int argc, char *argv[])
 {
 	auto &config = mcfp::config::instance();
 
@@ -1317,12 +1355,11 @@ int pr_main(int argc, char* argv[])
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option("verbose,V", "Verbose output, repeat to increase verbosity level"),
 
-		mcfp::make_option("force",										"Force writing of output file, even if it is the same as the input file"),
+		mcfp::make_option("force", "Force writing of output file, even if it is the same as the input file"),
 
-		mcfp::make_option<fs::path>("script,f",   		"Read commands from script"),
+		mcfp::make_option<std::string>("script,f", "Read commands from script"),
 
-		mcfp::make_option<std::string>("data-block,D", "Datablock to use, default is first")
-	);
+		mcfp::make_option<std::string>("data-block,D", "Datablock to use, default is first"));
 
 	config.parse(argc, argv);
 
@@ -1350,15 +1387,15 @@ int pr_main(int argc, char* argv[])
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + config.operands().front());
 
-	cif::file file{in};
+	cif::file file{ in };
 
 	cql::Parser parser(config.has("data-block") ? file[config.get<std::string>("data-block")] : file.front());
 
 	if (config.has("script"))
 	{
-		std::ifstream cmdFile(config.get<fs::path>("script"));
+		std::ifstream cmdFile(config.get<std::string>("script"));
 		if (not cmdFile.is_open())
-			throw std::runtime_error("Failed to open command file " + config.get<fs::path>("script").string());
+			throw std::runtime_error("Failed to open command file " + config.get<std::string>("script"));
 
 		auto stmt = parser.Parse(cmdFile.rdbuf());
 		if (stmt)
@@ -1377,7 +1414,7 @@ int pr_main(int argc, char* argv[])
 				if (stmt)
 					stmt->Execute();
 			}
-			catch(const std::exception& e)
+			catch (const std::exception &e)
 			{
 				std::cerr << e.what() << std::endl;
 			}
@@ -1393,6 +1430,5 @@ int pr_main(int argc, char* argv[])
 		file.save(out);
 	}
 
-	return 0;	
+	return 0;
 }
-

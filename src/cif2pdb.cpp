@@ -24,8 +24,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/wait.h>
-
 #include <chrono>
 #include <filesystem>
 #include <fstream>

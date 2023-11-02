@@ -24,7 +24,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef WIN32
 #include <sys/wait.h>
+#endif
 
 #include <filesystem>
 #include <fstream>
@@ -96,7 +98,7 @@ class fd_streambuf : public std::streambuf
 			}
 
 			if (result == 0)
-				setp(m_buffer.begin(), m_buffer.end());
+				setp(m_buffer.data(), m_buffer.data() + m_buffer.size());
 		}
 
 		return result;
@@ -467,6 +469,7 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 	}
 }
 
+#ifndef WIN32
 void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, const std::string &name_b, bool icase, bool iwhite)
 {
 	// temp files for vimdiff
@@ -537,6 +540,7 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 		unlink(original.c_str());
 	}
 }
+#endif
 
 int pr_main(int argc, char *argv[])
 {
@@ -549,7 +553,9 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("verbose,v", "Verbose output"),
 		mcfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
 		mcfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
+#ifndef WIN32
 		mcfp::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
+#endif
 		mcfp::make_option("icase", "Ignore case (vimdiff option)"),
 		mcfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
 		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
@@ -596,9 +602,11 @@ int pr_main(int argc, char *argv[])
 	cif::file file1{if1};
 	cif::file file2{if2};
 
+#ifndef WIN32
 	if (config.has("text"))
 		compareCifsText(file1, file2, fs::path(input[0]), fs::path(input[1]), config.has("icase"), config.has("iwhite"));
 	else
+#endif
 		compareCifs(file1.front(), file2.front(), categories, maxDiffCount);
 
 	return 0;
