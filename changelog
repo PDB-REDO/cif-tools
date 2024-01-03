@@ -1,3 +1,6 @@
+Version 1.0.12
+- Added --pdbx option to cif-validate
+
 Version 1.0.11
 - Changes required to build on Windows
 

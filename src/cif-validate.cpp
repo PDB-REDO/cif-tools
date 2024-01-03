@@ -26,14 +26,14 @@
 
 #include <fstream>
 
-#include <mcfp/mcfp.hpp>
 #include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
 
 class dummy_parser : public cif::sac_parser
 {
-public:
+  public:
 	dummy_parser(std::istream &is)
 		: sac_parser(is)
 	{
@@ -71,11 +71,11 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("help,h", "Display help message"),
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
+		mcfp::make_option("validate-pdbx", "Validate PDBx categories, assuming mmcif_pdbx, and checks entity, entity_poly, entity_poly_seq and pdbx_poly_seq_scheme for consistency with atom_site"),
 		mcfp::make_option("validate-links", "Validate all links"),
 		mcfp::make_option("syntax-only", "Quickly check to see if the syntax is correct"),
 		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
-		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'")
-		);
+		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'"));
 
 	config.parse(argc, argv);
 
@@ -105,11 +105,13 @@ int pr_main(int argc, char *argv[])
 		{
 			if (config.count("dict"))
 				f.load_dictionary(config.get<std::string>("dict"));
+			else if (config.has("validate-pdbx"))
+				f.load_dictionary("mmcif_pdbx");
 
 			if (f.get_validator() == nullptr)
 			{
 				std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl
-						<< "However, the syntax seems to be OK" << std::endl;
+						  << "However, the syntax seems to be OK" << std::endl;
 			}
 			else
 			{
@@ -117,6 +119,9 @@ int pr_main(int argc, char *argv[])
 
 				if (config.has("validate-links"))
 					f.validate_links();
+				
+				if (config.has("validate-pdbx"))
+					result = result and cif::pdb::is_valid_pdbx_file(f);
 			}
 		}
 
