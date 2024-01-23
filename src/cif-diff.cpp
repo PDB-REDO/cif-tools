@@ -165,18 +165,18 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	auto keys = catValidator->m_keys;
 	std::vector<size_t> keyIx;
 
-	for (auto &tag : a.key_fields())
+	for (auto &item : a.key_items())
 	{
-		auto iv = catValidator->get_validator_for_item(tag);
+		auto iv = catValidator->get_validator_for_item(item);
 		if (iv == nullptr)
 			throw std::runtime_error("missing item validator");
 		auto tv = iv->m_type;
 		if (tv == nullptr)
 			throw std::runtime_error("missing type validator");
-		tags.push_back(std::make_tuple(tag, std::bind(&cif::type_validator::compare, tv, std::placeholders::_1, std::placeholders::_2)));
+		tags.push_back(std::make_tuple(item, std::bind(&cif::type_validator::compare, tv, std::placeholders::_1, std::placeholders::_2)));
 
-		auto pred = [tag](const std::string &s) -> bool
-		{ return cif::iequals(tag, s) == 0; };
+		auto pred = [item](const std::string &s) -> bool
+		{ return cif::iequals(item, s) == 0; };
 		if (find_if(keys.begin(), keys.end(), pred) == keys.end())
 			keyIx.push_back(tags.size() - 1);
 	}
@@ -500,7 +500,7 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 		fd_streambuf sb(fd[1]);
 		std::ostream out(&sb);
 
-		b.front().write(out, a.front().get_tag_order());
+		b.front().write(out, a.front().get_item_order());
 	}
 
 	std::vector<const char *> nArgv = {

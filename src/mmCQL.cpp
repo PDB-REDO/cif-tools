@@ -1092,7 +1092,7 @@ StatementPtr Parser::ParseSelect()
 			if (item == "*")
 				transform(cv->m_item_validators.begin(), cv->m_item_validators.end(), back_inserter(nItems),
 					[cat](auto iv)
-					{ return iv.m_tag; });
+					{ return iv.m_item_name; });
 			else
 				nItems.push_back(item);
 		}
@@ -1100,7 +1100,7 @@ StatementPtr Parser::ParseSelect()
 		swap(items, nItems);
 
 		items.erase(remove_if(items.begin(), items.end(), [category](auto item)
-						{ return not category->has_column(item); }),
+						{ return not category->has_item(item); }),
 			items.end());
 
 		for (auto item : items)

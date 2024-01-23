@@ -97,7 +97,7 @@ endif()
 
 if(NOT PDB_REDO_META)
 	find_package(libmcfp REQUIRED)
-	find_package(cifpp 6.0.1 REQUIRED)
+	find_package(cifpp 7 REQUIRED)
 endif()
 
 list(APPEND programs

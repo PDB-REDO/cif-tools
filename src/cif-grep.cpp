@@ -53,7 +53,7 @@ class statsParser : public cif::sac_parser
 	statsParser(const std::string &file, std::istream &is, const std::string &tag, const std::string &pattern, bool quiet, bool printLineNr, bool invertMatch)
 		: statsParser(file, is, pattern, quiet, printLineNr, invertMatch)
 	{
-		std::tie(mCat, mItem) = cif::split_tag_name(tag);
+		std::tie(mCat, mItem) = cif::split_item_name(tag);
 	}
 
 	size_t getMatches() const { return mMatches; }
@@ -178,7 +178,7 @@ int pr_main(int argc, char *argv[])
 		tag = config.get<std::string>("item");
 
 		std::string cat, item;
-		std::tie(cat, item) = cif::split_tag_name(tag);
+		std::tie(cat, item) = cif::split_item_name(tag);
 
 		if (cat.empty())
 			throw std::runtime_error("Invalid category in tag: '" + cat + '\'');
