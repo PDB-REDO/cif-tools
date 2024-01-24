@@ -73,6 +73,7 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
 		mcfp::make_option("validate-pdbx", "Validate PDBx categories, assuming mmcif_pdbx, and checks entity, entity_poly, entity_poly_seq and pdbx_poly_seq_scheme for consistency with atom_site"),
 		mcfp::make_option("validate-links", "Validate all links"),
+		mcfp::make_option("validate-data-comp", "Default is to skip data_comp_XXX datablocks, use this flag to force validation"),
 		mcfp::make_option("syntax-only", "Quickly check to see if the syntax is correct"),
 		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
 		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'"));
@@ -115,7 +116,14 @@ int pr_main(int argc, char *argv[])
 			}
 			else
 			{
-				result = f.is_valid() ? 0 : 1;
+				for (auto &db : f)
+				{
+					if (cif::starts_with(db.name(), "comp_") and not config.has("validate-data-comp"))
+						continue;
+
+					if (not db.is_valid())
+						result = 1;;
+				}
 
 				if (config.has("validate-links"))
 					f.validate_links();
