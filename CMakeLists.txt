@@ -95,8 +95,11 @@ if(USE_RSRC)
 	add_compile_definitions(USE_RSRC)
 endif()
 
-if(NOT PDB_REDO_META)
+if(NOT (libmcfp_FOUND OR TARGET libmcfp))
 	find_package(libmcfp REQUIRED)
+endif()
+
+if(NOT (cifpp_FOUND OR TARGET cifpp))
 	find_package(cifpp 7 REQUIRED)
 endif()
 
