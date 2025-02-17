@@ -113,7 +113,7 @@ endif()
 
 if(NOT PDB_REDO_META)
 	find_package(mcfp REQUIRED)
-	find_package(cifpp 7 REQUIRED)
+	find_package(cifpp 8 REQUIRED)
 endif()
 
 list(APPEND programs

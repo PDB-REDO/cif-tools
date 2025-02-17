@@ -102,36 +102,25 @@ int pr_main(int argc, char *argv[])
 	{
 		cif::file f(config.operands().front());
 
-		if (not config.has("syntax-only"))
+		for (auto &db : f)
 		{
 			if (config.count("dict"))
-				f.load_dictionary(config.get<std::string>("dict"));
+				db.load_dictionary(config.get<std::string>("dict"));
 			else if (config.has("validate-pdbx"))
-				f.load_dictionary("mmcif_pdbx");
+				db.load_dictionary("mmcif_pdbx");
 
-			if (f.get_validator() == nullptr)
-			{
-				std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl
-						  << "However, the syntax seems to be OK" << std::endl;
-			}
-			else
-			{
-				for (auto &db : f)
-				{
-					if (cif::starts_with(db.name(), "comp_") and not config.has("validate-data-comp"))
-						continue;
+			// if (cif::starts_with(db.name(), "comp_") and not config.has("validate-data-comp"))
+			// 	continue;
 
-					if (not db.is_valid())
-						result = 1;;
-				}
-
-				if (config.has("validate-links"))
-					f.validate_links();
-				
-				if (config.has("validate-pdbx"))
-					result = result and cif::pdb::is_valid_pdbx_file(f);
-			}
+			if (not db.is_valid())
+				result = 1;;
 		}
+
+		if (config.has("validate-links"))
+			f.validate_links();
+		
+		if (config.has("validate-pdbx"))
+			result = result and cif::pdb::is_valid_pdbx_file(f);
 
 		if (config.has("print"))
 		{
