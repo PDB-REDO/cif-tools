@@ -58,7 +58,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << config << std::endl;
+		std::cerr << config << '\n';
 		exit(1);
 	}
 
@@ -90,11 +90,11 @@ int pr_main(int argc, char *argv[])
 
 	auto f = cif::pdb::read(in);
 
-	if (f.empty() or (not config.has("no-validate") and not f.is_valid()))
+	if (f.empty() or (not config.has("no-validate") and not f.front().is_valid()))
 	{
 		std::cerr << "This input mmCIF file is not valid";
 		if (cif::VERBOSE < 1)
-			std::cerr << ", use the --verbose option to see what errors were found" << std::endl;
+			std::cerr << ", use the --verbose option to see what errors were found\n";
 	}
 
 	if (config.operands().size() == 2)

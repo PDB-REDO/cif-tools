@@ -63,7 +63,7 @@ int pr_main(int argc, char *argv[])
 
 		if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
 		{
-			std::cerr << config << std::endl;
+			std::cerr << config << '\n';
 			exit(config.has("help") ? 0 : 1);
 		}
 
@@ -101,7 +101,7 @@ int pr_main(int argc, char *argv[])
 	catch (const std::exception &ex)
 	{
 		if (not input.empty())
-			std::cerr << "Error converting '" << input << '\'' << std::endl;
+			std::cerr << "Error converting '" << input << '\'' << '\n';
 		throw;
 	}
 

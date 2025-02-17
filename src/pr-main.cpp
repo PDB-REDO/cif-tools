@@ -117,10 +117,10 @@ class RUsage
 			std::chrono::duration<double> diff = end - start;
 			
 			if (getrusage(RUSAGE_SELF, &u) == 0)
-				std::cerr << "CPU usage: "
+				std::cerr << "\nCPU usage: "
 					<< u.ru_utime << " user, "
 					<< u.ru_stime << " system, "
-					<< diff << " wall" << std::endl;
+					<< diff << " wall\n";
 			else
 				perror("Failed to get rusage");
 		}
@@ -135,7 +135,7 @@ class RUsage
 // recursively print exception whats:
 void print_what (const std::exception& e)
 {
-	std::cerr << e.what() << std::endl;
+	std::cerr << e.what() << '\n';
 	try
 	{
 		std::rethrow_if_nested(e);

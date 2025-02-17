@@ -71,9 +71,7 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("help,h", "Display help message"),
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option<std::string>("dict", "mmcif_pdbx.dic", "The mmCIF dictionary to use, can be either mmcif_ddl, mmcif_pdbx or a path to the actual dictionary file"),
-		mcfp::make_option("validate-pdbx", "Validate PDBx categories, assuming mmcif_pdbx, and checks entity, entity_poly, entity_poly_seq and pdbx_poly_seq_scheme for consistency with atom_site"),
-		mcfp::make_option("validate-links", "Validate all links"),
-		mcfp::make_option("validate-data-comp", "Default is to skip data_comp_XXX datablocks, use this flag to force validation"),
+		mcfp::make_option("validate-all-datablocks,F", "Default is to validate only the first datablock, use this flag to force validation of all datablocks"),
 		mcfp::make_option("syntax-only", "Quickly check to see if the syntax is correct"),
 		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
 		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'"));
@@ -88,7 +86,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << config << std::endl;
+		std::cerr << config << '\n';
 		exit(config.has("help") ? 0 : 1);
 	}
 
@@ -106,22 +104,25 @@ int pr_main(int argc, char *argv[])
 		{
 			if (config.count("dict"))
 				db.load_dictionary(config.get<std::string>("dict"));
-			else if (config.has("validate-pdbx"))
-				db.load_dictionary("mmcif_pdbx");
-
-			// if (cif::starts_with(db.name(), "comp_") and not config.has("validate-data-comp"))
-			// 	continue;
+			else
+				db.load_dictionary();
+			
+			if (db.get_validator() == nullptr)
+				db.load_dictionary("mmcif_pdbx.dic");
 
 			if (not db.is_valid())
-				result = 1;;
+				result = 1;
+			
+			if (not config.has("validate-all-datablocks"))
+				break;
 		}
 
-		if (config.has("validate-links"))
-			f.validate_links();
-		
 		if (config.has("validate-pdbx"))
 			result = result and cif::pdb::is_valid_pdbx_file(f);
 
+		if (config.has("validate-links"))
+			f.validate_links();
+			
 		if (config.has("print"))
 		{
 			if (config.operands().size() == 1)
@@ -130,7 +131,7 @@ int pr_main(int argc, char *argv[])
 			{
 				std::ofstream out(config.operands()[1]);
 				if (not out.is_open())
-					std::cerr << "Could not open output file" << std::endl;
+					std::cerr << "Could not open output file\n";
 				else
 					f.save(out);
 			}
