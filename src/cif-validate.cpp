@@ -103,21 +103,12 @@ int pr_main(int argc, char *argv[])
 		for (auto &db : f)
 		{
 			if (config.count("dict"))
-				f.front().set_validator(&cif::validator_factory::instance().get(config.get<std::string>("dict")));
-			else if (config.has("validate-pdbx"))
-				f.front().set_validator(&cif::validator_factory::instance().get("mmcif_pdbx.dic"));
-
-			if (f.front().get_validator() == nullptr)
-			{
-				std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl
-						  << "However, the syntax seems to be OK" << std::endl;
-			}
+				db.set_validator(&cif::validator_factory::instance().get(config.get<std::string>("dict")));
 			else
-			{
-				for (auto &db : f)
-				{
-					if (cif::starts_with(db.name(), "comp_") and not config.has("validate-data-comp"))
-						continue;
+				db.load_dictionary();
+			
+			if (db.get_validator() == nullptr)
+				db.set_validator(&cif::validator_factory::instance().get("mmcif_pdbx.dic"));
 
 			if (not db.is_valid())
 				result = 1;
