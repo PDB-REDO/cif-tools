@@ -249,7 +249,7 @@ class SelectStatement : public Statement
 		std::vector<std::string> fields(mItems.size());
 		std::unordered_set<std::string> seen;
 
-		std::cout << cif::join(mItems, "\t") << std::endl;
+		std::cout << cif::join(mItems, "\t") << '\n';
 
 		for (auto r : mCategory.find(std::move(mWhere)))
 		{
@@ -263,7 +263,7 @@ class SelectStatement : public Statement
 			bool seenLine = seen.count(line);
 
 			if (not mDistinct or not seenLine)
-				std::cout << line << std::endl;
+				std::cout << line << '\n';
 
 			if (mDistinct and not seenLine)
 				seen.insert(line);
@@ -303,7 +303,7 @@ class DeleteStatement : public Statement
 		for (auto r : remove)
 			mCategory.erase(r);
 
-		std::cout << "Number of removed rows " << remove.size() << std::endl;
+		std::cout << "Number of removed rows " << remove.size() << '\n';
 	}
 
   private:
@@ -340,7 +340,7 @@ class UpdateStatement : public Statement
 			}
 		}
 
-		std::cout << "Number of updated rows: " << updated << std::endl;
+		std::cout << "Number of updated rows: " << updated << '\n';
 	}
 
   private:
@@ -1371,7 +1371,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << config << std::endl;
+		std::cerr << config << '\n';
 		exit(config.has("help") ? 0 : 1);
 	}
 
@@ -1379,7 +1379,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.operands().size() == 2 and config.operands().front() == config.operands().back() and not config.has("force"))
 	{
-		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)" << std::endl;
+		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)\n";
 		exit(1);
 	}
 
@@ -1416,7 +1416,7 @@ int pr_main(int argc, char *argv[])
 			}
 			catch (const std::exception &e)
 			{
-				std::cerr << e.what() << std::endl;
+				std::cerr << e.what() << '\n';
 			}
 		}
 	}

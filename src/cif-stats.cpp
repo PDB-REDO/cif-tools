@@ -97,7 +97,7 @@ int pr_main(int argc, char* argv[])
 
 	if (vm.count("help") or vm.count("input") == 0)
 	{
-		std::cerr << visible_options << std::endl;
+		std::cerr << visible_options << '\n';
 		exit(vm.count("help") ? 0 : 1);
 	}
 
@@ -114,13 +114,13 @@ int pr_main(int argc, char* argv[])
 	for (const auto &[k, v] : parser.m_size_histogram)
 	{
 		N += v;
-		std::cout << std::fixed << std::setw(6) << k << " : " << v << std::endl;
+		std::cout << std::fixed << std::setw(6) << k << " : " << v << '\n';
 	}
 
-	std::cout << std::endl
-			  << "Total number of items: " << N << std::endl;
+	std::cout << '\n'
+			  << "Total number of items: " << N << '\n';
 
-	std::cout << "sizeof a std::string is " << sizeof(std::string) << std::endl;
+	std::cout << "sizeof a std::string is " << sizeof(std::string) << '\n';
 
 	return 0;
 }
