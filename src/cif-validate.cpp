@@ -105,11 +105,11 @@ int pr_main(int argc, char *argv[])
 		if (not config.has("syntax-only"))
 		{
 			if (config.count("dict"))
-				f.load_dictionary(config.get<std::string>("dict"));
+				f.front().set_validator(&cif::validator_factory::instance().get(config.get<std::string>("dict")));
 			else if (config.has("validate-pdbx"))
-				f.load_dictionary("mmcif_pdbx");
+				f.front().set_validator(&cif::validator_factory::instance().get("mmcif_pdbx.dic"));
 
-			if (f.get_validator() == nullptr)
+			if (f.front().get_validator() == nullptr)
 			{
 				std::cerr << "No validator, please specify a dictionary to use using the --dict option" << std::endl
 						  << "However, the syntax seems to be OK" << std::endl;

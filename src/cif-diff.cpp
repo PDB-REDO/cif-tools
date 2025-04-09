@@ -386,11 +386,11 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 
 	for (auto &cat : dbA)
 		catA.push_back(cat.name());
-	sort(catA.begin(), catA.end());
+	sort(catA.begin(), catA.end(), [](const std::string &a, const std::string &b) { return cif::icompare(a, b) < 0; });
 
 	for (auto &cat : dbB)
 		catB.push_back(cat.name());
-	sort(catB.begin(), catB.end());
+	sort(catB.begin(), catB.end(), [](const std::string &a, const std::string &b) { return cif::icompare(a, b) < 0; });
 
 	// loop over categories twice, to group output
 	// First iteration is to list missing categories.

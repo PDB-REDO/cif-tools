@@ -88,13 +88,13 @@ int pr_main(int argc, char *argv[])
 	if (not in.is_open())
 		throw std::runtime_error("Could not open file " + file.string());
 
-	cif::file f(in);
+	cif::file f = cif::pdb::read(in);
 
 	// Load dict, if any
 	if (config.has("dict"))
-		f.load_dictionary(config.get<std::string>("dict"));
-	else if (f.get_validator() == nullptr)
-		f.load_dictionary("mmcif_pdbx");
+		f.front().set_validator(&cif::validator_factory::instance().get(config.get<std::string>("dict")));
+	else if (f.front().get_validator() == nullptr)
+		f.front().set_validator(&cif::validator_factory::instance().get("mmcif_pdbx.dic"));
 
 	if (f.empty() or (not config.has("no-validate") and not f.is_valid()))
 	{
