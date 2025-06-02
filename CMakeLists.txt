@@ -35,6 +35,7 @@ project(cif-tools VERSION 1.0.12 LANGUAGES CXX)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CPM)
+include(GNUInstallDirs)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
