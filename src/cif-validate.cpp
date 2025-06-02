@@ -27,6 +27,7 @@
 #include <fstream>
 
 #include <cif++.hpp>
+#include <gxrio.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
@@ -74,9 +75,17 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("validate-all-datablocks,F", "Default is to validate only the first datablock, use this flag to force validation of all datablocks"),
 		mcfp::make_option("syntax-only", "Quickly check to see if the syntax is correct"),
 		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
-		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'"));
+		mcfp::make_option("print", "Print the reformatted file, to stdout or, when specified, to 'output-file'"),
+		mcfp::make_option("strip", "Strip invalid categories and items"));
 
-	config.parse(argc, argv);
+	std::error_code ec;
+	config.parse(argc, argv, ec);
+
+	if (ec)
+	{
+		std::cerr << "Error parsing command line option " << std::quoted(config.get_last_option()) << ": " << ec.message() << '\n';
+		exit(1);
+	}
 
 	if (config.has("version"))
 	{
@@ -110,7 +119,7 @@ int pr_main(int argc, char *argv[])
 			if (db.get_validator() == nullptr)
 				db.set_validator(&cif::validator_factory::instance().get("mmcif_pdbx.dic"));
 
-			if (not db.is_valid())
+			if (not const_cast<const cif::datablock &>(db).is_valid())
 				result = 1;
 			
 			if (not config.has("validate-all-datablocks"))
@@ -118,18 +127,51 @@ int pr_main(int argc, char *argv[])
 		}
 
 		if (config.has("validate-pdbx"))
-			result = result and cif::pdb::is_valid_pdbx_file(f);
+		{
+			if (not cif::pdb::is_valid_pdbx_file(f, ec))
+			{
+				std::cerr << "Not a valid pdbx file: " << ec.message() << "\n";
+				result = 1;
+			}
+		}
+
+		if (config.has("strip"))
+		{
+			result = 0;
+
+			for (auto &db : f)
+			{
+				if (db.get_validator() == nullptr)
+				{
+					if (cif::VERBOSE > 0)
+						std::cerr << "Cannot strip datablock " << db.name() << " since it has no dictionary\n";
+					continue;
+				}
+
+				if (not db.strip())
+				{
+					std::clog << "Stripping datablock " << db.name() << " did not result in a valid file\n";
+					result = 1;
+				}
+				
+				if (not config.has("validate-all-datablocks"))
+					break;
+			}
+		}
 
 		if (config.has("validate-links"))
-			f.validate_links();
-			
-		if (config.has("print"))
+		{
+			if (not f.validate_links())
+				result = 1;
+		}
+		
+		if (result == 0 and (config.has("print") or config.has("strip")))
 		{
 			if (config.operands().size() == 1)
 				f.save(std::cout);
 			else
 			{
-				std::ofstream out(config.operands()[1]);
+				gxrio::ofstream out(config.operands()[1]);
 				if (not out.is_open())
 					std::cerr << "Could not open output file\n";
 				else

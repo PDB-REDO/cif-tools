@@ -4,3 +4,6 @@
 [submodule "libconfig"]
 	path = libconfig
 	url = https://github.com/mhekkel/libconfig.git
+[submodule "libcifpp"]
+	path = libcifpp
+	url = https://github.com/PDB-REDO/libcifpp.git

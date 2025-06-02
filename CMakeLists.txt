@@ -22,25 +22,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.23)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
 # set the project name
 project(cif-tools VERSION 1.0.12 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(GNUInstallDirs)
-include(CheckFunctionExists)
-include(CheckIncludeFiles)
-include(CheckLibraryExists)
-include(CMakePackageConfigHelpers)
-include(FindFilesystem)
+include(CPM)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-find_package(Filesystem REQUIRED)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
@@ -98,7 +96,7 @@ include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src")
 
 # Optionally use mrc to create resources
-find_package(Mrc QUIET)
+find_package(mrc QUIET)
 
 if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
@@ -111,9 +109,14 @@ if(USE_RSRC)
 	add_compile_definitions(USE_RSRC)
 endif()
 
-if(NOT PDB_REDO_META)
-	find_package(mcfp REQUIRED)
-	find_package(cifpp 8 REQUIRED)
+if(NOT(mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
+	set(CPM_USE_LOCAL_PACKAGES ON)
+	CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
+endif()
+
+if(NOT(cifpp_FOUND OR TARGET cifpp))
+	add_subdirectory(libcifpp EXCLUDE_FROM_ALL)
+	set(cifpp_FOUND TRUE)
 endif()
 
 list(APPEND programs
