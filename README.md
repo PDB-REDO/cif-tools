@@ -15,7 +15,7 @@ Building
 --------
 
 Make sure you install libcif++ first before building. You will also need
-to install [libcfp](https://github.com/mhekkel/libcfp).
+to install [libmcfp](https://github.com/mhekkel/libmcfp).
 
 After that, building should be as easy as typing:
 
