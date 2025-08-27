@@ -3,3 +3,5 @@
 build/
 src/revision.hpp
 test/
+.cache/
+perf.data*

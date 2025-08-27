@@ -102,7 +102,7 @@ find_package(mrc QUIET)
 if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
 else()
-	message(STATUS "Not using resources since mrc was not found")
+	message(STATUS "cif-tools: Not using resources since mrc was not found")
 	set(USE_RSRC FALSE)
 endif()
 
@@ -115,9 +115,12 @@ if(NOT(mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
 	CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
 endif()
 
+find_package(cifpp 9 QUIET)
+
 if(NOT(cifpp_FOUND OR TARGET cifpp))
 	add_subdirectory(libcifpp EXCLUDE_FROM_ALL)
 	set(cifpp_FOUND TRUE)
+	set(CIFPP_SHARE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcifpp/rsrc)
 endif()
 
 list(APPEND programs
@@ -130,8 +133,11 @@ list(APPEND programs
 	mmCQL
 )
 
+add_library(prmain OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/pr-main.cpp")
+target_link_libraries(prmain cifpp::cifpp)
+
 foreach(PROGRAM IN LISTS programs)
-	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp ${PROJECT_SOURCE_DIR}/src/pr-main.cpp)
+	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp)
 
 	if(USE_RSRC)
 		mrc_target_resources(${PROGRAM}
@@ -140,20 +146,9 @@ foreach(PROGRAM IN LISTS programs)
 			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp)
+	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain>)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
-
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_SOURCE_TGZ ON)
-set(CPACK_SOURCE_TBZ2 OFF)
-set(CPACK_SOURCE_TXZ OFF)
-set(CPACK_SOURCE_TZ OFF)
-set(CPACK_SOURCE_IGNORE_FILES "/build;/.vscode;/.git")
-set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
-set (CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
-include(CPack)
-
