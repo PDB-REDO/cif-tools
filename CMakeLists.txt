@@ -115,7 +115,7 @@ if(NOT(mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
 	CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
 endif()
 
-find_package(cifpp 9 QUIET)
+# find_package(cifpp 9 QUIET)
 
 if(NOT(cifpp_FOUND OR TARGET cifpp))
 	add_subdirectory(libcifpp EXCLUDE_FROM_ALL)

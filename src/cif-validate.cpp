@@ -27,7 +27,7 @@
 #include <fstream>
 
 #include <cif++.hpp>
-#include <gxrio.hpp>
+// #include <gxrio.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
@@ -171,7 +171,7 @@ int pr_main(int argc, char *argv[])
 				f.save(std::cout);
 			else
 			{
-				gxrio::ofstream out(config.operands()[1]);
+				cif::gzio::ofstream out(config.operands()[1]);
 				if (not out.is_open())
 					std::cerr << "Could not open output file\n";
 				else
