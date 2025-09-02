@@ -153,7 +153,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	//	set<std::string> tagsA(a.fields()), tagsB(b.fields());
 	//
 	//	if (tagsA != tagsB)
-	//		std::cout << "Unequal number of fields" << std::endl;
+	//		std::cout << "Unequal number of fields\n";
 
 	auto validator = a.get_validator();
 	auto catValidator = validator->get_validator_for_category(a.name());
@@ -236,7 +236,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 		virtual void report(std::vector<std::string> &keys)
 		{
-			std::cout << "Extra row in A with key " << key(A, keys) << std::endl;
+			std::cout << "Extra row in A with key " << key(A, keys) << '\n';
 		}
 	};
 
@@ -251,7 +251,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 		virtual void report(std::vector<std::string> &keys)
 		{
-			std::cout << "Extra row in B with key " << key(B, keys) << std::endl;
+			std::cout << "Extra row in B with key " << key(B, keys) << '\n';
 		}
 	};
 
@@ -271,24 +271,24 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 		virtual void report(std::vector<std::string> &keys)
 		{
-			std::cout << "Differences in rows with key " << key(A, keys) << std::endl;
+			std::cout << "Differences in rows with key " << key(A, keys) << '\n';
 
 			for (auto &item : different)
 			{
-				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << std::endl
-						  << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << std::endl;
+				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << '\n'
+						  << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << '\n';
 			}
 
 			for (auto &item : missingA)
 			{
-				std::cout << "    " << item << " (A): <missing>" << std::endl
-						  << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << std::endl;
+				std::cout << "    " << item << " (A): <missing>\n"
+						  << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << '\n';
 			}
 
 			for (auto &item : missingB)
 			{
-				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << std::endl
-						  << "    " << item << " (B): <missing>" << std::endl;
+				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << '\n'
+						  << "    " << item << " (B): <missing>\n";
 			}
 		}
 	};
@@ -361,9 +361,9 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 	if (not diffs.empty())
 	{
-		std::cout << std::string(mcfp::get_terminal_width(), '-') << std::endl
-				  << "Differences in values for category " << a.name() << std::endl
-				  << std::endl;
+		std::cout << std::string(mcfp::get_terminal_width(), '-') << '\n'
+				  << "Differences in values for category " << a.name() << '\n'
+				  << '\n';
 
 		for (auto diff : diffs)
 		{
@@ -372,8 +372,8 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		}
 
 		if (diffs.size() == maxDiffCount)
-			std::cout << "..." << std::endl;
-		std::cout << std::endl;
+			std::cout << "...\n";
+		std::cout << '\n';
 	}
 }
 
@@ -386,11 +386,11 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 
 	for (auto &cat : dbA)
 		catA.push_back(cat.name());
-	sort(catA.begin(), catA.end());
+	sort(catA.begin(), catA.end(), [](const std::string &a, const std::string &b) { return cif::icompare(a, b) < 0; });
 
 	for (auto &cat : dbB)
 		catB.push_back(cat.name());
-	sort(catB.begin(), catB.end());
+	sort(catB.begin(), catB.end(), [](const std::string &a, const std::string &b) { return cif::icompare(a, b) < 0; });
 
 	// loop over categories twice, to group output
 	// First iteration is to list missing categories.
@@ -435,12 +435,12 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 	if (categories.empty())
 	{
 		if (not missingA.empty())
-			std::cout << "Categories missing in A: " << cif::join(missingA, ", ") << std::endl
-					  << std::endl;
+			std::cout << "Categories missing in A: " << cif::join(missingA, ", ") << '\n'
+					  << '\n';
 
 		if (not missingB.empty())
-			std::cout << "Categories missing in B: " << cif::join(missingB, ", ") << std::endl
-					  << std::endl;
+			std::cout << "Categories missing in B: " << cif::join(missingB, ", ") << '\n'
+					  << '\n';
 	}
 
 	// Second loop, now compare category values
@@ -484,7 +484,7 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 
 	if ((fd[0] = mkstemps(generated.data(), 4)) < 0 or (fd[1] = mkstemps(original.data(), 4)) < 0)
 	{
-		std::cerr << "Error creating temp files:  " << strerror(errno) << std::endl;
+		std::cerr << "Error creating temp files:  " << strerror(errno) << '\n';
 		exit(1);
 	}
 
@@ -527,7 +527,7 @@ void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, cons
 	if (pid <= 0)
 	{
 		if (execv(nArgv[0], const_cast<char *const *>(nArgv.data())) < 0)
-			std::cerr << "Failed to execute vimdiff" << std::endl;
+			std::cerr << "Failed to execute vimdiff\n";
 		exit(1);
 	}
 
@@ -571,7 +571,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().size() != 2)
 	{
-		std::cerr << config << std::endl;
+		std::cerr << config << '\n';
 		exit(config.has("help") ? 0 : 1);
 	}
 

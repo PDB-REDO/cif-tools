@@ -18,9 +18,16 @@ the \fB--dict\fR option.
 .TP
 \fB--dict\fR=<file>
 The mmCIF dictionary file to use. The default is \fImmcif_pdbx.dic\fR.
+.sp
+Note that you can specify multiple dictionaries by concatenating their names
+separated by a semicolon, like this: \fI--dict='mmcif_pdbx.dic;dssp-extension.dic'\fR
 .TP
 \fB--validate-links\fR
 Validate all links. Will output information about missing parent category items.
+.TP
+\fB--strip\fR
+Strip all categories and/or items that are not valid according to the specied dictionary.
+This implies the --print option.
 .TP
 \fB--verbose\fR,\fB-v\fR
 Be more verbose, useful to diagnose validation errors. Can be specified multiple times

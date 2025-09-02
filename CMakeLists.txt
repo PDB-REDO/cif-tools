@@ -22,25 +22,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.23)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
 # set the project name
 project(cif-tools VERSION 1.0.12 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+include(CPM)
 include(GNUInstallDirs)
-include(CheckFunctionExists)
-include(CheckIncludeFiles)
-include(CheckLibraryExists)
-include(CMakePackageConfigHelpers)
-include(FindFilesystem)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-find_package(Filesystem REQUIRED)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
@@ -58,23 +57,39 @@ if(NOT "$ENV{CCP4}" STREQUAL "")
 	endif()
 endif()
 
+if(WIN32)
+	if(${CMAKE_SYSTEM_VERSION} GREATER_EQUAL 10) # Windows 10
+		add_definitions(-D _WIN32_WINNT=0x0A00)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.3) # Windows 8.1
+		add_definitions(-D _WIN32_WINNT=0x0603)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.2) # Windows 8
+		add_definitions(-D _WIN32_WINNT=0x0602)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.1) # Windows 7
+		add_definitions(-D _WIN32_WINNT=0x0601)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.0) # Windows Vista
+		add_definitions(-D _WIN32_WINNT=0x0600)
+	else() # Windows XP (5.1)
+		add_definitions(-D _WIN32_WINNT=0x0501)
+	endif()
+
+	# Man, this is 2024 we're living in...
+	add_definitions(-DNOMINMAX)
+
+	# We do not want to write an export file for all our symbols...
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 if(MSVC)
 	# make msvc standards compliant...
-	add_compile_options(/permissive-)
+	add_compile_options(/permissive- /bigobj)
 	add_link_options(/NODEFAULTLIB:library)
 
-	macro(get_WIN32_WINNT version)
-		if(WIN32 AND CMAKE_SYSTEM_VERSION)
-			set(ver ${CMAKE_SYSTEM_VERSION})
-			string(REPLACE "." "" ver ${ver})
-			string(REGEX REPLACE "([0-9])" "0\\1" ver ${ver})
-
-			set(${version} "0x${ver}")
-		endif()
-	endmacro()
-
-	get_WIN32_WINNT(ver)
-	add_definitions(-D_WIN32_WINNT=${ver})
+	# This is dubious...
+	if(BUILD_SHARED_LIBS)
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+	else()
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	endif()
 endif()
 
 # Create a revision file, containing the current git version info
@@ -82,12 +97,12 @@ include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src")
 
 # Optionally use mrc to create resources
-find_package(Mrc QUIET)
+find_package(mrc QUIET)
 
 if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
 else()
-	message(STATUS "Not using resources since mrc was not found")
+	message(STATUS "cif-tools: Not using resources since mrc was not found")
 	set(USE_RSRC FALSE)
 endif()
 
@@ -95,12 +110,17 @@ if(USE_RSRC)
 	add_compile_definitions(USE_RSRC)
 endif()
 
-if(NOT (libmcfp_FOUND OR TARGET libmcfp))
-	find_package(libmcfp REQUIRED)
+if(NOT(mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
+	set(CPM_USE_LOCAL_PACKAGES ON)
+	CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
 endif()
 
-if(NOT (cifpp_FOUND OR TARGET cifpp))
-	find_package(cifpp 7 REQUIRED)
+# find_package(cifpp 9 QUIET)
+
+if(NOT(cifpp_FOUND OR TARGET cifpp))
+	add_subdirectory(libcifpp EXCLUDE_FROM_ALL)
+	set(cifpp_FOUND TRUE)
+	set(CIFPP_SHARE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcifpp/rsrc)
 endif()
 
 list(APPEND programs
@@ -113,8 +133,11 @@ list(APPEND programs
 	mmCQL
 )
 
+add_library(prmain OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/pr-main.cpp")
+target_link_libraries(prmain cifpp::cifpp)
+
 foreach(PROGRAM IN LISTS programs)
-	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp ${PROJECT_SOURCE_DIR}/src/pr-main.cpp)
+	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp)
 
 	if(USE_RSRC)
 		mrc_target_resources(${PROGRAM}
@@ -123,20 +146,9 @@ foreach(PROGRAM IN LISTS programs)
 			${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
 	endif()
 
-	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp libmcfp::libmcfp)
+	target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain>)
 
 	install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
-
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_SOURCE_TGZ ON)
-set(CPACK_SOURCE_TBZ2 OFF)
-set(CPACK_SOURCE_TXZ OFF)
-set(CPACK_SOURCE_TZ OFF)
-set(CPACK_SOURCE_IGNORE_FILES "/build;/.vscode;/.git")
-set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
-set (CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
-include(CPack)
-

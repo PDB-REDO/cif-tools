@@ -84,7 +84,7 @@ class statsParser : public cif::sac_parser
 					std::cout << mFile << ':';
 				if (mLineNr)
 					std::cout << mLineNr << ':';
-				std::cout << value << std::endl;
+				std::cout << value << '\n';
 			}
 		}
 	}
@@ -153,7 +153,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty())
 	{
-		std::cerr << config << std::endl;
+		std::cerr << config << '\n';
 		exit(config.has("help") ? 0 : 1);
 	}
 
@@ -187,7 +187,7 @@ int pr_main(int argc, char *argv[])
 			throw std::runtime_error("Invalid item: '" + item + '\'');
 
 		if (cif::VERBOSE > 0)
-			std::cerr << "matching only for category: " << cat << " and item " << item << std::endl;
+			std::cerr << "matching only for category: " << cat << " and item " << item << '\n';
 	}
 
 	size_t result = false;
@@ -195,9 +195,9 @@ int pr_main(int argc, char *argv[])
 	{
 		result = cifGrep(pattern, tag, "stdin", std::cin, quiet or filenamesOnly, lineNumbers, invertMatch);
 		if (doFileNames or (filenamesOnly and result != 0))
-			std::cout << "stdin" << std::endl;
+			std::cout << "stdin\n";
 		if (countOnly)
-			std::cout << result << std::endl;
+			std::cout << result << '\n';
 	}
 	else
 	{
@@ -253,7 +253,7 @@ int pr_main(int argc, char *argv[])
 				continue;
 
 			if (cif::VERBOSE > 0)
-				std::cerr << f << std::endl;
+				std::cerr << f << '\n';
 
 			cif::gzio::ifstream in(f);
 			if (not in.is_open())
@@ -266,22 +266,22 @@ int pr_main(int argc, char *argv[])
 				count += r;
 
 				if (cif::VERBOSE or (countOnly and not noFileNames))
-					std::cout << f << ':' << r << std::endl;
+					std::cout << f << ':' << r << '\n';
 
 				if (r > 0)
 					result = true;
 			}
 			catch (const std::exception &e)
 			{
-				std::cerr << std::endl
-						  << "exception for " << f << std::endl
-						  << " => " << e.what() << std::endl;
+				std::cerr << '\n'
+						  << "exception for " << f << '\n'
+						  << " => " << e.what() << '\n';
 			}
 		}
 	}
 
 	if (noFileNames and countOnly)
-		std::cout << count << std::endl;
+		std::cout << count << '\n';
 
 	return result ? 0 : 1;
 }
