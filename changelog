@@ -1,3 +1,6 @@
+Version 1.0.13
+- Updated libcifpp version
+
 Version 1.0.12
 - Added --pdbx option to cif-validate
 

@@ -30,12 +30,14 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND NOT CMAKE_BUILD_TYPE A
 endif()
 
 # set the project name
-project(cif-tools VERSION 1.0.12 LANGUAGES CXX)
+project(cif-tools VERSION 1.0.13 LANGUAGES CXX)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CPM)
+include(CTest)
 include(GNUInstallDirs)
+include(VersionString)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -92,10 +94,6 @@ if(MSVC)
 	endif()
 endif()
 
-# Create a revision file, containing the current git version info
-include(VersionString)
-write_version_header("${PROJECT_SOURCE_DIR}/src")
-
 # Optionally use mrc to create resources
 find_package(mrc QUIET)
 
@@ -136,6 +134,9 @@ list(APPEND programs
 add_library(prmain OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/pr-main.cpp")
 target_link_libraries(prmain cifpp::cifpp)
 
+# Create a revision file, containing the current git version info
+add_version_header(prmain "${PROJECT_SOURCE_DIR}/src/revision.hpp")
+
 foreach(PROGRAM IN LISTS programs)
 	add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp)
 
@@ -152,3 +153,7 @@ foreach(PROGRAM IN LISTS programs)
 
 	install(FILES doc/${PROGRAM}.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 endforeach()
+
+# if(BUILD_TESTING)
+# 	add_subdirectory(test)
+# endif()
