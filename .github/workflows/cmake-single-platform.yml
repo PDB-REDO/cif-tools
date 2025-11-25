@@ -32,7 +32,7 @@ jobs:
       run: |
         cmake -B ${{github.workspace}}/libcifpp/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -S ${{github.workspace}}/libcifpp -DBUILD_DOCUMENTATION=OFF -DBUILD_TESTING=OFF
         cmake --build ${{github.workspace}}/libcifpp/build
-        cmake --install ${{github.workspace}}/libcifpp/build
+        sudo cmake --install ${{github.workspace}}/libcifpp/build
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
