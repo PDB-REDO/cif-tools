@@ -30,7 +30,7 @@ jobs:
 
     - name: Build & install libcifpp
       run: |
-        cmake -B ${{github.workspace}}/libcifpp/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        cmake -B ${{github.workspace}}/libcifpp/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -S ${{github.workspace}}/libcifpp
         cmake --build ${{github.workspace}}/libcifpp/build
         cmake --install ${{github.workspace}}/libcifpp/build
 
