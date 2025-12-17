@@ -5,3 +5,4 @@ src/revision.hpp
 test/
 .cache/
 perf.data*
+.mmcql-history
