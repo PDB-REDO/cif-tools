@@ -35,8 +35,8 @@ project(cif-tools VERSION 1.0.12 LANGUAGES CXX C)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CPM)
+include(FetchContent)
 include(GNUInstallDirs)
-include(ExternalProject)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -116,15 +116,13 @@ if(NOT (mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
     CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
 endif()
 
-CPMAddPackage(
-    NAME linenoise
+FetchContent_Populate(linenoise
+    QUIET
     GIT_REPOSITORY "https://github.com/antirez/linenoise"
     GIT_TAG 1.0
-    DOWNLOAD_ONLY YES)
-
-file(GLOB linenoise_sources ${linenoise_SOURCE_DIR}/*.c)
-add_library(linenoise STATIC ${linenoise_sources})
-add_library(linenoise::linenoise ALIAS linenoise)
+    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/linenoise-src
+    EXCLUDE_FROM_ALL)
+add_library(linenoise STATIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>/linenoise.c)
 target_include_directories(linenoise PUBLIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>)
 
 # find_package(cifpp 9 QUIET)
@@ -158,7 +156,7 @@ foreach(PROGRAM IN LISTS programs)
             ${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
     endif()
 
-    target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain> linenoise::linenoise)
+    target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain> linenoise)
 
     install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
