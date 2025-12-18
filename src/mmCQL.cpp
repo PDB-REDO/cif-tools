@@ -48,7 +48,8 @@ int pr_main(int argc, char *argv[])
 
 		mcfp::make_option("force,F", "Force writing of output file, even if it is the same as the input file"),
 
-		mcfp::make_option<std::string>("script,f", "Read commands from script"),
+		mcfp::make_option<std::string>("file,f", "Read SQL commands from file"),
+		mcfp::make_option<std::string>("command,c", "Single SQL script to execute"),
 
 		mcfp::make_option<std::string>("data-block,D", "Datablock to use, default is first"));
 
@@ -58,6 +59,12 @@ int pr_main(int argc, char *argv[])
 	{
 		write_version_string(std::cout, config.has("verbose"));
 		exit(0);
+	}
+
+	if (config.has("file") and config.has("command"))
+	{
+		std::cerr << "Please specify either 'file' or 'command', not both\n";
+		exit(1);
 	}
 
 	if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
@@ -85,17 +92,27 @@ int pr_main(int argc, char *argv[])
 
 	cif::cql::connection connection(db);
 
-	if (config.has("script"))
+	if (config.has("file"))
 	{
-		std::ifstream cmdFile(config.get<std::string>("script"));
+		std::ifstream cmdFile(config.get<std::string>("file"));
 		if (not cmdFile.is_open())
-			throw std::runtime_error("Failed to open command file " + config.get<std::string>("script"));
+			throw std::runtime_error("Failed to open command file " + config.get<std::string>("file"));
 
 		cif::cql::transaction tx(connection);
 
 		std::stringstream ss;
 		ss << cmdFile.rdbuf();
-		tx.exec(ss.str());
+		auto r = tx.exec(ss.str());
+		if (not r.empty())
+			std::cout << r << "\n";
+		tx.commit();
+	}
+	else if (config.has("command"))
+	{
+		cif::cql::transaction tx(connection);
+		auto r = tx.exec(config.get("command"));
+		if (not r.empty())
+			std::cout << r << "\n";
 		tx.commit();
 	}
 	else
