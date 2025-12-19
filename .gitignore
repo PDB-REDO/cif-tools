@@ -6,3 +6,4 @@ test/
 .cache/
 perf.data*
 .mmcql-history
+src/mrsrc.hpp

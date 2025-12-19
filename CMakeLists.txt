@@ -109,6 +109,7 @@ endif()
 
 if(USE_RSRC)
     add_compile_definitions(USE_RSRC)
+    mrc_write_header(${CMAKE_CURRENT_SOURCE_DIR}/src/mrsrc.hpp)
 endif()
 
 if(NOT (mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
@@ -140,7 +141,7 @@ list(APPEND programs
     cif-grep
     cif-merge
     cif-validate
-    mmCQL
+    mmcql
 )
 
 add_library(prmain OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/pr-main.cpp")
@@ -150,10 +151,15 @@ foreach(PROGRAM IN LISTS programs)
     add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp)
 
     if(USE_RSRC)
-        mrc_target_resources(${PROGRAM}
+        list(APPEND rsrc
             ${CIFPP_SHARE_DIR}/mmcif_ma.dic
             ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
             ${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
+        if ("${PROGRAM}" STREQUAL "mmcql")
+            list(APPEND rsrc
+                ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
+        endif()
+        mrc_target_resources(${PROGRAM} RESOURCES ${rsrc})
     endif()
 
     target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain> linenoise)
