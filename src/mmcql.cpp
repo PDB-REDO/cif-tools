@@ -351,8 +351,13 @@ int pr_main(int argc, char *argv[])
 					std::cout << "OK\n";
 				else if (auto th = get_terminal_height(); r.size() > th or (r.size() == 1 and r.column_count() > th))
 				{
+					std::vector<std::string> order;
+					for (auto item : r.get_category().get_items())
+						order.emplace_back(item);
+
 					std::stringstream os;
-					os << r;
+					r.get_category().write(os, order, false);
+					// os << r;
 					showPagerForData(os);
 				}
 				else
