@@ -157,7 +157,8 @@ foreach(PROGRAM IN LISTS programs)
             ${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
         if ("${PROGRAM}" STREQUAL "mmcql")
             list(APPEND rsrc
-                ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
+                ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+                ${CMAKE_CURRENT_SOURCE_DIR}/rsrc/mmcql-commands.txt)
         endif()
         mrc_target_resources(${PROGRAM} RESOURCES ${rsrc})
     endif()
