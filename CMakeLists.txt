@@ -119,8 +119,8 @@ endif()
 
 FetchContent_Populate(linenoise
     QUIET
-    GIT_REPOSITORY "https://github.com/antirez/linenoise"
-    GIT_TAG 1.0
+    GIT_REPOSITORY "https://github.com/mhekkel/linenoise"
+    GIT_TAG c049030
     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/linenoise-src
     EXCLUDE_FROM_ALL)
 add_library(linenoise STATIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>/linenoise.c)

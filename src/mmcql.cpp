@@ -134,7 +134,7 @@ void showPagerForData(std::istream &is)
 				std::cerr << "fork failed: " << std::error_code(errno, std::system_category()).message() << "\n";
 				break;
 			case 0:
-				execlp("sh", "sh", "-c", "pager -eF /tmp/mmcql-fifo", nullptr);
+				execlp("/bin/sh", "sh", "-c", "pager -eF /tmp/mmcql-fifo", nullptr);
 				std::cerr << "exec of pager failed: " << std::error_code(errno, std::system_category()).message() << "\n";
 				exit(-1);
 				break;
