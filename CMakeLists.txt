@@ -117,14 +117,25 @@ if(NOT (mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
     CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
 endif()
 
-FetchContent_Populate(linenoise
+# FetchContent_Populate(linenoise
+#     QUIET
+#     GIT_REPOSITORY "https://github.com/mhekkel/linenoise"
+#     GIT_TAG c049030
+#     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/linenoise-src
+#     EXCLUDE_FROM_ALL)
+# add_library(linenoise STATIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>/linenoise.c)
+# target_include_directories(linenoise PUBLIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>)
+
+FetchContent_Populate(readln
     QUIET
-    GIT_REPOSITORY "https://github.com/mhekkel/linenoise"
-    GIT_TAG c049030
-    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/linenoise-src
+    GIT_REPOSITORY "https://forge.hekkelman.net/maarten/readln"
+    GIT_TAG 2396b296cd
+    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/readln-src
     EXCLUDE_FROM_ALL)
-add_library(linenoise STATIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>/linenoise.c)
-target_include_directories(linenoise PUBLIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>)
+add_library(readln STATIC $<BUILD_INTERFACE:${readln_SOURCE_DIR}>/readln.cpp)
+target_compile_features(readln PUBLIC cxx_std_20)
+target_include_directories(readln PUBLIC $<BUILD_INTERFACE:${readln_SOURCE_DIR}>)
+
 
 # find_package(cifpp 9 QUIET)
 
@@ -157,13 +168,12 @@ foreach(PROGRAM IN LISTS programs)
             ${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
         if ("${PROGRAM}" STREQUAL "mmcql")
             list(APPEND rsrc
-                ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
-                ${CMAKE_CURRENT_SOURCE_DIR}/rsrc/mmcql-commands.txt)
+                ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
         endif()
         mrc_target_resources(${PROGRAM} RESOURCES ${rsrc})
     endif()
 
-    target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain> linenoise)
+    target_link_libraries(${PROGRAM} PRIVATE cifpp::cifpp mcfp::mcfp $<TARGET_OBJECTS:prmain> readln)
 
     install(TARGETS ${PROGRAM} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

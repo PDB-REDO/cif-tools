@@ -24,26 +24,28 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cif++/category.hpp"
-#include "cif++/datablock.hpp"
-#include "cif++/text.hpp"
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
 #include <cerrno>
 #include <cif++.hpp>
+#include <cif++/category.hpp>
 #include <cif++/cql.hpp>
+#include <cif++/datablock.hpp>
 #include <cif++/gzio.hpp>
+#include <cif++/text.hpp>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <istream>
-#include <linenoise.h>
 #include <mcfp/mcfp.hpp>
 #include <memory>
+#include <ranges>
+#include <readln.hpp>
 #include <sstream>
 #include <string_view>
 #include <sys/poll.h>
@@ -51,14 +53,13 @@
 #include <sys/wait.h>
 #include <system_error>
 #include <unistd.h>
+#include <utility>
 
 // --------------------------------------------------------------------
 // Globals to store settings
 
-bool gOutputModeAligned = true;
 bool gOutputModeOnlyRows = false;
-std::string gOutputModeSeparator = "|";
-bool gOutputModeCif = false;
+cif::category::output_format gOutputFormat = cif::category::output_format::column;
 std::ofstream gOutputFile;
 
 // --------------------------------------------------------------------
@@ -82,11 +83,7 @@ uint32_t get_terminal_height()
 
 void writeResult(cif::category &cat, std::ostream &os)
 {
-	if (gOutputModeCif)
-		os << cat;
-	else
-	{
-	}
+	cat.write(os, gOutputFormat, {}, false);
 }
 
 void writeResult(cif::category &cat)
@@ -134,7 +131,7 @@ void showPagerForData(std::istream &is)
 				std::cerr << "fork failed: " << std::error_code(errno, std::system_category()).message() << "\n";
 				break;
 			case 0:
-				execlp("/bin/sh", "sh", "-c", "pager -eF /tmp/mmcql-fifo", nullptr);
+				execlp("/bin/sh", "sh", "-c", "pager -d -eF /tmp/mmcql-fifo", nullptr);
 				std::cerr << "exec of pager failed: " << std::error_code(errno, std::system_category()).message() << "\n";
 				exit(-1);
 				break;
@@ -162,51 +159,111 @@ Type:  \copyright for distribution terms
 	//    \g or terminate with semicolon to execute query
 }
 
+void displayOptions();
+
 // --------------------------------------------------------------------
+
+enum class CommandCategory
+{
+	General,
+	Help,
+	Input_Output,
+	Informational,
+	Formatting,
+	Datablock
+};
+
+std::map<CommandCategory, std::string> kCommandCategoryLabels{
+	{ CommandCategory::General, "General" },
+	{ CommandCategory::Help, "Help" },
+	{ CommandCategory::Input_Output, "Input/Output" },
+	{ CommandCategory::Informational, "Informational" },
+	{ CommandCategory::Formatting, "Formatting" },
+	{ CommandCategory::Datablock, "Datablock" }
+};
 
 struct BackslashCommand
 {
+	CommandCategory mCategory;
 	std::string_view mCommand;
 	std::string_view mDesc;
 	std::function<void(std::string_view arg)> mFunc;
 };
 
 std::vector<BackslashCommand> gBackslashCommands{
-	{ "\\copyright",
+	{ CommandCategory::General,
+		"\\copyright",
 		"show copyright and usage", [](std::string_view)
 		{
 			mrsrc::istream license("LICENSE");
 			showPagerForData(license);
 		} },
-	{ "\\?", "show help on backslash commands", [](std::string_view)
+	{ CommandCategory::General, "\\?", "show help on backslash commands", [](std::string_view)
 		{
-			mrsrc::istream help("mmcql-commands.txt");
-			showPagerForData(help);
+			displayOptions();
 		} },
-	{ "\\h", "show help on SQL syntax", [](std::string_view)
+	{ CommandCategory::General, "\\h", "show help on SQL syntax", [](std::string_view)
 		{
 			std::cout << "This will eventually be the SQL help page\n";
+		} },
+	{ CommandCategory::Formatting, "\\format", "Select one of: cif, csv, tsv, list, column, markdown, table", [](std::string_view fmt)
+		{
+			std::string f{ fmt };
+			cif::trim(f);
+
+			if (f == "cif")
+				gOutputFormat = cif::category::output_format::cif;
+			else if (f == "csv")
+				gOutputFormat = cif::category::output_format::csv;
+			else if (f == "tsv")
+				gOutputFormat = cif::category::output_format::tsv;
+			else if (f == "list")
+				gOutputFormat = cif::category::output_format::list;
+			else if (f == "column")
+				gOutputFormat = cif::category::output_format::column;
+			else if (f == "markdown")
+				gOutputFormat = cif::category::output_format::markdown;
+			else if (f == "table")
+				gOutputFormat = cif::category::output_format::table;
+			else
+			 	std::cout << "Unknown output format: " << f << "\n";
 		} }
 };
 
-void completion(const char *buf, linenoiseCompletions *lc)
+void displayOptions()
 {
-	using namespace std::literals;
-
-	std::string_view bufsv(buf);
-
-	for (auto bc : gBackslashCommands)
+	std::stringstream ss;
+	for (const auto &[cat, label] : kCommandCategoryLabels)
 	{
-		for (auto l = bc.mCommand.size(); l > 0; --l)
+		for (bool first = true; auto cmd : gBackslashCommands | std::views::filter([cat](BackslashCommand &cmd)
+																	{ return cmd.mCategory == cat; }))
 		{
-			if (bufsv.ends_with(bc.mCommand.substr(0, l)))
-			{
-				linenoiseAddCompletion(lc, bc.mCommand.data());
-				break;
-			}
+			if (std::exchange(first, false))
+				ss << label << "\n\n";
+			ss << std::format("  {:10}  {}\n", cmd.mCommand, cmd.mDesc);
 		}
 	}
+	showPagerForData(ss);
 }
+
+// void completion(const char *buf, linenoiseCompletions *lc)
+// {
+// 	using namespace std::literals;
+
+// 	std::string_view bufsv(buf);
+
+// 	for (auto bc : gBackslashCommands)
+// 	{
+// 		for (auto l = bc.mCommand.size(); l > 0; --l)
+// 		{
+// 			if (bufsv.ends_with(bc.mCommand.substr(0, l)))
+// 			{
+// 				linenoiseAddCompletion(lc, bc.mCommand.data());
+// 				break;
+// 			}
+// 		}
+// 	}
+// }
 
 // --------------------------------------------------------------------
 
@@ -233,6 +290,7 @@ class MMCQLApplication
 	std::unique_ptr<cif::file> m_file;
 	std::string m_dbname;
 	std::unique_ptr<cif::cql::connection> m_connection;
+	bool m_modified = false;
 };
 
 // --------------------------------------------------------------------
@@ -240,12 +298,15 @@ class MMCQLApplication
 MMCQLApplication::MMCQLApplication()
 {
 	gBackslashCommands.emplace_back(
+		CommandCategory::Input_Output,
 		"\\file", "load new mmCIF file", [this](std::string_view f)
 		{ this->loadCifFile(f); });
 	gBackslashCommands.emplace_back(
+		CommandCategory::Datablock,
 		"\\dd", "show datablocks in file", [this](std::string_view a)
 		{ this->showDatablocks(a); });
 	gBackslashCommands.emplace_back(
+		CommandCategory::Datablock,
 		"\\dc", "show all categories in file", [this](std::string_view a)
 		{ this->showCategories(a); });
 }
@@ -261,7 +322,7 @@ void MMCQLApplication::showPagerForData(cif::category &cat)
 		order.emplace_back(item);
 
 	std::stringstream os;
-	cat.write(os, order, false);
+	cat.write(os, gOutputFormat, order, false);
 	::showPagerForData(os);
 }
 
@@ -270,18 +331,31 @@ void MMCQLApplication::showPagerForData(cif::category &cat)
 
 void MMCQLApplication::loadCifFile(std::string_view f)
 {
+	if (m_modified and m_file)
+		m_file->save(m_filename);
+
 	m_connection.reset();
+	m_modified = false;
 
-	m_filename = cif::trim_copy(f);
+	try
+	{
+		m_filename = cif::trim_copy(f);
 
-	cif::gzio::ifstream in(m_filename);
-	if (not in.is_open())
-		throw std::runtime_error("Could not open file " + m_filename.string());
+		cif::gzio::ifstream in(m_filename);
+		if (not in.is_open())
+			throw std::runtime_error("Could not open file " + m_filename.string());
 
-	m_file.reset(new cif::file{ in });
+		m_file.reset(new cif::file{ in });
 
-	if (not m_file->empty())
-		loadDatablock(m_file->front().name());
+		if (not m_file->empty())
+			loadDatablock(m_file->front().name());
+	}
+	catch (const std::exception &ex)
+	{
+		std::cout << "Error loading " << std::quoted(f) << ": " << ex.what() << "\n";
+		m_file.reset();
+		m_modified = false;
+	}
 }
 
 void MMCQLApplication::loadDatablock(std::string_view d)
@@ -318,7 +392,6 @@ void MMCQLApplication::showCategories(std::string_view)
 
 		for (auto &db : *m_file)
 		{
-
 			for (auto &cat : db)
 				categories.emplace({ //
 					{ "name", cat.name() },
@@ -337,31 +410,41 @@ void MMCQLApplication::processCommand(std::string_view cmd, std::string_view arg
 	{
 		if (bc.mCommand != cmd)
 			continue;
-		bc.mFunc(args);
-		break;
+
+		try
+		{
+			bc.mFunc(args);
+		}
+		catch (const std::exception &ex)
+		{
+			std::cout << "Error processing command: " << ex.what() << "\n";
+		}
+
+		return;
 	}
+
+	std::cout << "Unknown command\n";
 }
 
 void MMCQLApplication::loop()
 {
 	using namespace std::literals;
-	const char *line;
+	using namespace readln;
 
-	linenoiseHistoryLoad(".mmcql-history");
-	linenoiseSetMultiLine(1);
+	load_history(".mmcql-history");
+	// linenoiseSetMultiLine(1);
 
-	linenoiseSetCompletionCallback(completion);
+	// linenoiseSetCompletionCallback(completion);
 
 	std::cout << "mmql (" << kVersionNumber << ")\n"
 			  << "Type \"help\" for help.\n\n";
 
-	while ((line = linenoise("cql> ")) != nullptr)
+	std::string line, sql;
+	while (getline("cql> ", line))
 	{
-		linenoiseHistoryAdd(line);
+		add_history(line);
 
-		std::string_view lv(line);
-
-		if (lv == "help")
+		if (line == "help")
 		{
 			displayHelp();
 			continue;
@@ -369,17 +452,17 @@ void MMCQLApplication::loop()
 
 		// bool executeWithoutSemicolon = false;
 
-		if (lv.starts_with('\\'))
+		if (line.starts_with('\\'))
 		{
-			auto args = lv.find_first_of(" \t\r\n");
-			auto cmd = lv.substr(0, args);
+			auto args = line.find_first_of(" \t\r\n");
+			auto cmd = line.substr(0, args);
 			if (cmd == "\\q") // quit
 				break;
 			// if (cmd == "g")
 			// 	executeWithoutSemicolon = true;
 			// else
 			{
-				processCommand(cmd, args == std::string_view::npos ? ""sv : lv.substr(args));
+				processCommand(cmd, args == std::string_view::npos ? ""sv : line.substr(args));
 				continue;
 			}
 		}
@@ -401,16 +484,18 @@ void MMCQLApplication::loop()
 				showPagerForData(r.get_category());
 
 			tx.commit();
+			m_modified = true;
 		}
 		catch (const std::exception &ex)
 		{
 			std::cout << "Error executing statement(s): " << ex.what() << "\n";
 		}
-
-		free((void *)line);
 	}
 
-	linenoiseHistorySave(".mmcql-history");
+	if (m_modified and m_file)
+		m_file->save(m_filename);
+
+	save_history(".mmcql-history");
 }
 
 // -----------------------------------------------------------------------
@@ -421,15 +506,15 @@ int pr_main(int argc, char *argv[])
 
 	auto &config = mcfp::config::instance();
 
-	config.init("mmcql [options] input [output]",
+	config.init("mmcql [options] cif-file",
 		mcfp::make_option("help,h", "Display help message"),
 		mcfp::make_option("version", "Print version"),
-		mcfp::make_option("verbose,V", "Verbose output, repeat to increase verbosity level"),
-
-		mcfp::make_option("force,F", "Force writing of output file, even if it is the same as the input file"),
+		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
 
 		mcfp::make_option<std::string>("file,f", "Read SQL commands from file"),
 		mcfp::make_option<std::string>("command,c", "Single SQL script to execute"),
+
+		mcfp::make_option<std::string>("backup,i", ".bak", "Extension for backup file"),
 
 		mcfp::make_option<std::string>("data-block,D", "Datablock to use, default is first"));
 
@@ -447,7 +532,7 @@ int pr_main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
+	if (config.has("help") or config.operands().size() != 1)
 	{
 		std::cerr << config << '\n';
 		exit(config.has("help") ? 0 : 1);
@@ -455,70 +540,71 @@ int pr_main(int argc, char *argv[])
 
 	cif::VERBOSE = config.count("verbose");
 
-	if (config.operands().size() == 2 and config.operands().front() == config.operands().back() and not config.has("force"))
+	try
 	{
-		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)\n";
+		if (config.has("file") or config.has("command"))
+		{
+			std::filesystem::path p{ config.operands().front() };
+			cif::file file{ p };
+
+			cif::datablock &db = config.has("data-block") ? file[config.get("data-block")] : file.front();
+			db.load_dictionary();
+
+			cif::cql::connection connection(db);
+
+			if (config.has("file"))
+			{
+				std::ifstream cmdFile(config.get<std::string>("file"));
+				if (not cmdFile.is_open())
+					throw std::runtime_error("Failed to open command file " + config.get<std::string>("file"));
+
+				cif::cql::transaction tx(connection);
+
+				std::stringstream ss;
+				ss << cmdFile.rdbuf();
+				auto r = tx.exec(ss.str());
+				if (not r.empty())
+					std::cout << r << "\n";
+				tx.commit();
+			}
+			else if (config.has("command"))
+			{
+				cif::cql::transaction tx(connection);
+				auto r = tx.exec(config.get("command"));
+				if (not r.empty())
+					std::cout << r << "\n";
+				tx.commit();
+			}
+
+			std::error_code ec;
+			auto backup = p.parent_path() / (p.filename().string() + config.get("backup"));
+
+			if (std::filesystem::exists(backup, ec))
+				std::filesystem::remove(backup, ec);
+
+			if (ec)
+				std::cerr << "Error removing old backup file: " << ec.message() << '\n';
+			else
+			{
+				std::filesystem::rename(p, backup, ec);
+				if (ec)
+					std::cerr << "Error creating backup file: " << ec.message() << '\n';
+			}
+
+			file.save(p);
+		}
+		else
+		{
+			MMCQLApplication app;
+			app.loadCifFile(config.operands().front());
+			app.loop();
+		}
+	}
+	catch (const std::exception &ex)
+	{
+		std::cerr << "Error in mmcql: " << ex.what() << '\n';
 		exit(1);
 	}
-
-	if (config.has("file") or config.has("command"))
-	{
-		cif::gzio::ifstream in(config.operands().front());
-		if (not in.is_open())
-			throw std::runtime_error("Could not open file " + config.operands().front());
-
-		cif::file file{ in };
-
-		cif::datablock &db = config.has("data-block") ? file[config.get("data-block")] : file.front();
-		db.load_dictionary();
-
-		cif::cql::connection connection(db);
-
-		if (config.has("file"))
-		{
-			std::ifstream cmdFile(config.get<std::string>("file"));
-			if (not cmdFile.is_open())
-				throw std::runtime_error("Failed to open command file " + config.get<std::string>("file"));
-
-			cif::cql::transaction tx(connection);
-
-			std::stringstream ss;
-			ss << cmdFile.rdbuf();
-			auto r = tx.exec(ss.str());
-			if (not r.empty())
-				std::cout << r << "\n";
-			tx.commit();
-		}
-		else if (config.has("command"))
-		{
-			cif::cql::transaction tx(connection);
-			auto r = tx.exec(config.get("command"));
-			if (not r.empty())
-				std::cout << r << "\n";
-			tx.commit();
-		}
-	}
-	else
-	{
-		MMCQLApplication app;
-		app.loadCifFile(config.operands().front());
-		app.loop();
-	}
-
-	// }
-	// else
-	// {
-
-	// }
-
-	// if (config.operands().size() == 2)
-	// {
-	// 	cif::gzio::ofstream out(config.operands().back());
-	// 	if (not out.is_open())
-	// 		throw std::runtime_error("Could not open output file " + config.operands().back());
-
-	// 	file.save(out);
-	// }
 
 	return 0;
 }
