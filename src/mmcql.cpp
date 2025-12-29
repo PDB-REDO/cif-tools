@@ -24,6 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cif++/validate.hpp"
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
@@ -47,6 +48,7 @@
 #include <ranges>
 #include <readln.hpp>
 #include <sstream>
+#include <stdexcept>
 #include <string_view>
 #include <sys/poll.h>
 #include <sys/stat.h>
@@ -81,9 +83,52 @@ uint32_t get_terminal_height()
 // --------------------------------------------------------------------
 // Data formatting
 
+std::string to_string(cif::category::output_format fmt)
+{
+	switch (gOutputFormat)
+	{
+		case cif::category::output_format::cif:
+			return "cif";
+		case cif::category::output_format::csv:
+			return "csv";
+		case cif::category::output_format::tsv:
+			return "tsv";
+		case cif::category::output_format::list:
+			return "list";
+		case cif::category::output_format::column:
+			return "column";
+		case cif::category::output_format::markdown:
+			return "markdown";
+		case cif::category::output_format::table:
+			return "table";
+		default:
+			throw std::runtime_error("Unknown format");
+	}
+}
+
+void from_string(const std::string &s, cif::category::output_format &fmt)
+{
+	if (s == "cif")
+		fmt = cif::category::output_format::cif;
+	else if (s == "csv")
+		fmt = cif::category::output_format::csv;
+	else if (s == "tsv")
+		fmt = cif::category::output_format::tsv;
+	else if (s == "list")
+		fmt = cif::category::output_format::list;
+	else if (s == "column")
+		fmt = cif::category::output_format::column;
+	else if (s == "markdown")
+		fmt = cif::category::output_format::markdown;
+	else if (s == "table")
+		fmt = cif::category::output_format::table;
+	else
+		throw std::runtime_error("Unknown output format: " + s);
+}
+
 void writeResult(cif::category &cat, std::ostream &os)
 {
-	cat.write(os, gOutputFormat, {}, false);
+	cat.write(os, gOutputFormat, {}, true);
 }
 
 void writeResult(cif::category &cat)
@@ -93,20 +138,6 @@ void writeResult(cif::category &cat)
 	else
 		writeResult(cat, std::cout);
 }
-
-// std::istream *writeResult(cif::category &cat, OutputFormat format)
-// {
-// 	auto result = std::make_unique<std::stringstream>();
-
-// 	if (format == OutputFormat::CIF)
-// 		cat.write(*result, {}, false);
-// 	else
-// 	{
-
-// 	}
-
-// 	return result.release();
-// }
 
 // --------------------------------------------------------------------
 
@@ -168,65 +199,52 @@ enum class CommandCategory
 	General,
 	Help,
 	Input_Output,
-	Informational,
 	Formatting,
-	Datablock
+	DisplayType
 };
 
 std::map<CommandCategory, std::string> kCommandCategoryLabels{
 	{ CommandCategory::General, "General" },
 	{ CommandCategory::Help, "Help" },
 	{ CommandCategory::Input_Output, "Input/Output" },
-	{ CommandCategory::Informational, "Informational" },
 	{ CommandCategory::Formatting, "Formatting" },
-	{ CommandCategory::Datablock, "Datablock" }
+	{ CommandCategory::DisplayType, "Display content and type" }
 };
 
 struct BackslashCommand
 {
 	CommandCategory mCategory;
 	std::string_view mCommand;
+	std::string_view mCommandWithArg;
 	std::string_view mDesc;
 	std::function<void(std::string_view arg)> mFunc;
 };
 
 std::vector<BackslashCommand> gBackslashCommands{
 	{ CommandCategory::General,
-		"\\copyright",
+		"\\copyright", "\\copyright",
 		"show copyright and usage", [](std::string_view)
 		{
 			mrsrc::istream license("LICENSE");
 			showPagerForData(license);
 		} },
-	{ CommandCategory::General, "\\?", "show help on backslash commands", [](std::string_view)
+	{ CommandCategory::General, "\\?", "\\?", "show help on backslash commands", [](std::string_view)
 		{
 			displayOptions();
 		} },
-	{ CommandCategory::General, "\\h", "show help on SQL syntax", [](std::string_view)
+	{ CommandCategory::General, "\\h", "\\h", "show help on SQL syntax", [](std::string_view)
 		{
 			std::cout << "This will eventually be the SQL help page\n";
 		} },
-	{ CommandCategory::Formatting, "\\format", "Select one of: cif, csv, tsv, list, column, markdown, table", [](std::string_view fmt)
+	{ CommandCategory::Formatting, "\\format", "\\format [fmt]", "Output format, show current or select one of: cif, csv, tsv, list, column, markdown, table", [](std::string_view fmt)
 		{
 			std::string f{ fmt };
 			cif::trim(f);
 
-			if (f == "cif")
-				gOutputFormat = cif::category::output_format::cif;
-			else if (f == "csv")
-				gOutputFormat = cif::category::output_format::csv;
-			else if (f == "tsv")
-				gOutputFormat = cif::category::output_format::tsv;
-			else if (f == "list")
-				gOutputFormat = cif::category::output_format::list;
-			else if (f == "column")
-				gOutputFormat = cif::category::output_format::column;
-			else if (f == "markdown")
-				gOutputFormat = cif::category::output_format::markdown;
-			else if (f == "table")
-				gOutputFormat = cif::category::output_format::table;
+			if (f.empty())
+				std::cout << "Current output format is " << std::quoted(to_string(gOutputFormat)) << "\n";
 			else
-			 	std::cout << "Unknown output format: " << f << "\n";
+				from_string(f, gOutputFormat);
 		} }
 };
 
@@ -235,13 +253,19 @@ void displayOptions()
 	std::stringstream ss;
 	for (const auto &[cat, label] : kCommandCategoryLabels)
 	{
-		for (bool first = true; auto cmd : gBackslashCommands | std::views::filter([cat](BackslashCommand &cmd)
-																	{ return cmd.mCategory == cat; }))
+		auto cmds = gBackslashCommands | std::views::filter([cat](BackslashCommand &cmd)
+											 { return cmd.mCategory == cat; });
+
+		if (cmds.empty())
+			continue;
+
+		for (bool first = true; auto cmd : cmds)
 		{
 			if (std::exchange(first, false))
-				ss << label << "\n\n";
-			ss << std::format("  {:10}  {}\n", cmd.mCommand, cmd.mDesc);
+				ss << label << "\n";
+			ss << std::format("  {:15}  {}\n", cmd.mCommandWithArg, cmd.mDesc);
 		}
+		ss << "\n";
 	}
 	showPagerForData(ss);
 }
@@ -273,22 +297,25 @@ class MMCQLApplication
 	MMCQLApplication();
 
 	void loop();
-	void loadCifFile(std::string_view f);
-	void loadDatablock(std::string_view d);
 
 	~MMCQLApplication();
 
   private:
+	void loadCifFile(std::string_view f);
+	void loadDictionary(std::string_view d);
+	void loadDatablock(std::string_view d);
+
 	void showPagerForData(cif::category &cat);
 
-	void showCategories(std::string_view);
+	void showCategories(std::string_view, bool show_all);
 	void showDatablocks(std::string_view);
+	void showItems(std::string_view, bool with_aliases);
 
 	void processCommand(std::string_view cmd, std::string_view args);
 
-	std::filesystem::path m_filename;
+	std::filesystem::path m_file_name;
 	std::unique_ptr<cif::file> m_file;
-	std::string m_dbname;
+	std::string m_db_name, m_dict_name;
 	std::unique_ptr<cif::cql::connection> m_connection;
 	bool m_modified = false;
 };
@@ -297,18 +324,47 @@ class MMCQLApplication
 
 MMCQLApplication::MMCQLApplication()
 {
+	auto &config = mcfp::config::instance();
+
+	if (config.operands().size() > 0)
+		m_file_name = config.operands().front();
+	if (config.has("datablock"))
+		m_db_name = config.get("datablock");
+	if (config.has("dict"))
+		m_dict_name = config.get("dict");
+
 	gBackslashCommands.emplace_back(
 		CommandCategory::Input_Output,
-		"\\file", "load new mmCIF file", [this](std::string_view f)
+		"\\file", "\\file <file>", "load new mmCIF file", [this](std::string_view f)
 		{ this->loadCifFile(f); });
 	gBackslashCommands.emplace_back(
-		CommandCategory::Datablock,
-		"\\dd", "show datablocks in file", [this](std::string_view a)
+		CommandCategory::Input_Output,
+		"\\db", "\\db <datablock>", "load a datablock from the current file", [this](std::string_view f)
+		{ this->loadDatablock(f); });
+	gBackslashCommands.emplace_back(
+		CommandCategory::Input_Output,
+		"\\dict", "\\dict <dictionary>", "use a specified dictionary for the current datablock", [this](std::string_view f)
+		{ this->loadDictionary(f); });
+	gBackslashCommands.emplace_back(
+		CommandCategory::DisplayType,
+		"\\dd", "\\dd", "show datablocks in file", [this](std::string_view a)
 		{ this->showDatablocks(a); });
 	gBackslashCommands.emplace_back(
-		CommandCategory::Datablock,
-		"\\dc", "show all categories in file", [this](std::string_view a)
-		{ this->showCategories(a); });
+		CommandCategory::DisplayType,
+		"\\dc", "\\dc", "show all categories in current datablock", [this](std::string_view a)
+		{ this->showCategories(a, false); });
+	gBackslashCommands.emplace_back(
+		CommandCategory::DisplayType,
+		"\\dc+", "\\dc+", "show all categories in current file", [this](std::string_view a)
+		{ this->showCategories(a, true); });
+	gBackslashCommands.emplace_back(
+		CommandCategory::DisplayType,
+		"\\d", "\\d <category>", "show items in category", [this](std::string_view a)
+		{ this->showItems(a, false); });
+	gBackslashCommands.emplace_back(
+		CommandCategory::DisplayType,
+		"\\d+", "\\d+ <category>", "show items in category including aliased names", [this](std::string_view a)
+		{ this->showItems(a, true); });
 }
 
 MMCQLApplication::~MMCQLApplication()
@@ -332,23 +388,30 @@ void MMCQLApplication::showPagerForData(cif::category &cat)
 void MMCQLApplication::loadCifFile(std::string_view f)
 {
 	if (m_modified and m_file)
-		m_file->save(m_filename);
+		m_file->save(m_file_name);
 
 	m_connection.reset();
 	m_modified = false;
 
 	try
 	{
-		m_filename = cif::trim_copy(f);
+		m_file_name = cif::trim_copy(f);
 
-		cif::gzio::ifstream in(m_filename);
+		cif::gzio::ifstream in(m_file_name);
 		if (not in.is_open())
-			throw std::runtime_error("Could not open file " + m_filename.string());
+			throw std::runtime_error("Could not open file " + m_file_name.string());
 
 		m_file.reset(new cif::file{ in });
 
 		if (not m_file->empty())
-			loadDatablock(m_file->front().name());
+		{
+			if (m_file->contains(m_db_name))
+				loadDatablock(m_db_name);
+			else
+				loadDatablock(m_file->front().name());
+		}
+
+		std::cout << "Loaded file " << m_file_name << " and datablock " << m_db_name << "\n";
 	}
 	catch (const std::exception &ex)
 	{
@@ -360,12 +423,41 @@ void MMCQLApplication::loadCifFile(std::string_view f)
 
 void MMCQLApplication::loadDatablock(std::string_view d)
 {
-	m_dbname = d;
+	m_db_name = cif::trim_copy(d);
 
-	cif::datablock &db = m_file->operator[](d);
-	db.load_dictionary();
+	cif::datablock &db = m_file->operator[](m_db_name);
+
+	if (m_dict_name.empty())
+		db.load_dictionary();
+	else
+	 	db.load_dictionary(m_dict_name);
 
 	m_connection.reset(new cif::cql::connection(db));
+}
+
+void MMCQLApplication::loadDictionary(std::string_view dn)
+{
+	m_dict_name = cif::trim_copy(dn);
+
+	cif::datablock &db = m_file->operator[](m_db_name);
+
+	if (m_dict_name.empty())
+	{
+		cif::category audit_conform;
+
+		if (auto v = db.get_validator(); v != nullptr)
+			v->fill_audit_conform(audit_conform);
+
+		if (audit_conform.empty())
+			std::cout << "No dictionary loaded\n";
+		else
+			showPagerForData(audit_conform);
+	}
+	else
+	{
+		db.load_dictionary(m_dict_name);
+		m_connection.reset(new cif::cql::connection(db));
+	}
 }
 
 void MMCQLApplication::showDatablocks(std::string_view)
@@ -384,21 +476,83 @@ void MMCQLApplication::showDatablocks(std::string_view)
 	}
 }
 
-void MMCQLApplication::showCategories(std::string_view)
+void MMCQLApplication::showCategories(std::string_view, bool show_all)
 {
 	if (m_file)
 	{
 		cif::category categories("categories");
 
-		for (auto &db : *m_file)
+		if (show_all)
 		{
-			for (auto &cat : db)
-				categories.emplace({ //
-					{ "name", cat.name() },
-					{ "datablock", db.name() } });
+			for (auto &db : *m_file)
+			{
+				for (auto &cat : db)
+					categories.emplace({ //
+						{ "name", cat.name() },
+						{ "datablock", db.name() } });
+			}
+		}
+		else
+		{
+			for (auto &db : *m_file)
+			{
+				if (db.name() != m_db_name)
+					continue;
+				for (auto &cat : db)
+					categories.emplace({ //
+						{ "name", cat.name() } });
+			}
 		}
 
 		showPagerForData(categories);
+	}
+}
+
+void MMCQLApplication::showItems(std::string_view a, bool with_aliases)
+{
+	std::string name = cif::trim_copy(a);
+
+	if (m_file and not m_db_name.empty())
+	{
+		cif::category items("items in " + std::string{ name });
+
+		for (auto &cat : m_file->operator[](m_db_name))
+		{
+			if (cat.name() != name)
+				continue;
+
+			if (auto cv = cat.get_cat_validator(); cv != nullptr)
+			{
+				for (auto iv : cv->m_item_validators)
+				{
+					auto ri = items.emplace({ { "name", iv.m_item_name },
+						{ "type", iv.m_type->m_name },
+						{ "mandatory", iv.m_mandatory },
+						{ "default", iv.m_default },
+						{ "enumeration", cif::join(iv.m_enums, ",") } });
+
+					if (with_aliases and not iv.m_aliases.empty())
+					{
+						std::ostringstream os;
+						for (bool first = true; auto &alias : iv.m_aliases)
+						{
+							if (std::exchange(first, false) == false)
+								os << ";";
+							os << alias.m_name << " in " << alias.m_dict << '@' << alias.m_vers;
+						}
+
+						ri->assign("aliases", os.str(), false, false);
+					}
+				}
+			}
+			else
+			{
+				for (auto item : cat.get_items())
+					items.emplace({ { "name", item } });
+			}
+		}
+
+		showPagerForData(items);
 	}
 }
 
@@ -438,6 +592,9 @@ void MMCQLApplication::loop()
 
 	std::cout << "mmql (" << kVersionNumber << ")\n"
 			  << "Type \"help\" for help.\n\n";
+
+	if (not m_file_name.empty())
+		loadCifFile(m_file_name.string());
 
 	std::string line, sql;
 	while (getline("cql> ", line))
@@ -493,7 +650,7 @@ void MMCQLApplication::loop()
 	}
 
 	if (m_modified and m_file)
-		m_file->save(m_filename);
+		m_file->save(m_file_name);
 
 	save_history(".mmcql-history");
 }
@@ -511,12 +668,15 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option("verbose,v", "Verbose output, repeat to increase verbosity level"),
 
+		mcfp::make_option<std::string>("datablock,D", "Datablock to use, default is first"),
+		mcfp::make_option<std::string>("dict,d", "Use specified mmcif dictionary"),
+
 		mcfp::make_option<std::string>("file,f", "Read SQL commands from file"),
 		mcfp::make_option<std::string>("command,c", "Single SQL script to execute"),
 
-		mcfp::make_option<std::string>("backup,i", ".bak", "Extension for backup file"),
+		mcfp::make_option<std::string>("format", "column", "Output format to use"),
 
-		mcfp::make_option<std::string>("data-block,D", "Datablock to use, default is first"));
+		mcfp::make_option<std::string>("backup,i", ".bak", "Extension for backup file"));
 
 	config.parse(argc, argv);
 
@@ -540,6 +700,8 @@ int pr_main(int argc, char *argv[])
 
 	cif::VERBOSE = config.count("verbose");
 
+	from_string(config.get("format"), gOutputFormat);
+
 	try
 	{
 		if (config.has("file") or config.has("command"))
@@ -548,7 +710,11 @@ int pr_main(int argc, char *argv[])
 			cif::file file{ p };
 
 			cif::datablock &db = config.has("data-block") ? file[config.get("data-block")] : file.front();
-			db.load_dictionary();
+
+			if (config.has("dict"))
+				db.load_dictionary(config.get("dict"));
+			else
+				db.load_dictionary();
 
 			cif::cql::connection connection(db);
 
@@ -564,7 +730,7 @@ int pr_main(int argc, char *argv[])
 				ss << cmdFile.rdbuf();
 				auto r = tx.exec(ss.str());
 				if (not r.empty())
-					std::cout << r << "\n";
+					writeResult(r.get_category());
 				tx.commit();
 			}
 			else if (config.has("command"))
@@ -572,7 +738,7 @@ int pr_main(int argc, char *argv[])
 				cif::cql::transaction tx(connection);
 				auto r = tx.exec(config.get("command"));
 				if (not r.empty())
-					std::cout << r << "\n";
+					writeResult(r.get_category());
 				tx.commit();
 			}
 
@@ -596,7 +762,6 @@ int pr_main(int argc, char *argv[])
 		else
 		{
 			MMCQLApplication app;
-			app.loadCifFile(config.operands().front());
 			app.loop();
 		}
 	}
