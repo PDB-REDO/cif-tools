@@ -28,6 +28,7 @@
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
+#include <cctype>
 #include <cerrno>
 #include <cif++.hpp>
 #include <cif++/category.hpp>
@@ -434,7 +435,7 @@ void MMCQLApplication::loadDatablock(std::string_view d)
 	if (m_dict_name.empty())
 		db.load_dictionary();
 	else
-	 	db.load_dictionary(m_dict_name);
+		db.load_dictionary(m_dict_name);
 
 	m_connection.reset(new cif::cql::connection(db));
 }
@@ -619,13 +620,9 @@ void MMCQLApplication::loop()
 			auto cmd = line.substr(0, args);
 			if (cmd == "\\q") // quit
 				break;
-			// if (cmd == "g")
-			// 	executeWithoutSemicolon = true;
-			// else
-			{
-				processCommand(cmd, args == std::string_view::npos ? ""sv : line.substr(args));
-				continue;
-			}
+
+			processCommand(cmd, args == std::string_view::npos ? ""sv : line.substr(args));
+			continue;
 		}
 
 		if (not m_connection)
@@ -634,23 +631,35 @@ void MMCQLApplication::loop()
 			continue;
 		}
 
-		try
-		{
-			cif::cql::transaction tx(*m_connection);
-			auto r = tx.exec(line);
+		if (sql.empty())
+			sql = line;
+		else if (std::isspace(sql.back()))
+			sql += line;
+		else
+			sql = sql + ' ' + line;
 
-			if (r.empty())
-				std::cout << "OK\n";
-			else
-				showPagerForData(r.get_category());
-
-			tx.commit();
-			m_modified = true;
-		}
-		catch (const std::exception &ex)
+		while (m_connection->statementIsComplete(sql))
 		{
-			std::cout << "Error executing statement(s): " << ex.what() << "\n";
+			try
+			{
+				cif::cql::transaction tx(*m_connection);
+	
+				auto r = tx.exec(sql, sql);
+	
+				if (r.empty())
+					std::cout << "OK\n";
+				else
+					showPagerForData(r.get_category());
+	
+				tx.commit();
+				m_modified = true;
+			}
+			catch (const std::exception &ex)
+			{
+				std::cout << "Error executing statement(s): " << ex.what() << "\n";
+			}
 		}
+
 	}
 
 	if (m_modified and m_file)
