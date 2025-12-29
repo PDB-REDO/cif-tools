@@ -101,6 +101,8 @@ std::string to_string(cif::category::output_format fmt)
 			return "markdown";
 		case cif::category::output_format::table:
 			return "table";
+		case cif::category::output_format::box:
+			return "box";
 		default:
 			throw std::runtime_error("Unknown format");
 	}
@@ -122,6 +124,8 @@ void from_string(const std::string &s, cif::category::output_format &fmt)
 		fmt = cif::category::output_format::markdown;
 	else if (s == "table")
 		fmt = cif::category::output_format::table;
+	else if (s == "box")
+		fmt = cif::category::output_format::box;
 	else
 		throw std::runtime_error("Unknown output format: " + s);
 }
