@@ -28,35 +28,38 @@
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
-#include <cctype>
-#include <cerrno>
 #include <cif++.hpp>
 #include <cif++/category.hpp>
 #include <cif++/cql.hpp>
 #include <cif++/datablock.hpp>
 #include <cif++/gzio.hpp>
 #include <cif++/text.hpp>
+
+#include <readln.hpp>
+
+#include <mcfp/mcfp.hpp>
+
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <istream>
-#include <mcfp/mcfp.hpp>
 #include <memory>
 #include <ranges>
-#include <readln.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
+
+#include <fcntl.h>
 #include <sys/poll.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <system_error>
 #include <unistd.h>
-#include <utility>
 
 // --------------------------------------------------------------------
 // Globals to store settings
