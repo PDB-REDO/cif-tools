@@ -325,7 +325,6 @@ class MMCQLApplication
 	std::unique_ptr<cif::file> m_file;
 	std::string m_db_name, m_dict_name;
 	std::unique_ptr<cif::cql::connection> m_connection;
-	bool m_modified = false;
 };
 
 // --------------------------------------------------------------------
@@ -377,6 +376,8 @@ MMCQLApplication::MMCQLApplication()
 
 MMCQLApplication::~MMCQLApplication()
 {
+	if (m_connection and m_connection->is_modified() and m_file)
+		m_file->save(m_file_name);
 }
 
 void MMCQLApplication::showPagerForData(cif::category &cat)
@@ -395,11 +396,10 @@ void MMCQLApplication::showPagerForData(cif::category &cat)
 
 void MMCQLApplication::loadCifFile(std::string_view f)
 {
-	if (m_modified and m_file)
+	if (m_connection and m_connection->is_modified() and m_file)
 		m_file->save(m_file_name);
 
 	m_connection.reset();
-	m_modified = false;
 
 	try
 	{
@@ -425,7 +425,6 @@ void MMCQLApplication::loadCifFile(std::string_view f)
 	{
 		std::cout << "Error loading " << std::quoted(f) << ": " << ex.what() << "\n";
 		m_file.reset();
-		m_modified = false;
 	}
 }
 
@@ -641,32 +640,23 @@ void MMCQLApplication::loop()
 		else
 			sql = sql + ' ' + line;
 
-		while (m_connection->statementIsComplete(sql))
+		while (m_connection->is_complete_statement(sql))
 		{
 			try
 			{
-				cif::cql::transaction tx(*m_connection);
-	
-				auto r = tx.exec(sql, sql);
-	
+				auto r = m_connection->exec(sql, sql);
+
 				if (r.empty())
 					std::cout << "OK\n";
 				else
 					showPagerForData(r.get_category());
-	
-				tx.commit();
-				m_modified = true;
 			}
 			catch (const std::exception &ex)
 			{
 				std::cout << "Error executing statement(s): " << ex.what() << "\n";
 			}
 		}
-
 	}
-
-	if (m_modified and m_file)
-		m_file->save(m_file_name);
 
 	save_history(".mmcql-history");
 }
@@ -758,22 +748,25 @@ int pr_main(int argc, char *argv[])
 				tx.commit();
 			}
 
-			std::error_code ec;
-			auto backup = p.parent_path() / (p.filename().string() + config.get("backup"));
-
-			if (std::filesystem::exists(backup, ec))
-				std::filesystem::remove(backup, ec);
-
-			if (ec)
-				std::cerr << "Error removing old backup file: " << ec.message() << '\n';
-			else
+			if (connection.is_modified())
 			{
-				std::filesystem::rename(p, backup, ec);
-				if (ec)
-					std::cerr << "Error creating backup file: " << ec.message() << '\n';
-			}
+				std::error_code ec;
+				auto backup = p.parent_path() / (p.filename().string() + config.get("backup"));
 
-			file.save(p);
+				if (std::filesystem::exists(backup, ec))
+					std::filesystem::remove(backup, ec);
+
+				if (ec)
+					std::cerr << "Error removing old backup file: " << ec.message() << '\n';
+				else
+				{
+					std::filesystem::rename(p, backup, ec);
+					if (ec)
+						std::cerr << "Error creating backup file: " << ec.message() << '\n';
+				}
+
+				file.save(p);
+			}
 		}
 		else
 		{
