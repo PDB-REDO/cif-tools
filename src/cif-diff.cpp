@@ -24,8 +24,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cif++/category.hpp"
+#include <cstdlib>
+#include <iomanip>
+#include <stdexcept>
+#include <system_error>
 #ifndef WIN32
-#include <sys/wait.h>
+# include <sys/wait.h>
 #endif
 
 #include <filesystem>
@@ -176,7 +181,9 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		tags.push_back(std::make_tuple(item, std::bind(&cif::type_validator::compare, tv, std::placeholders::_1, std::placeholders::_2)));
 
 		auto pred = [item](const std::string &s) -> bool
-		{ return cif::iequals(item, s) == 0; };
+		{
+			return cif::iequals(item, s) == 0;
+		};
 		if (find_if(keys.begin(), keys.end(), pred) == keys.end())
 			keyIx.push_back(tags.size() - 1);
 	}
@@ -299,13 +306,13 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	{
 		if (ai == a.end())
 		{
-			diffs.push_back(new ExtraBDiff{*bi++});
+			diffs.push_back(new ExtraBDiff{ *bi++ });
 			continue;
 		}
 
 		if (bi == b.end())
 		{
-			diffs.push_back(new ExtraADiff{*ai++});
+			diffs.push_back(new ExtraADiff{ *ai++ });
 			continue;
 		}
 
@@ -313,13 +320,13 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 		if (rowLess(ra, rb))
 		{
-			diffs.push_back(new ExtraADiff{*ai++});
+			diffs.push_back(new ExtraADiff{ *ai++ });
 			continue;
 		}
 
 		if (rowLess(rb, ra))
 		{
-			diffs.push_back(new ExtraBDiff{*bi++});
+			diffs.push_back(new ExtraBDiff{ *bi++ });
 			continue;
 		}
 
@@ -356,7 +363,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		++bi;
 
 		if (not missingA.empty() or not missingB.empty() or not different.empty())
-			diffs.push_back(new ValueDiff{ra, rb, move(missingA), move(missingB), move(different)});
+			diffs.push_back(new ValueDiff{ ra, rb, move(missingA), move(missingB), move(different) });
 	}
 
 	if (not diffs.empty())
@@ -386,11 +393,13 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 
 	for (auto &cat : dbA)
 		catA.push_back(cat.name());
-	sort(catA.begin(), catA.end(), [](const std::string &a, const std::string &b) { return cif::icompare(a, b) < 0; });
+	sort(catA.begin(), catA.end(), [](const std::string &a, const std::string &b)
+		{ return cif::icompare(a, b) < 0; });
 
 	for (auto &cat : dbB)
 		catB.push_back(cat.name());
-	sort(catB.begin(), catB.end(), [](const std::string &a, const std::string &b) { return cif::icompare(a, b) < 0; });
+	sort(catB.begin(), catB.end(), [](const std::string &a, const std::string &b)
+		{ return cif::icompare(a, b) < 0; });
 
 	// loop over categories twice, to group output
 	// First iteration is to list missing categories.
@@ -470,75 +479,117 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 }
 
 #ifndef WIN32
-void compareCifsText(cif::file &a, cif::file &b, const std::string &name_a, const std::string &name_b, bool icase, bool iwhite)
+void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std::filesystem::path file_a, std::filesystem::path file_b, bool icase, bool iwhite)
 {
 	// temp files for vimdiff
 
-	fs::path file_a(name_a);
-	fs::path file_b(name_b);
+	std::string dir_s = (fs::temp_directory_path() / "cif-diff-XXXXXX").string();
+	if (mkdtemp(dir_s.data()) == nullptr)
+		throw std::system_error(std::error_code(errno, std::system_category()), "Error creating temporary directory");
 
-	std::string generated = fs::temp_directory_path() / ("cif-diff-" + file_a.filename().string() + "-XXXXXX.cif");
-	std::string original = fs::temp_directory_path() / ("cif-diff-" + file_b.filename().string() + "-XXXXXX.cif");
+	std::filesystem::path dir(dir_s);
 
-	int fd[2];
+	auto out_1 = dir / file_a.filename();
+	auto out_2 = dir / file_b.filename();
 
-	if ((fd[0] = mkstemps(generated.data(), 4)) < 0 or (fd[1] = mkstemps(original.data(), 4)) < 0)
+	if (out_1.extension() == ".gz")
+		out_1.replace_extension();
+	if (out_2.extension() == ".gz")
+		out_2.replace_extension();
+
+	if (out_1 == out_2)
 	{
-		std::cerr << "Error creating temp files:  " << strerror(errno) << '\n';
-		exit(1);
+		out_1.replace_filename(out_1.filename().replace_extension(".1" + out_1.extension().string()));
+		out_2.replace_filename(out_2.filename().replace_extension(".2" + out_2.extension().string()));
 	}
 
+	std::ofstream f1(out_1);
+	std::ofstream f2(out_2);
+
+	if (not (f1.is_open() and f2.is_open()))
+		throw std::runtime_error("Could not open files for output");
+
+	auto dia = a.begin();
+	auto dib = b.begin();
+
+	while (dia != a.end() and dib != b.end())
 	{
-		fd_streambuf sb(fd[0]);
-		std::ostream out(&sb);
-		a.front().write(out);
+		auto &da = *dia++;
+		auto &db = *dib++;
+
+		f1 << "data_" << da.name() << "\n# \n";
+		f2 << "data_" << db.name() << "\n# \n";
+
+		std::vector<std::string> catA, catB;
+		for (auto &cat : da)
+			catA.emplace_back(cat.name());
+		for (auto &cat : db)
+			catB.emplace_back(cat.name());
+
+		for (auto &cat_a_name : catA)
+		{
+			auto cat_a = da.get(cat_a_name);
+			auto cat_b = db.get(cat_a_name);
+
+			if (not cat_b)
+			{
+				cat_a->write(f1);
+				continue;
+			}
+
+			cat_a->drop_empty_items();
+			cat_b->drop_empty_items();
+
+			std::vector<std::string> items = cat_a->get_items();
+			cat_a->write(f1, items, true);
+			cat_b->write(f2, items, true);
+		}
 	}
 
-	// Next the converted cif file
-
+	while (dia != a.end())
 	{
-		fd_streambuf sb(fd[1]);
-		std::ostream out(&sb);
-
-		b.front().write(out, a.front().get_item_order());
+		auto &da = *dia++;
+		da.write(f1);
 	}
 
-	std::vector<const char *> nArgv = {
-		"/usr/bin/vimdiff"};
+	while (dib != b.end())
+	{
+		auto &db = *dib++;
+		db.write(f2);
+	}
+
+	f1.close();
+	f2.close();
+
+	std::ostringstream cmd;
+	cmd << editor;
 
 	if (icase)
-	{
-		nArgv.push_back("-c");
-		nArgv.push_back("set diffopt+=icase");
-	}
+		cmd << " -c 'set diffopt+=icase'";
 
 	if (iwhite)
+		cmd << " -c 'set diffopt-=iwhite'";
+
+	cmd << " " << std::quoted(out_1.string()) << " " << std::quoted(out_2.string());
+
+	switch (auto pid = fork())
 	{
-		nArgv.push_back("-c");
-		nArgv.push_back("set diffopt-=iwhite");
+		case -1:
+			std::cerr << "fork failed: " << std::error_code(errno, std::system_category()).message() << "\n";
+			break;
+		case 0:
+			execlp("/bin/sh", "sh", "-c", cmd.str().c_str(), nullptr);
+			std::cerr << "exec of editor failed: " << std::error_code(errno, std::system_category()).message() << "\n";
+			exit(-1);
+			break;
+		default:
+			waitpid(pid, nullptr, 0);
+			break;
 	}
 
-	nArgv.push_back(original.c_str());
-	nArgv.push_back(generated.c_str());
-	nArgv.push_back(nullptr);
-
-	int pid = fork();
-
-	if (pid <= 0)
-	{
-		if (execv(nArgv[0], const_cast<char *const *>(nArgv.data())) < 0)
-			std::cerr << "Failed to execute vimdiff\n";
-		exit(1);
-	}
-
-	int status;
-	waitpid(pid, &status, 0);
-
-	if (WIFEXITED(status))
-	{
-		unlink(generated.c_str());
-		unlink(original.c_str());
-	}
+	// Only with vimdiff it is safe to remove the files now
+	if (editor == "vimdiff")
+		std::filesystem::remove_all(dir);
 }
 #endif
 
@@ -553,13 +604,10 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("verbose,v", "Verbose output"),
 		mcfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
 		mcfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
-#ifndef WIN32
-		mcfp::make_option("text", "Text based diff (using vimdiff) based on the order of the cif version"),
-#endif
+		mcfp::make_option<std::string>("editor", "vimdiff", "Editor to use for showing the textual differences. Default is vimdiff, alternative is 'terminal' to dump to stdout."),
 		mcfp::make_option("icase", "Ignore case (vimdiff option)"),
 		mcfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
-		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
-	);
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)"));
 
 	config.parse(argc, argv);
 
@@ -591,7 +639,7 @@ int pr_main(int argc, char *argv[])
 
 	auto input = config.operands();
 
-	cif::gzio::ifstream if1{input[0]};
+	cif::gzio::ifstream if1{ input[0] };
 	if (not if1.is_open())
 		throw std::runtime_error("Could not open file " + input[0]);
 
@@ -599,15 +647,13 @@ int pr_main(int argc, char *argv[])
 	if (not if2.is_open())
 		throw std::runtime_error("Could not open file " + input[1]);
 
-	cif::file file1{if1};
-	cif::file file2{if2};
+	cif::file file1{ if1 };
+	cif::file file2{ if2 };
 
-#ifndef WIN32
-	if (config.has("text"))
-		compareCifsText(file1, file2, fs::path(input[0]), fs::path(input[1]), config.has("icase"), config.has("iwhite"));
-	else
-#endif
+	if (config.get("editor") == "terminal")
 		compareCifs(file1.front(), file2.front(), categories, maxDiffCount);
+	else
+		compareCifsText(config.get("editor"), file1, file2, fs::path(input[0]), fs::path(input[1]), config.has("icase"), config.has("iwhite"));
 
 	return 0;
 }

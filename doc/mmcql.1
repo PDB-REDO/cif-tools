@@ -1,0 +1,107 @@
+.TH mmcql 1 "2022-11-20" "version 2.0.0" "User Commands"
+.if n .ad l
+.nh
+.SH NAME
+mmcql \- SQL-like tool to manipulate mmCIF files
+.SH SYNOPSIS
+mmcql [OPTION] cif-file
+.SH DESCRIPTION
+The mmCIF format is a structured format and with a proper dictionary it even
+looks a lot like a database with relations between categories that act as
+tables.
+.sp
+In pipelines processing mmCIF files it is often required to simply change the
+content of a single field, or add some data, delete it, etc. For this the
+mmcql tool offers a \fBSQL\fR like language.
+.sp
+The actual implementation of the \fBSQL\fR interface is offered by the well-known
+\fBsqlite3\fR library. Therefore, almost all of the functionality of \fBsqlite3\fR
+is available with only a few exceptions.
+.sp
+Most notably, the ALTER TABLE option is not working. And if you create new
+tables, they will not be recorded in the mmCIF file you're manipulating. That's
+something that still needs to be implemented.
+.sp
+The command should be started with a single file as argument
+.in 1i
+.sp
+mmcql file
+.sp
+.in
+The specified file will be opened and the first datablock will be selected as
+the current datablock to manipulate. When no other option was specified, the
+program will display a prompt and you can then type SQL commands or backslash
+commands.
+.sp
+.SH BACKSLASH COMMANDS
+Commands that are preceded by a backslash are treated as backslash commands.
+These commands are used to manipulate the working of the mmcql application.
+.sp
+A list of available backslash commands is displayed by typing the following command
+followed by the ENTER key.
+.sp
+.in 1i
+\fB\\?\fR
+.in
+.sp
+Other commands are:
+.TP
+\fB\\file\fR <file>
+Close the currently open file (if any) and load the specified file.
+.TP
+\fB\\db\fR <datablock>
+Select the specified datablock as current.
+.TP
+\fB\\dict\fR <dictionary>
+Use the specified dictionary instead of the default.
+.TP
+\fB\\format\fR <spec>
+Use the specified format for the output of tabulated results. Available options are:
+cif, csv, tsv, list, column, markdown, table and box.
+.TP
+\fB\\dd\fR
+Show a list of all the datablocks in the file.
+.TP
+\fB\\dc\fR
+Show a list of all the categories in the current datablock.
+.TP
+\fB\\dc+\fR
+Show a list of all the categories in the entire file.
+.TP
+\fB\\d <category>\fR
+Show a list of all items in the specified category.
+.TP
+\fB\\d+ <category>\fR
+Show a list of all items in the specified category, including a column with aliased names.
+.SH OPTIONS
+.TP
+\fB--help\fR, \fB-h\fR
+Write out some help and the available options.
+.TP
+\fB--version\fR
+Write out the current version (with \fB--verbose\fR more info is displayed)
+.TP
+\fB--verbose\fR,\fB-v\fR
+Be more verbose, useful to diagnose validation errors.
+.TP
+\fB--datablock\fR=datablockname, \fB-D\fR datablockname
+Load the datablock as specified instead of the first one.
+.TP
+\fB--dict\fR=dictionary, \fB-d\fR dictionary
+Load the dictionary as specified instead of the default one.
+.TP
+\fB--file\fR=<file>, \fB-f\fR <file>
+Read and execute the commands from the specified file and then exit.
+.TP
+\fB--command\fR=<SQL-statement>, \fB-c\fR <SQL-statement>
+Execute the specified command and then exit.
+.TP
+\fB--format\fR=<fmt>
+Use the specified output format for printing out tabular results.
+.SH AUTHOR
+Written by Maarten L. Hekkelman <maarten@hekkelman.com>
+.SH "REPORTING BUGS"
+Report bugs at https://github.com/PDB-REDO/cif-tools/issues
+.SH "SEE ALSO"
+\fBcif-diff\fR, \fBcif-grep\fR, \fBcif-merge\fR, 
+\fBcif2pdb\fR, \fBmmcql\fR, \fBpdb2cif\fR.

@@ -244,7 +244,7 @@ std::vector<BackslashCommand> gBackslashCommands{
 		{
 			std::cout << "This will eventually be the SQL help page\n";
 		} },
-	{ CommandCategory::Formatting, "\\format", "\\format [fmt]", "Output format, show current or select one of: cif, csv, tsv, list, column, markdown, table", [](std::string_view fmt)
+	{ CommandCategory::Formatting, "\\format", "\\format [fmt]", "Output format, show current or select one of: cif, csv, tsv, list, column, markdown, table and box", [](std::string_view fmt)
 		{
 			std::string f{ fmt };
 			cif::trim(f);
@@ -606,6 +606,7 @@ void MMCQLApplication::loop()
 	std::string line, sql;
 	while (getline("cql> ", line))
 	{
+		cif::trim(line);
 		add_history(line);
 
 		if (line == "help")
@@ -653,6 +654,7 @@ void MMCQLApplication::loop()
 			}
 			catch (const std::exception &ex)
 			{
+				sql.clear();
 				std::cout << "Error executing statement(s): " << ex.what() << "\n";
 			}
 		}
@@ -680,9 +682,7 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option<std::string>("file,f", "Read SQL commands from file"),
 		mcfp::make_option<std::string>("command,c", "Single SQL script to execute"),
 
-		mcfp::make_option<std::string>("format", "column", "Output format to use"),
-
-		mcfp::make_option<std::string>("backup,i", ".bak", "Extension for backup file"));
+		mcfp::make_option<std::string>("format", "column", "Output format to use"));
 
 	config.parse(argc, argv);
 
@@ -751,19 +751,17 @@ int pr_main(int argc, char *argv[])
 			if (connection.is_modified())
 			{
 				std::error_code ec;
-				auto backup = p.parent_path() / (p.filename().string() + config.get("backup"));
+				auto backup = p.parent_path() / (p.filename().string() + ".bak");
 
 				if (std::filesystem::exists(backup, ec))
 					std::filesystem::remove(backup, ec);
 
 				if (ec)
 					std::cerr << "Error removing old backup file: " << ec.message() << '\n';
-				else
-				{
-					std::filesystem::rename(p, backup, ec);
-					if (ec)
-						std::cerr << "Error creating backup file: " << ec.message() << '\n';
-				}
+
+				std::filesystem::rename(p, backup, ec);
+				if (ec)
+					std::cerr << "Error creating backup file: " << ec.message() << '\n';
 
 				file.save(p);
 			}
