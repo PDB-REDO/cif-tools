@@ -481,7 +481,7 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 #ifndef WIN32
 void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std::filesystem::path file_a, std::filesystem::path file_b, bool icase, bool iwhite)
 {
-	// temp files for vimdiff
+	// temp files for external diff
 
 	std::string dir_s = (fs::temp_directory_path() / "cif-diff-XXXXXX").string();
 	if (mkdtemp(dir_s.data()) == nullptr)
@@ -541,6 +541,13 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 			cat_b->drop_empty_items();
 
 			std::vector<std::string> items = cat_a->get_items();
+
+			for (auto &item : cat_b->get_items())
+			{
+				if (find(items.begin(), items.end(), item) == items.end())
+					items.emplace_back(item);
+			}
+
 			cat_a->write(f1, items, true);
 			cat_b->write(f2, items, true);
 		}
@@ -562,7 +569,7 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 	f2.close();
 
 	std::ostringstream cmd;
-	cmd << editor;
+	cmd << editor << " -d";
 
 	if (icase)
 		cmd << " -c 'set diffopt+=icase'";
@@ -588,7 +595,7 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 	}
 
 	// Only with vimdiff it is safe to remove the files now
-	if (editor == "vimdiff")
+	if (editor == "vim" or editor == "vimdiff")
 		std::filesystem::remove_all(dir);
 }
 #endif
@@ -604,7 +611,7 @@ int pr_main(int argc, char *argv[])
 		mcfp::make_option("verbose,v", "Verbose output"),
 		mcfp::make_option<std::vector<std::string>>("category", "Limit comparison to this category, default is all categories. Can be specified multiple times"),
 		mcfp::make_option<int>("max-diff-count", 5, "Maximum number of diff items per category, enter zero (0) for unlimited, default is 5"),
-		mcfp::make_option<std::string>("editor", "vimdiff", "Editor to use for showing the textual differences. Default is vimdiff, alternative is 'terminal' to dump to stdout."),
+		mcfp::make_option<std::string>("editor", "vim", "Editor to use for showing the textual differences. Default is vim, alternative is 'terminal' to dump to stdout."),
 		mcfp::make_option("icase", "Ignore case (vimdiff option)"),
 		mcfp::make_option("iwhite", "Ignore whitespace (vimdiff option)"),
 		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)"));
