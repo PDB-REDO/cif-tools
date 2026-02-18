@@ -24,6 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cif++/utilities.hpp>
 #include <fstream>
 
 #include <cif++/cif++.hpp>
@@ -42,18 +43,26 @@ class dummy_parser : public cif::sac_parser
 
 	void produce_datablock(std::string_view name) override
 	{
+		if (cif::VERBOSE > 1)
+			std::cout << "produce datablock " << name << '\n';
 	}
 
 	void produce_category(std::string_view name) override
 	{
+		if (cif::VERBOSE > 1)
+			std::cout << "produce category " << name << '\n';
 	}
 
 	void produce_row() override
 	{
+		if (cif::VERBOSE > 1)
+			std::cout << "produce row\n";
 	}
 
 	void produce_item(std::string_view category, std::string_view item, cif::item_value value) override
 	{
+		if (cif::VERBOSE > 1)
+			std::cout << "produce item: " << value << '\n';
 	}
 };
 

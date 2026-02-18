@@ -74,6 +74,9 @@ cif::category::output_format gOutputFormat = cif::category::output_format::colum
 std::ofstream gOutputFile;
 
 // --------------------------------------------------------------------
+# include <climits>
+# include <sys/ioctl.h>
+# include <termios.h>
 
 uint32_t get_terminal_height()
 {

@@ -270,9 +270,9 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		ValueDiff(cif::row_handle a, cif::row_handle b, std::vector<std::string> &&missingA, std::vector<std::string> &&missingB, std::vector<std::string> &&different)
 			: A(a)
 			, B(b)
-			, missingA(move(missingA))
-			, missingB(move(missingB))
-			, different(move(different))
+			, missingA(std::move(missingA))
+			, missingB(std::move(missingB))
+			, different(std::move(different))
 		{
 		}
 
@@ -352,7 +352,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		++bi;
 
 		if (not missingA.empty() or not missingB.empty() or not different.empty())
-			diffs.push_back(new ValueDiff{ ra, rb, move(missingA), move(missingB), move(different) });
+			diffs.push_back(new ValueDiff{ ra, rb, std::move(missingA), std::move(missingB), std::move(different) });
 	}
 
 	if (not diffs.empty())
@@ -495,7 +495,7 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 	std::ofstream f1(out_1);
 	std::ofstream f2(out_2);
 
-	if (not (f1.is_open() and f2.is_open()))
+	if (not(f1.is_open() and f2.is_open()))
 		throw std::runtime_error("Could not open files for output");
 
 	auto dia = a.begin();

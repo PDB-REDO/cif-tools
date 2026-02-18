@@ -137,7 +137,7 @@ target_compile_features(readln PUBLIC cxx_std_20)
 target_include_directories(readln PUBLIC $<BUILD_INTERFACE:${readln_SOURCE_DIR}>)
 
 
-# find_package(cifpp 9 QUIET)
+find_package(cifpp 9 QUIET)
 
 if(NOT (cifpp_FOUND OR TARGET cifpp))
     add_subdirectory(libcifpp EXCLUDE_FROM_ALL)
@@ -149,7 +149,7 @@ list(APPEND programs
     pdb2cif
     cif2pdb
     cif-diff
-    cif-grep
+    # cif-grep
     cif-merge
     cif-validate
     mmcql
@@ -164,8 +164,7 @@ foreach(PROGRAM IN LISTS programs)
     if(USE_RSRC)
         list(APPEND rsrc
             ${CIFPP_SHARE_DIR}/mmcif_ma.dic
-            ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
-            ${CIFPP_SHARE_DIR}/mmcif_ddl.dic)
+            ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic)
         if ("${PROGRAM}" STREQUAL "mmcql")
             list(APPEND rsrc
                 ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
