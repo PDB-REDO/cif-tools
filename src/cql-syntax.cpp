@@ -26,7 +26,8 @@
 
 #include "cql-syntax.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include <cstdint>
 

@@ -37,7 +37,7 @@
 #include <fstream>
 #include <functional>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
@@ -138,7 +138,7 @@ class templateParser : public cif::sac_parser
 	{
 	}
 
-	void produce_item(std::string_view category, std::string_view item, std::string_view value) override
+	void produce_item(std::string_view category, std::string_view item, cif::item_value value) override
 	{
 		std::ostringstream tag;
 		tag << '_' << category << '.' << item;
@@ -202,7 +202,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 			tie(tag, compare) = tags[kix];
 
-			d = compare(a[tag].text(), b[tag].text());
+			d = a[tag].compare(b[tag]);
 
 			if (d != 0)
 				break;
@@ -340,23 +340,12 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 			tie(tag, compare) = tt;
 
 			// make it an option to compare unapplicable to empty or something
-
-			std::string_view ta = ra[tag].text();
-			if (ta == ".")
-				ta = "";
-			std::string_view tb = rb[tag].text();
-			if (tb == ".")
-				tb = "";
-
-			if (compare(ta, tb) != 0)
-			{
-				if (ta.empty())
-					missingA.push_back(tag);
-				else if (tb.empty())
-					missingB.push_back(tag);
-				else
-					different.push_back(tag);
-			}
+			if (ra[tag].empty())
+				missingA.push_back(tag);
+			else if (rb[tag].empty())
+				missingB.push_back(tag);
+			else if (ra[tag].compare(rb[tag]) != 0)
+				different.push_back(tag);
 		}
 
 		++ai;
@@ -368,7 +357,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 	if (not diffs.empty())
 	{
-		std::cout << std::string(mcfp::get_terminal_width(), '-') << '\n'
+		std::cout << std::string(cif::get_terminal_width(), '-') << '\n'
 				  << "Differences in values for category " << a.name() << '\n'
 				  << '\n';
 

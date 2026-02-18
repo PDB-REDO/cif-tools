@@ -31,7 +31,7 @@
 
 #include <mcfp/mcfp.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
 #include "revision.hpp"
 

@@ -36,7 +36,7 @@
 #include <cmath>
 #include <regex>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
 int pr_main(int argc, char* argv[]);
 

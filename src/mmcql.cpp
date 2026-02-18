@@ -28,7 +28,7 @@
 #include "mrsrc.hpp"
 #include "revision.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <cif++/category.hpp>
 #include <cif++/cql.hpp>
 #include <cif++/datablock.hpp>
@@ -60,6 +60,11 @@
 #include <sys/wait.h>
 #include <system_error>
 #include <unistd.h>
+
+#if __has_include(<termios.h>)
+#include <termios.h>
+#include <sys/ioctl.h>
+#endif
 
 // --------------------------------------------------------------------
 // Globals to store settings

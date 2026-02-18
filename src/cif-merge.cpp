@@ -30,7 +30,7 @@
 #include <functional>
 #include <filesystem>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 namespace fs = std::filesystem;
