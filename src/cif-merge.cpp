@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,9 +26,10 @@
 
 #include "revision.hpp"
 
+#include <cif++/text.hpp>
+#include <filesystem>
 #include <fstream>
 #include <functional>
-#include <filesystem>
 
 #include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
@@ -39,26 +40,32 @@ using cif::iequals;
 
 // --------------------------------------------------------------------
 
-void updateEntryID(cif::file& target, const std::string& entryID)
+void updateEntryID(cif::file &target, const std::string &entryID)
 {
-	auto& db = target.front();
-	
+	auto &db = target.front();
+
 	if (db.name() != entryID)
 		db.set_name(entryID);
 
-	for (auto r: db["entry"])
+	for (auto r : db["entry"])
 		r["id"] = entryID;
 }
 
-void transplant(cif::file& target, cif::file& donor)
+void strip(std::string &s)
+{
+	cif::replace_all(s, " ");
+	cif::replace_all(s, "\n");
+}
+
+void transplant(cif::file &target, cif::file &donor)
 {
 	if (target.empty() or donor.empty())
 		throw std::runtime_error("empty files?");
 
-	auto& dbt = target.front();
-	auto& dbd = donor.front();
+	auto &dbt = target.front();
+	auto &dbd = donor.front();
 
-	for (auto c: { "struct", "struct_keywords", "audit_author", "citation", "citation_author", "diffrn", "diffrn_radiation", "diffrn_radiation_wavelength" })
+	for (auto c : { "struct", "struct_keywords", "audit_author", "citation", "citation_author", "diffrn", "diffrn_radiation", "diffrn_radiation_wavelength" })
 	{
 		auto cd = dbd.get(c);
 		if (cd == nullptr or cd->empty())
@@ -70,13 +77,13 @@ void transplant(cif::file& target, cif::file& donor)
 			dbt.emplace(c);
 			ct = dbt.get(c);
 		}
-		
+
 		ct->clear();
-		
-		for (auto r: *cd)
+
+		for (auto r : *cd)
 			ct->emplace(r);
 	}
-	
+
 	std::string exptlMethod;
 	auto dExplt = dbd["exptl"].find(cif::key("entry_id") == dbd.name());
 	if (dExplt.size() != 1)
@@ -86,78 +93,86 @@ void transplant(cif::file& target, cif::file& donor)
 	if (tExplt.empty())
 	{
 		auto c = dbt.emplace("exptl");
-		std::get<0>(c)->emplace({
-			{ "entry_id", dbt.name() },
-			{ "method", exptlMethod }
-		});
+		std::get<0>(c)->emplace({ { "entry_id", dbt.name() },
+			{ "method", exptlMethod } });
 	}
 	else
 		tExplt.front()["method"] = exptlMethod;
-	
+
 	// create a mapping for the entity_ids in both files
 
-	const std::map<std::string,const char*> kSrcMap{
+	const std::map<std::string, const char *> kSrcMap{
 		{ "man", "entity_src_gen" },
 		{ "nat", "entity_src_nat" },
 		{ "syn", "pdbx_entity_src_syn" }
 	};
-	
-	std::map<std::string,std::string> d2tEntityIds;
-	auto& targetEntity = dbt["entity"];
-	
+
+	std::map<std::string, std::string> d2tEntityIds;
+	auto &targetEntity = dbt["entity"];
+
 	for (auto r : targetEntity)
 	{
 		std::string id, type, dEntityID;
 		cif::tie(id, type) = r.get("id", "type");
-		
+
 		if (iequals(type, "polymer"))
 		{
 			auto t = dbt["entity_poly"].find1(cif::key("entity_id") == id);
-			
+
 			std::string polyType, seq;
 			cif::tie(polyType, seq) = t.get("type", "pdbx_seq_one_letter_code");
-			
-			auto d = dbd["entity_poly"].find1(cif::key("type") == polyType and cif::key("pdbx_seq_one_letter_code") == seq);
-			
-			if (d.empty())
+
+			strip(seq);
+
+			for (auto &&[s2, id] :
+				dbd["entity_poly"].find<std::string, std::string>(cif::key("type") == polyType,
+					"pdbx_seq_one_letter_code", "entity_id"))
+			{
+				strip(s2);
+				if (seq != s2)
+					continue;
+				
+				dEntityID = id;
+				break;
+			}
+
+			if (dEntityID.empty())
 			{
 				if (cif::VERBOSE > 0)
 					std::cerr << "Cannot map entity " << id << " in target file to an entity in the donor\n";
 				continue;
 			}
-			
-			dEntityID = d["entity_id"].as<std::string>();
-			
+
 			// copy over refseq
-			
+
 			auto sr = dbd["struct_ref"].find_first(cif::key("entity_id") == dEntityID);
 			if (not sr.empty())
 			{
 				sr["entity_id"] = id;
 				dbt["struct_ref"].emplace(sr);
-				
-				std::string refID = sr["id"].as<std::string>();
-				
-				for (auto r: dbd["struct_ref_seq"].find(cif::key("ref_id") == refID))
+
+				std::string refID = sr["id"].get<std::string>();
+
+				for (auto r : dbd["struct_ref_seq"].find(cif::key("ref_id") == refID))
 					dbt["struct_ref_seq"].emplace(r);
 			}
 		}
 		else if (iequals(type, "non-polymer"))
 		{
 			auto t = dbt["pdbx_entity_nonpoly"].find1(cif::key("entity_id") == id);
-			
+
 			std::string compID;
 			cif::tie(compID) = t.get("comp_id");
-			
+
 			auto d = dbd["pdbx_entity_nonpoly"].find_first(cif::key("comp_id") == compID);
-			
+
 			if (d.empty())
 			{
 				if (cif::VERBOSE > 0)
 					std::cerr << "Cannot map entity " << id << " in target file to an entity in the donor\n";
 				continue;
 			}
-			
+
 			cif::tie(dEntityID) = d.get("entity_id");
 		}
 		else if (iequals(type, "water"))
@@ -166,17 +181,17 @@ void transplant(cif::file& target, cif::file& donor)
 		}
 		else if (cif::VERBOSE > 0)
 			std::cerr << "Unsupported entity type: " << type << '\n';
-		
+
 		if (dEntityID.empty())
 			continue;
 
 		const auto &[srcMethod, description, weight] =
-			dbd["entity"].find1<std::string,std::string,std::string>(cif::key("id") == dEntityID, "src_method", "pdbx_description", "formula_weight");
-		
+			dbd["entity"].find1<std::string, std::string, float>(cif::key("id") == dEntityID, "src_method", "pdbx_description", "formula_weight");
+
 		r["src_method"] = srcMethod;
 		r["pdbx_description"] = description;
-		r["formula_weight"] = weight;
-		
+		r["formula_weight"] = { weight, 3 };
+
 		if (kSrcMap.count(srcMethod))
 		{
 			std::string srcRec = kSrcMap.at(srcMethod);
@@ -192,7 +207,7 @@ void transplant(cif::file& target, cif::file& donor)
 	}
 }
 
-int pr_main(int argc, char* argv[])
+int pr_main(int argc, char *argv[])
 {
 	auto &config = mcfp::config::instance();
 
@@ -201,8 +216,7 @@ int pr_main(int argc, char* argv[])
 		mcfp::make_option("help,h", "Display help message"),
 		mcfp::make_option("version", "Print version"),
 		mcfp::make_option("verbose,v", "Verbose output"),
-		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)")
-	);
+		mcfp::make_hidden_option<int>("debug,d", "Debug level (for even more verbose output)"));
 
 	config.parse(argc, argv);
 
@@ -221,17 +235,17 @@ int pr_main(int argc, char* argv[])
 	cif::VERBOSE = config.count("verbose");
 
 	// Load dict, if any
-	
+
 	cif::file cf = cif::pdb::read(config.operands()[0]);
 	cif::file df = cif::pdb::read(config.operands()[1]);
 
 	updateEntryID(cf, df.front().name());
 	transplant(cf, df);
-	
+
 	if (config.operands().size() == 3)
 		cf.save(config.operands().back());
 	else
 		cf.save(std::cout);
 
-	return 0;	
+	return 0;
 }
