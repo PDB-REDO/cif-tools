@@ -25,16 +25,16 @@
  */
 
 #include "cif++/validate.hpp"
-#include "mrsrc.hpp"
 #include "revision.hpp"
 
-#include <cif++/cif++.hpp>
 #include <cif++/category.hpp>
+#include <cif++/cif++.hpp>
 #include <cif++/cql.hpp>
 #include <cif++/datablock.hpp>
 #include <cif++/gzio.hpp>
 #include <cif++/text.hpp>
 
+#include <cif++/utilities.hpp>
 #include <memory>
 #include <readln.hpp>
 
@@ -63,8 +63,8 @@
 #include <unistd.h>
 
 #if __has_include(<termios.h>)
-#include <termios.h>
-#include <sys/ioctl.h>
+# include <sys/ioctl.h>
+# include <termios.h>
 #endif
 
 // --------------------------------------------------------------------
@@ -75,9 +75,9 @@ cif::category::output_format gOutputFormat = cif::category::output_format::colum
 std::ofstream gOutputFile; // NOLINT
 
 // --------------------------------------------------------------------
-# include <climits>
-# include <sys/ioctl.h>
-# include <termios.h>
+#include <climits>
+#include <sys/ioctl.h>
+#include <termios.h>
 
 uint32_t get_terminal_height()
 {
@@ -242,8 +242,43 @@ std::vector<BackslashCommand> gBackslashCommands{ // NOLINT
 		"\\copyright", "\\copyright",
 		"show copyright and usage", [](std::string_view)
 		{
-			mrsrc::istream license("LICENSE");
-			showPagerForData(license);
+#if USE_RSRC
+			auto license = cif::load_resource("LICENSE");
+#else
+			const char kLicenseText[] = R"(Copyright (c) 2026 NKI/AVL, Netherlands Cancer Institute
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.)";
+
+			struct membuf : public std::streambuf
+			{
+				membuf(char *text, std::size_t length)
+				{
+					this->setg(text, text, text + length);
+				}
+			} buffer(const_cast<char *>(kLicenseText), strlen(kLicenseText));
+
+			auto license = std::make_unique<std::istream>(&buffer);
+#endif
+			if (license)
+				showPagerForData(*license);
 		} },
 	{ CommandCategory::General, "\\?", "\\?", "show help on backslash commands", [](std::string_view)
 		{
@@ -418,7 +453,7 @@ void MMCQLApplication::loadCifFile(std::string_view f)
 		if (not in.is_open())
 			throw std::runtime_error("Could not open file " + m_file_name.string());
 
-		m_file = std::make_unique<cif::file>( in );
+		m_file = std::make_unique<cif::file>(in);
 
 		if (not m_file->empty())
 		{

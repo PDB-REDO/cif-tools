@@ -2,7 +2,7 @@ name: CMake on a single platform
 
 on:
   push:
-    branches: [ "trunk" ]
+    branches: [ "trunk", "develop" ]
   pull_request:
     branches: [ "trunk" ]
 
