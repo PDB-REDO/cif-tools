@@ -32,7 +32,7 @@
 #include <regex>
 
 #include <mcfp/mcfp.hpp>
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;
@@ -70,11 +70,11 @@ class statsParser : public cif::sac_parser
 	{
 	}
 
-	void produce_item(std::string_view category, std::string_view item, std::string_view value) override
+	void produce_item(std::string_view category, std::string_view item, cif::item_value value) override
 	{
 		if ((mCat.empty() or cif::iequals(category, mCat)) and
 			(mItem.empty() or cif::iequals(item, mItem)) and
-			std::regex_search(value.begin(), value.end(), mRx) == not mInvertMatch)
+			std::regex_search(value.str(), mRx) == not mInvertMatch)
 		{
 			++mMatches;
 

@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- *
- * Copyright (c) 2020 NKI/AVL, Netherlands Cancer Institute
- *
+ * 
+ * Copyright (c) 2025 NKI/AVL
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,142 +24,17 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "revision.hpp"
+#include "cql-syntax.hpp"
 
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <stack>
-#include <unordered_set>
-
-#include <cif++.hpp>
-#include <cif++/gzio.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
-namespace fs = std::filesystem;
+#include <cstdint>
 
 using unicode = char32_t;
 
-namespace zeep
+namespace
 {
-
-// inlines
-
-/// \brief Append a single unicode character to an utf-8 string
-inline void append(std::string &s, unicode uc)
-{
-	if (uc < 0x080)
-		s += (static_cast<char>(uc));
-	else if (uc < 0x0800)
-	{
-		char ch[2] = {
-			static_cast<char>(0x0c0 | (uc >> 6)),
-			static_cast<char>(0x080 | (uc & 0x3f))
-		};
-		s.append(ch, 2);
-	}
-	else if (uc < 0x00010000)
-	{
-		char ch[3] = {
-			static_cast<char>(0x0e0 | (uc >> 12)),
-			static_cast<char>(0x080 | ((uc >> 6) & 0x3f)),
-			static_cast<char>(0x080 | (uc & 0x3f))
-		};
-		s.append(ch, 3);
-	}
-	else
-	{
-		char ch[4] = {
-			static_cast<char>(0x0f0 | (uc >> 18)),
-			static_cast<char>(0x080 | ((uc >> 12) & 0x3f)),
-			static_cast<char>(0x080 | ((uc >> 6) & 0x3f)),
-			static_cast<char>(0x080 | (uc & 0x3f))
-		};
-		s.append(ch, 4);
-	}
-}
-
-/// \brief remove the last unicode character from an utf-8 string
-inline unicode pop_last_char(std::string &s)
-{
-	unicode result = 0;
-
-	if (not s.empty())
-	{
-		std::string::iterator ch = s.end() - 1;
-
-		if ((*ch & 0x0080) == 0)
-		{
-			result = *ch;
-			s.erase(ch);
-		}
-		else
-		{
-			int o = 0;
-
-			do
-			{
-				result |= (*ch & 0x03F) << o;
-				o += 6;
-				--ch;
-			} while (ch != s.begin() and (*ch & 0x0C0) == 0x080);
-
-			switch (o)
-			{
-				case 6: result |= (*ch & 0x01F) << 6; break;
-				case 12: result |= (*ch & 0x00F) << 12; break;
-				case 18: result |= (*ch & 0x007) << 18; break;
-			}
-
-			s.erase(ch, s.end());
-		}
-	}
-
-	return result;
-}
-
-// this code only works if the input is valid utf-8
-/// \brief return the first unicode and the advanced pointer from a string
-template <typename Iter>
-std::tuple<unicode, Iter> get_first_char(Iter ptr)
-{
-	unicode result = static_cast<unsigned char>(*ptr);
-	++ptr;
-
-	if (result > 0x07f)
-	{
-		unsigned char ch[3];
-
-		if ((result & 0x0E0) == 0x0C0)
-		{
-			ch[0] = static_cast<unsigned char>(*ptr);
-			++ptr;
-			result = ((result & 0x01F) << 6) | (ch[0] & 0x03F);
-		}
-		else if ((result & 0x0F0) == 0x0E0)
-		{
-			ch[0] = static_cast<unsigned char>(*ptr);
-			++ptr;
-			ch[1] = static_cast<unsigned char>(*ptr);
-			++ptr;
-			result = ((result & 0x00F) << 12) | ((ch[0] & 0x03F) << 6) | (ch[1] & 0x03F);
-		}
-		else if ((result & 0x0F8) == 0x0F0)
-		{
-			ch[0] = static_cast<unsigned char>(*ptr);
-			++ptr;
-			ch[1] = static_cast<unsigned char>(*ptr);
-			++ptr;
-			ch[2] = static_cast<unsigned char>(*ptr);
-			++ptr;
-			result = ((result & 0x007) << 18) | ((ch[0] & 0x03F) << 12) | ((ch[1] & 0x03F) << 6) | (ch[2] & 0x03F);
-		}
-	}
-
-	return std::make_tuple(result, ptr);
-}
-
-// --------------------------------------------------------------------
 
 inline std::string to_hex(uint32_t i)
 {
@@ -249,7 +124,7 @@ class SelectStatement : public Statement
 		std::vector<std::string> fields(mItems.size());
 		std::unordered_set<std::string> seen;
 
-		std::cout << cif::join(mItems, "\t") << '\n';
+		std::cout << cif::join(mItems, "\t") << std::endl;
 
 		for (auto r : mCategory.find(std::move(mWhere)))
 		{
@@ -263,7 +138,7 @@ class SelectStatement : public Statement
 			bool seenLine = seen.count(line);
 
 			if (not mDistinct or not seenLine)
-				std::cout << line << '\n';
+				std::cout << line << std::endl;
 
 			if (mDistinct and not seenLine)
 				seen.insert(line);
@@ -303,7 +178,7 @@ class DeleteStatement : public Statement
 		for (auto r : remove)
 			mCategory.erase(r);
 
-		std::cout << "Number of removed rows " << remove.size() << '\n';
+		std::cout << "Number of removed rows " << remove.size() << std::endl;
 	}
 
   private:
@@ -340,7 +215,7 @@ class UpdateStatement : public Statement
 			}
 		}
 
-		std::cout << "Number of updated rows: " << updated << '\n';
+		std::cout << "Number of updated rows: " << updated << std::endl;
 	}
 
   private:
@@ -366,91 +241,91 @@ class Parser
   private:
 	enum class Token
 	{
-		EOLN,
+		eoln,
 
-		UNDEF,
+		undef,
 
-		BRACE_OPEN,
-		BRACE_CLOSE,
+		braceopen,
+		braceclose,
 
-		DOT,
-		COMMA,
-		COLON,
-		SEMICOLON,
-		ASTERISK,
+		dot,
+		comma,
+		colon,
+		semicolon,
+		asterisk,
 
-		EQ,
-		LT,
-		LE,
-		GT,
-		GE,
-		NE,
+		eq_,
+		lt_,
+		le_,
+		gt_,
+		ge_,
+		ne_,
 
-		STRING,
-		INTEGER,
-		NUMBER,
+		string,
+		integer,
+		number,
 
-		IDENT,
+		ident,
 
-		SELECT,
-		DISTINCT,
-		FROM,
-		UPDATE,
-		SET,
-		WHERE,
-		AND,
-		OR,
-		NOT,
-		INSERT,
-		DELETE,
-		INTO,
-		VALUES,
-		IS,
-		NULL_
+		select,
+		distinct,
+		from,
+		update,
+		set,
+		where,
+		and_,
+		or_,
+		not_,
+		insert,
+		delete_,
+		into,
+		values,
+		is_,
+		null_
 	};
 
 	std::string Describe(Token token)
 	{
 		switch (token)
 		{
-			case Token::EOLN: return "<EOLN>";
-			case Token::UNDEF: return "<UNDEFINED>";
-			case Token::BRACE_OPEN: return "'('";
-			case Token::BRACE_CLOSE: return "')'";
+			case Token::eoln: return "<EOLN>";
+			case Token::undef: return "<UNDEFINED>";
+			case Token::braceopen: return "'('";
+			case Token::braceclose: return "')'";
 
-			case Token::DOT: return "'.'";
-			case Token::COMMA: return "','";
-			case Token::COLON: return "':'";
-			case Token::SEMICOLON: return "';'";
-			case Token::ASTERISK: return "'*'";
+			case Token::dot: return "'.'";
+			case Token::comma: return "','";
+			case Token::colon: return "':'";
+			case Token::semicolon: return "';'";
+			case Token::asterisk: return "'*'";
 
-			case Token::EQ: return "'='";
-			case Token::LT: return "'<'";
-			case Token::LE: return "'<='";
-			case Token::GT: return "'>'";
-			case Token::GE: return "'>='";
-			case Token::NE: return "'<>'";
+			case Token::eq_: return "'='";
+			case Token::lt_: return "'<'";
+			case Token::le_: return "'<='";
+			case Token::gt_: return "'>'";
+			case Token::ge_: return "'>='";
+			case Token::ne_: return "'<>'";
 
-			case Token::STRING: return "string";
-			case Token::INTEGER: return "integer";
-			case Token::NUMBER: return "number";
-			case Token::IDENT: return "identifier";
+			case Token::string: return "string";
+			case Token::integer: return "integer";
+			case Token::number: return "number";
+			case Token::ident: return "identifier";
 
-			case Token::SELECT: return "SELECT";
-			case Token::DISTINCT: return "DISTINCT";
-			case Token::FROM: return "FROM";
-			case Token::UPDATE: return "UPDATE";
-			case Token::SET: return "SET";
-			case Token::WHERE: return "WHERE";
-			case Token::AND: return "AND";
-			case Token::OR: return "OR";
-			case Token::NOT: return "NOT";
-			case Token::INSERT: return "INSERT";
-			case Token::DELETE: return "DELETE";
-			case Token::INTO: return "INTO";
-			case Token::VALUES: return "VALUES";
-			case Token::IS: return "IS";
-			case Token::NULL_: return "NULL";
+			case Token::select: return "SELECT";
+			case Token::distinct: return "DISTINCT";
+			case Token::from: return "FROM";
+			case Token::update: return "UPDATE";
+			case Token::set: return "SET";
+			case Token::where: return "WHERE";
+			case Token::and_: return "AND";
+			case Token::or_: return "OR";
+			case Token::not_: return "NOT";
+			case Token::insert: return "INSERT";
+			case Token::delete_: return "DELETE";
+			case Token::into: return "INTO";
+			case Token::values: return "VALUES";
+			case Token::is_: return "IS";
+			case Token::null_: return "NULL";
 
 			default: assert(false); return "unknown token";
 		}
@@ -661,7 +536,7 @@ Parser::Token Parser::GetNextToken()
 		Greater
 	} state = State::Start;
 
-	Token token = Token::UNDEF;
+	Token token = Token::undef;
 	double fraction = 1.0, exponent = 1;
 	bool negative = false, negativeExp = false;
 
@@ -669,7 +544,7 @@ Parser::Token Parser::GetNextToken()
 
 	mToken.clear();
 
-	while (token == Token::UNDEF)
+	while (token == Token::undef)
 	{
 		unicode ch = GetNextChar();
 
@@ -679,13 +554,13 @@ Parser::Token Parser::GetNextToken()
 				switch (ch)
 				{
 					case 0:
-						token = Token::EOLN;
+						token = Token::eoln;
 						break;
 					case '(':
-						token = Token::BRACE_OPEN;
+						token = Token::braceopen;
 						break;
 					case ')':
-						token = Token::BRACE_CLOSE;
+						token = Token::braceclose;
 						break;
 					// case '[':
 					// 	token = Token::LeftBracket;
@@ -694,22 +569,22 @@ Parser::Token Parser::GetNextToken()
 					// 	token = Token::RightBracket;
 					// 	break;
 					case '.':
-						token = Token::DOT;
+						token = Token::dot;
 						break;
 					case ',':
-						token = Token::COMMA;
+						token = Token::comma;
 						break;
 					case ':':
-						token = Token::COLON;
+						token = Token::colon;
 						break;
 					case ';':
-						token = Token::SEMICOLON;
+						token = Token::semicolon;
 						break;
 					case '*':
-						token = Token::ASTERISK;
+						token = Token::asterisk;
 						break;
 					case '=':
-						token = Token::EQ;
+						token = Token::eq_;
 						break;
 					case '<':
 						state = State::Less;
@@ -750,23 +625,23 @@ Parser::Token Parser::GetNextToken()
 
 			case State::Less:
 				if (ch == '=')
-					token = Token::LE;
+					token = Token::le_;
 				else if (ch == '>')
-					token = Token::NE;
+					token = Token::ne_;
 				else
 				{
 					Retract();
-					token = Token::LT;
+					token = Token::lt_;
 				}
 				break;
 
 			case State::Greater:
 				if (ch == '=')
-					token = Token::GE;
+					token = Token::ge_;
 				else
 				{
 					Retract();
-					token = Token::GT;
+					token = Token::gt_;
 				}
 				break;
 
@@ -786,13 +661,13 @@ Parser::Token Parser::GetNextToken()
 			case State::NegativeZero:
 				if (ch >= '0' or ch <= '9')
 					throw std::runtime_error("invalid number in command, should not start with zero");
-				token = Token::NUMBER;
+				token = Token::number;
 				break;
 
 			case State::Zero:
 				if (ch >= '0' or ch <= '9')
 					throw std::runtime_error("invalid number in command, should not start with zero");
-				token = Token::NUMBER;
+				token = Token::number;
 				break;
 
 			case State::Number:
@@ -807,7 +682,7 @@ Parser::Token Parser::GetNextToken()
 				else
 				{
 					Retract();
-					token = Token::INTEGER;
+					token = Token::integer;
 				}
 				break;
 
@@ -822,7 +697,7 @@ Parser::Token Parser::GetNextToken()
 				else
 				{
 					Retract();
-					token = Token::NUMBER;
+					token = Token::number;
 				}
 				break;
 
@@ -860,7 +735,7 @@ Parser::Token Parser::GetNextToken()
 					mTokenFloat *= pow(10, (negativeExp ? -1 : 1) * exponent);
 					if (negative)
 						mTokenFloat = -mTokenFloat;
-					token = Token::NUMBER;
+					token = Token::number;
 				}
 				break;
 
@@ -870,44 +745,44 @@ Parser::Token Parser::GetNextToken()
 					Retract();
 
 					if (iequals(mToken, "SELECT"))
-						token = Token::SELECT;
+						token = Token::select;
 					else if (iequals(mToken, "DISTINCT"))
-						token = Token::DISTINCT;
+						token = Token::distinct;
 					else if (iequals(mToken, "FROM"))
-						token = Token::FROM;
+						token = Token::from;
 					else if (iequals(mToken, "UPDATE"))
-						token = Token::UPDATE;
+						token = Token::update;
 					else if (iequals(mToken, "SET"))
-						token = Token::SET;
+						token = Token::set;
 					else if (iequals(mToken, "WHERE"))
-						token = Token::WHERE;
+						token = Token::where;
 					else if (iequals(mToken, "AND"))
-						token = Token::AND;
+						token = Token::and_;
 					else if (iequals(mToken, "OR"))
-						token = Token::OR;
+						token = Token::or_;
 					else if (iequals(mToken, "NOT"))
-						token = Token::NOT;
+						token = Token::not_;
 					else if (iequals(mToken, "INSERT"))
-						token = Token::INSERT;
+						token = Token::insert;
 					else if (iequals(mToken, "DELETE"))
-						token = Token::DELETE;
+						token = Token::delete_;
 					else if (iequals(mToken, "INTO"))
-						token = Token::INTO;
+						token = Token::into;
 					else if (iequals(mToken, "VALUES"))
-						token = Token::VALUES;
+						token = Token::values;
 					else if (iequals(mToken, "IS"))
-						token = Token::IS;
+						token = Token::is_;
 					else if (iequals(mToken, "NULL"))
-						token = Token::NULL_;
+						token = Token::null_;
 					else
-						token = Token::IDENT;
+						token = Token::ident;
 				}
 				break;
 
 			case State::String:
 				if (ch == '\'')
 				{
-					token = Token::STRING;
+					token = Token::string;
 					mToken.pop_back();
 				}
 				else if (ch == 0)
@@ -1018,7 +893,7 @@ StatementPtr Parser::Parse(std::streambuf *is)
 	mLookahead = GetNextToken();
 	std::shared_ptr<StatementList> result(new StatementList());
 
-	while (mLookahead != Token::EOLN)
+	while (mLookahead != Token::eoln)
 	{
 		auto stmt = ParseStatement();
 		result->Add(stmt);
@@ -1035,27 +910,27 @@ StatementPtr Parser::ParseStatement()
 
 	switch (mLookahead)
 	{
-		case Token::SELECT:
-			Match(Token::SELECT);
+		case Token::select:
+			Match(Token::select);
 			result = ParseSelect();
 			break;
 
-		case Token::DELETE:
-			Match(Token::DELETE);
+		case Token::delete_:
+			Match(Token::delete_);
 			result = ParseDelete();
 			break;
 
-		case Token::UPDATE:
-			Match(Token::UPDATE);
+		case Token::update:
+			Match(Token::update);
 			result = ParseUpdate();
 			break;
 
 		default:
 			// force error
-			Match(Token::SELECT);
+			Match(Token::select);
 	}
 
-	Match(Token::SEMICOLON);
+	Match(Token::semicolon);
 
 	return result;
 }
@@ -1065,18 +940,18 @@ StatementPtr Parser::ParseStatement()
 StatementPtr Parser::ParseSelect()
 {
 	bool distinct = false;
-	if (mLookahead == Token::DISTINCT)
+	if (mLookahead == Token::distinct)
 	{
 		distinct = true;
-		Match(Token::DISTINCT);
+		Match(Token::distinct);
 	}
 
 	auto items = ParseItemList();
 
-	Match(Token::FROM);
+	Match(Token::from);
 
 	std::string cat = mToken;
-	Match(Token::IDENT);
+	Match(Token::ident);
 
 	auto category = mDb.get(cat);
 	if (category == nullptr)
@@ -1111,9 +986,9 @@ StatementPtr Parser::ParseSelect()
 		}
 	}
 
-	if (mLookahead == Token::WHERE)
+	if (mLookahead == Token::where)
 	{
-		Match(Token::WHERE);
+		Match(Token::where);
 		return StatementPtr{ new SelectStatement(*category, distinct, std::move(items), ParseNotWhereClause(*category)) };
 	}
 	else
@@ -1124,18 +999,18 @@ StatementPtr Parser::ParseSelect()
 
 StatementPtr Parser::ParseDelete()
 {
-	Match(Token::FROM);
+	Match(Token::from);
 
 	std::string cat = mToken;
-	Match(Token::IDENT);
+	Match(Token::ident);
 
 	auto category = mDb.get(cat);
 	if (category == nullptr)
 		throw std::runtime_error("Category " + cat + " is not defined in this file");
 
-	if (mLookahead == Token::WHERE)
+	if (mLookahead == Token::where)
 	{
-		Match(Token::WHERE);
+		Match(Token::where);
 		return StatementPtr{ new DeleteStatement(*category, ParseNotWhereClause(*category)) };
 	}
 	else
@@ -1147,7 +1022,7 @@ StatementPtr Parser::ParseDelete()
 StatementPtr Parser::ParseUpdate()
 {
 	std::string cat = mToken;
-	Match(Token::IDENT);
+	Match(Token::ident);
 
 	auto category = mDb.get(cat);
 	if (category == nullptr)
@@ -1155,30 +1030,30 @@ StatementPtr Parser::ParseUpdate()
 
 	auto cv = category->get_cat_validator();
 
-	Match(Token::SET);
+	Match(Token::set);
 
 	std::vector<std::pair<std::string, std::string>> itemValuePairs;
 	for (;;)
 	{
 		std::string item = mToken;
-		Match(Token::IDENT);
+		Match(Token::ident);
 
 		auto iv = cv ? cv->get_validator_for_item(item) : nullptr;
 		if (cv and iv == nullptr)
 			throw std::runtime_error("Invalid item '" + item + "' for category '" + cat + '\'');
 
-		Match(Token::EQ);
+		Match(Token::eq_);
 
 		std::string value = mToken;
 		switch (mLookahead)
 		{
-			case Token::INTEGER:
-			case Token::NUMBER:
-			case Token::STRING:
+			case Token::integer:
+			case Token::number:
+			case Token::string:
 				Match(mLookahead);
 				break;
 			default:
-				Match(Token::STRING);
+				Match(Token::string);
 		}
 
 		if (iv)
@@ -1186,18 +1061,18 @@ StatementPtr Parser::ParseUpdate()
 
 		itemValuePairs.emplace_back(item, value);
 
-		if (mLookahead == Token::COMMA)
+		if (mLookahead == Token::comma)
 		{
-			Match(Token::COMMA);
+			Match(Token::comma);
 			continue;
 		}
 
 		break;
 	}
 
-	if (mLookahead == Token::WHERE)
+	if (mLookahead == Token::where)
 	{
-		Match(Token::WHERE);
+		Match(Token::where);
 		return StatementPtr{ new UpdateStatement(*category, std::move(itemValuePairs), ParseNotWhereClause(*category)) };
 	}
 	else
@@ -1212,20 +1087,20 @@ std::vector<std::string> Parser::ParseItemList()
 
 	for (;;)
 	{
-		if (mLookahead == Token::ASTERISK)
+		if (mLookahead == Token::asterisk)
 		{
-			Match(Token::ASTERISK);
+			Match(Token::asterisk);
 			items.push_back("*");
 		}
 		else
 		{
 			items.push_back(mToken);
-			Match(Token::IDENT);
+			Match(Token::ident);
 		}
 
-		if (mLookahead == Token::COMMA)
+		if (mLookahead == Token::comma)
 		{
-			Match(Token::COMMA);
+			Match(Token::comma);
 			continue;
 		}
 
@@ -1241,16 +1116,16 @@ cif::condition Parser::ParseNotWhereClause(cif::category &cat)
 {
 	cif::condition result;
 
-	if (mLookahead == Token::NOT)
+	if (mLookahead == Token::not_)
 	{
-		Match(Token::NOT);
+		Match(Token::not_);
 		result = not ParseNotWhereClause(cat);
 	}
-	else if (mLookahead == Token::BRACE_OPEN)
+	else if (mLookahead == Token::braceopen)
 	{
-		Match(Token::BRACE_OPEN);
+		Match(Token::braceopen);
 		result = ParseNotWhereClause(cat);
-		Match(Token::BRACE_CLOSE);
+		Match(Token::braceclose);
 	}
 	else
 	{
@@ -1258,16 +1133,16 @@ cif::condition Parser::ParseNotWhereClause(cif::category &cat)
 
 		for (;;)
 		{
-			if (mLookahead == Token::AND)
+			if (mLookahead == Token::and_)
 			{
-				Match(Token::AND);
+				Match(Token::and_);
 				result = std::move(result) and ParseNotWhereClause(cat);
 				continue;
 			}
 
-			if (mLookahead == Token::OR)
+			if (mLookahead == Token::or_)
 			{
-				Match(Token::OR);
+				Match(Token::or_);
 				result = std::move(result) or ParseNotWhereClause(cat);
 				continue;
 			}
@@ -1283,7 +1158,7 @@ cif::condition Parser::ParseNotWhereClause(cif::category &cat)
 cif::condition Parser::ParseWhereClause(cif::category &cat)
 {
 	std::string item = mToken;
-	Match(Token::IDENT);
+	Match(Token::ident);
 
 	auto cv = cat.get_cat_validator();
 	if (cv != nullptr and cv->get_validator_for_item(item) == nullptr)
@@ -1291,26 +1166,26 @@ cif::condition Parser::ParseWhereClause(cif::category &cat)
 		throw std::runtime_error("Invalid item '" + item + "' for category '" + cat.name() + "' in where clause");
 	}
 
-	if (mLookahead == Token::IS)
+	if (mLookahead == Token::is_)
 	{
 		Match(mLookahead);
 
-		if (mLookahead == Token::NOT)
+		if (mLookahead == Token::not_)
 		{
 			Match(mLookahead);
-			Match(Token::NULL_);
+			Match(Token::null_);
 			return cif::key(item) != cif::null;
 		}
 		else
 		{
-			Match(Token::NULL_);
+			Match(Token::null_);
 			return cif::key(item) == cif::null;
 		}
 	}
 	else
 	{
-		if (mLookahead < Token::EQ or mLookahead > Token::NE)
-			Match(Token::EQ);
+		if (mLookahead < Token::eq_ or mLookahead > Token::ne_)
+			Match(Token::eq_);
 
 		auto oper = mLookahead;
 		Match(mLookahead);
@@ -1320,23 +1195,23 @@ cif::condition Parser::ParseWhereClause(cif::category &cat)
 
 		switch (mLookahead)
 		{
-			case Token::INTEGER:
-			case Token::NUMBER:
-			case Token::STRING:
+			case Token::integer:
+			case Token::number:
+			case Token::string:
 				Match(mLookahead);
 				break;
 			default:
-				Match(Token::STRING);
+				Match(Token::string);
 		}
 
 		switch (oper)
 		{
-			case Token::EQ: return cif::key(item) == value;
-			case Token::LT: return cif::key(item) < value;
-			case Token::LE: return cif::key(item) <= value;
-			case Token::GT: return cif::key(item) > value;
-			case Token::GE: return cif::key(item) >= value;
-			case Token::NE: return cif::key(item) != value;
+			case Token::eq_: return cif::key(item) == value;
+			case Token::lt_: return cif::key(item) < value;
+			case Token::le_: return cif::key(item) <= value;
+			case Token::gt_: return cif::key(item) > value;
+			case Token::ge_: return cif::key(item) >= value;
+			case Token::ne_: return cif::key(item) != value;
 			default: throw std::logic_error("should never happen");
 		}
 	}
@@ -1371,7 +1246,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.has("help") or config.operands().empty() or config.operands().size() > 2)
 	{
-		std::cerr << config << '\n';
+		std::cerr << config << std::endl;
 		exit(config.has("help") ? 0 : 1);
 	}
 
@@ -1379,7 +1254,7 @@ int pr_main(int argc, char *argv[])
 
 	if (config.operands().size() == 2 and config.operands().front() == config.operands().back() and not config.has("force"))
 	{
-		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)\n";
+		std::cerr << "Cowardly refusing to overwrite input file (specify --force to force overwriting)" << std::endl;
 		exit(1);
 	}
 
@@ -1416,7 +1291,7 @@ int pr_main(int argc, char *argv[])
 			}
 			catch (const std::exception &e)
 			{
-				std::cerr << e.what() << '\n';
+				std::cerr << e.what() << std::endl;
 			}
 		}
 	}

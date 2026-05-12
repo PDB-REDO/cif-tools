@@ -9,22 +9,20 @@ Requirements
 
 The tools are based on [libcif++](https://github.com/PDB-REDO/libcifpp)
 and the code is written in modern C++ so you need a compiler capable
-of handling C++17 code.
+of handling C++20 code.
 
 Building
 --------
 
 Make sure you install libcif++ first before building. You will also need
-to install [libcfp](https://github.com/mhekkel/libcfp).
+to install [libmcfp](https://forge.hekkelman.net/maarten/mcfp.git).
 
 After that, building should be as easy as typing:
 
-```bash
+```console
 git clone https://github.com/PDB-REDO/cif-tools.git
 cd cif-tools
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .
-cmake --install .
+cmake -B build
+cmake --build build
+cmake --install build
 ```

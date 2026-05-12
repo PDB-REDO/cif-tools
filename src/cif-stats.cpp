@@ -32,7 +32,7 @@
 #include <filesystem>
 #include <iomanip>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <cif++/gzio.hpp>
 
 namespace fs = std::filesystem;

@@ -31,7 +31,7 @@
 
 #include <mcfp/mcfp.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
 #include "revision.hpp"
 
@@ -75,7 +75,6 @@ int pr_main(int argc, char *argv[])
 			cif::compound_factory::instance().push_dictionary(config.get<std::string>("dict"));
 
 		input = config.operands().front();
-		std::regex pdbIdRx(R"(\d\w{3})");
 
 		fs::path file = input;
 
