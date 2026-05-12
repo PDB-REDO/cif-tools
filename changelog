@@ -1,3 +1,8 @@
+Version 2.0.0
+- Using new libcifpp
+- Rewrite of mmcql, now uses libsqlite3
+- Changed cif-diff argument handling
+
 Version 1.0.13
 - Updated libcifpp version
 
