@@ -46,18 +46,18 @@ int pr_main(int argc, char* argv[]);
 std::ostream& operator<<(std::ostream& os, const struct timeval& t)
 {
 	uint64_t s = t.tv_sec;
-	if (s > 24 * 60 * 60)
+	if (s > 24ULL * 60 * 60)
 	{
-		uint32_t days = s / (24 * 60 * 60);
+		uint32_t days = s / (24ULL * 60 * 60);
 		os << days << "d ";
-		s %= 24 * 60 * 60;
+		s %= 24ULL * 60 * 60;
 	}
 	
-	if (s > 60 * 60)
+	if (s > 60ULL * 60)
 	{
-		uint32_t hours = s / (60 * 60);
+		uint32_t hours = s / (60ULL * 60);
 		os << hours << "h ";
-		s %= 60 * 60;
+		s %= 60ULL * 60;
 	}
 	
 	if (s > 60)
@@ -76,19 +76,19 @@ std::ostream& operator<<(std::ostream& os, const struct timeval& t)
 
 std::ostream& operator<<(std::ostream& os, const std::chrono::duration<double>& t)
 {
-	uint64_t s = static_cast<uint64_t>(std::trunc(t.count()));
-	if (s > 24 * 60 * 60)
+	auto s = static_cast<uint64_t>(std::trunc(t.count()));
+	if (s > 24ULL * 60 * 60)
 	{
-		uint32_t days = s / (24 * 60 * 60);
+		uint32_t days = s / (24ULL * 60 * 60);
 		os << days << "d ";
-		s %= 24 * 60 * 60;
+		s %= 24ULL * 60 * 60;
 	}
 	
-	if (s > 60 * 60)
+	if (s > 60ULL * 60)
 	{
-		uint32_t hours = s / (60 * 60);
+		uint32_t hours = s / (60ULL * 60);
 		os << hours << "h ";
-		s %= 60 * 60;
+		s %= 60ULL * 60;
 	}
 	
 	if (s > 60)

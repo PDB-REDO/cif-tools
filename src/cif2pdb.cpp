@@ -24,15 +24,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <chrono>
-#include <filesystem>
-#include <fstream>
-
-#include <mcfp/mcfp.hpp>
-
-#include <cif++/cif++.hpp>
-
 #include "revision.hpp"
+#include <cif++/cif++.hpp>
+#include <filesystem>
+#include <mcfp/mcfp.hpp>
 
 namespace fs = std::filesystem;
 
@@ -77,12 +72,8 @@ int pr_main(int argc, char *argv[])
 		cif::VERBOSE = config.get<int>("debug");
 
 	std::string input = config.operands().front();
-	std::regex pdbIdRx(R"(\d\w{3})");
 
 	fs::path file = input;
-	// #warning "compile time PDB_DIR?"
-	// if (not fs::exists(file) and std::regex_match(input, pdbIdRx))
-	// 	file = fs::path(PDB_DIR) / "mmCIF" / input.substr(1, 2) / (input + ".cif.gz");
 
 	cif::gzio::ifstream in(file);
 	if (not in.is_open())

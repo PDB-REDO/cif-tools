@@ -35,6 +35,7 @@
 #include <cif++/gzio.hpp>
 #include <cif++/text.hpp>
 
+#include <memory>
 #include <readln.hpp>
 
 #include <mcfp/mcfp.hpp>
@@ -71,7 +72,7 @@
 
 bool gOutputModeOnlyRows = false;
 cif::category::output_format gOutputFormat = cif::category::output_format::column;
-std::ofstream gOutputFile;
+std::ofstream gOutputFile; // NOLINT
 
 // --------------------------------------------------------------------
 # include <climits>
@@ -219,7 +220,7 @@ enum class CommandCategory
 	DisplayType
 };
 
-std::map<CommandCategory, std::string> kCommandCategoryLabels{
+std::map<CommandCategory, std::string> kCommandCategoryLabels{ // NOLINT
 	{ CommandCategory::General, "General" },
 	{ CommandCategory::Help, "Help" },
 	{ CommandCategory::Input_Output, "Input/Output" },
@@ -236,7 +237,7 @@ struct BackslashCommand
 	std::function<void(std::string_view arg)> mFunc;
 };
 
-std::vector<BackslashCommand> gBackslashCommands{
+std::vector<BackslashCommand> gBackslashCommands{ // NOLINT
 	{ CommandCategory::General,
 		"\\copyright", "\\copyright",
 		"show copyright and usage", [](std::string_view)
@@ -417,7 +418,7 @@ void MMCQLApplication::loadCifFile(std::string_view f)
 		if (not in.is_open())
 			throw std::runtime_error("Could not open file " + m_file_name.string());
 
-		m_file.reset(new cif::file{ in });
+		m_file = std::make_unique<cif::file>( in );
 
 		if (not m_file->empty())
 		{
@@ -447,7 +448,7 @@ void MMCQLApplication::loadDatablock(std::string_view d)
 	else
 		db.load_dictionary(m_dict_name);
 
-	m_connection.reset(new cif::cql::connection(db));
+	m_connection = std::make_unique<cif::cql::connection>(db);
 }
 
 void MMCQLApplication::loadDictionary(std::string_view dn)
@@ -471,7 +472,7 @@ void MMCQLApplication::loadDictionary(std::string_view dn)
 	else
 	{
 		db.load_dictionary(m_dict_name);
-		m_connection.reset(new cif::cql::connection(db));
+		m_connection = std::make_unique<cif::cql::connection>(db);
 	}
 }
 

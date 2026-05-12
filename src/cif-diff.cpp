@@ -25,8 +25,10 @@
  */
 
 #include "cif++/category.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <iomanip>
+#include <ranges>
 #include <stdexcept>
 #include <system_error>
 #ifndef WIN32
@@ -39,8 +41,11 @@
 
 #include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
+#include <utility>
 
 #include "revision.hpp"
+
+using cif::row_handle;
 
 namespace fs = std::filesystem;
 
@@ -56,7 +61,7 @@ class fd_streambuf : public std::streambuf
 	{
 	}
 
-	~fd_streambuf()
+	~fd_streambuf() override
 	{
 		close();
 	}
@@ -72,7 +77,7 @@ class fd_streambuf : public std::streambuf
 		m_fd = -1;
 	}
 
-	virtual int_type overflow(int_type ch)
+	int_type overflow(int_type ch) override
 	{
 		assert(pptr() == epptr());
 
@@ -87,7 +92,7 @@ class fd_streambuf : public std::streambuf
 		return ch;
 	}
 
-	int sync()
+	int sync() override
 	{
 		int result = 0;
 
@@ -142,7 +147,7 @@ class templateParser : public cif::sac_parser
 	{
 		std::ostringstream tag;
 		tag << '_' << category << '.' << item;
-		if (find(mOrder.rbegin(), mOrder.rend(), tag.str()) == mOrder.rend())
+		if (std::ranges::find(std::views::reverse(mOrder), tag.str()) == mOrder.rend())
 			mOrder.push_back(tag.str());
 	}
 
@@ -165,7 +170,7 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	if (catValidator == nullptr)
 		throw std::runtime_error("missing cat validator");
 
-	typedef std::function<int(std::string_view, std::string_view)> compType;
+	using compType = std::function<int(std::string_view, std::string_view)>;
 	std::vector<std::tuple<std::string, compType>> tags;
 	auto keys = catValidator->m_keys;
 	std::vector<size_t> keyIx;
@@ -178,13 +183,15 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		auto tv = iv->m_type;
 		if (tv == nullptr)
 			throw std::runtime_error("missing type validator");
-		tags.push_back(std::make_tuple(item, std::bind(&cif::type_validator::compare, tv, std::placeholders::_1, std::placeholders::_2)));
+		tags.emplace_back(item,
+			[tv](std::string_view a, std::string_view b)
+			{ return tv->compare(a, b); });
 
 		auto pred = [item](const std::string &s) -> bool
 		{
 			return cif::iequals(item, s) == 0;
 		};
-		if (find_if(keys.begin(), keys.end(), pred) == keys.end())
+		if (std::ranges::find_if(keys, pred) == keys.end())
 			keyIx.push_back(tags.size() - 1);
 	}
 
@@ -219,13 +226,13 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 
 	struct Diff
 	{
-		virtual ~Diff() {}
+		virtual ~Diff() = default;
 
 		std::string key(cif::row_handle r, std::vector<std::string> &keys)
 		{
 			std::vector<std::string> v;
 			for (auto k : keys)
-				v.push_back(r[k].as<std::string>());
+				v.push_back(r[k].get<std::string>());
 			return "[" + cif::join(v, ", ") + "]";
 		}
 
@@ -237,11 +244,11 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		cif::row_handle A;
 
 		ExtraADiff(cif::row_handle r)
-			: A(r)
+			: A(std::move(r))
 		{
 		}
 
-		virtual void report(std::vector<std::string> &keys)
+		void report(std::vector<std::string> &keys) override
 		{
 			std::cout << "Extra row in A with key " << key(A, keys) << '\n';
 		}
@@ -252,11 +259,11 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		cif::row_handle B;
 
 		ExtraBDiff(cif::row_handle r)
-			: B(r)
+			: B(std::move(r))
 		{
 		}
 
-		virtual void report(std::vector<std::string> &keys)
+		void report(std::vector<std::string> &keys) override
 		{
 			std::cout << "Extra row in B with key " << key(B, keys) << '\n';
 		}
@@ -267,34 +274,34 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		cif::row_handle A, B;
 		std::vector<std::string> missingA, missingB, different;
 
-		ValueDiff(cif::row_handle a, cif::row_handle b, std::vector<std::string> &&missingA, std::vector<std::string> &&missingB, std::vector<std::string> &&different)
-			: A(a)
-			, B(b)
+		ValueDiff(cif::row_handle a, row_handle b, std::vector<std::string> &&missingA, std::vector<std::string> &&missingB, std::vector<std::string> &&different)
+			: A(std::move(a))
+			, B(std::move(b))
 			, missingA(std::move(missingA))
 			, missingB(std::move(missingB))
 			, different(std::move(different))
 		{
 		}
 
-		virtual void report(std::vector<std::string> &keys)
+		void report(std::vector<std::string> &keys) override
 		{
 			std::cout << "Differences in rows with key " << key(A, keys) << '\n';
 
 			for (auto &item : different)
 			{
-				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << '\n'
-						  << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << '\n';
+				std::cout << "    " << item << " (A): '" << A[item].get<std::string>() << '\'' << '\n'
+						  << "    " << item << " (B): '" << B[item].get<std::string>() << '\'' << '\n';
 			}
 
 			for (auto &item : missingA)
 			{
 				std::cout << "    " << item << " (A): <missing>\n"
-						  << "    " << item << " (B): '" << B[item].as<std::string>() << '\'' << '\n';
+						  << "    " << item << " (B): '" << B[item].get<std::string>() << '\'' << '\n';
 			}
 
 			for (auto &item : missingB)
 			{
-				std::cout << "    " << item << " (A): '" << A[item].as<std::string>() << '\'' << '\n'
+				std::cout << "    " << item << " (A): '" << A[item].get<std::string>() << '\'' << '\n'
 						  << "    " << item << " (B): <missing>\n";
 			}
 		}
@@ -382,12 +389,12 @@ void compareCifs(cif::datablock &dbA, cif::datablock &dbB, const cif::iset &cate
 
 	for (auto &cat : dbA)
 		catA.push_back(cat.name());
-	sort(catA.begin(), catA.end(), [](const std::string &a, const std::string &b)
+	std::ranges::sort(catA, [](const std::string &a, const std::string &b)
 		{ return cif::icompare(a, b) < 0; });
 
 	for (auto &cat : dbB)
 		catB.push_back(cat.name());
-	sort(catB.begin(), catB.end(), [](const std::string &a, const std::string &b)
+	std::ranges::sort(catB, [](const std::string &a, const std::string &b)
 		{ return cif::icompare(a, b) < 0; });
 
 	// loop over categories twice, to group output
@@ -533,7 +540,7 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 
 			for (auto &item : cat_b->get_items())
 			{
-				if (find(items.begin(), items.end(), item) == items.end())
+				if (std::ranges::find(items, item) == items.end())
 					items.emplace_back(item);
 			}
 
