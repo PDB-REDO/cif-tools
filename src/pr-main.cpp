@@ -29,6 +29,7 @@
 #include <sys/resource.h>
 #endif
 
+#include <exception>
 #include <stdexcept>
 #include <iostream>
 #include <iomanip>
