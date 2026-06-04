@@ -160,11 +160,6 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 {
 	using namespace std::placeholders;
 
-	//	set<std::string> tagsA(a.fields()), tagsB(b.fields());
-	//
-	//	if (tagsA != tagsB)
-	//		std::cout << "Unequal number of fields\n";
-
 	auto validator = a.get_validator();
 	auto catValidator = validator->get_validator_for_category(a.name());
 	if (catValidator == nullptr)
@@ -173,7 +168,6 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	using compType = std::function<int(std::string_view, std::string_view)>;
 	std::vector<std::tuple<std::string, compType>> tags;
 	auto keys = catValidator->m_keys;
-	std::vector<size_t> keyIx;
 
 	for (auto &item : a.key_items())
 	{
@@ -191,8 +185,6 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 		{
 			return cif::iequals(item, s) == 0;
 		};
-		if (std::ranges::find_if(keys, pred) == keys.end())
-			keyIx.push_back(tags.size() - 1);
 	}
 
 	a.reorder_by_index();
@@ -202,13 +194,8 @@ void compareCategories(cif::category &a, cif::category &b, size_t maxDiffCount)
 	{
 		int d = 0;
 
-		for (auto kix : keyIx)
+		for (const auto &[tag, compare] : tags)
 		{
-			std::string tag;
-			compType compare;
-
-			tie(tag, compare) = tags[kix];
-
 			d = a[tag].compare(b[tag]);
 
 			if (d != 0)
@@ -516,17 +503,26 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 		f1 << "data_" << da.name() << "\n# \n";
 		f2 << "data_" << db.name() << "\n# \n";
 
-		std::vector<std::string> catA, catB;
+		std::vector<std::string> categories;
 		for (auto &cat : da)
-			catA.emplace_back(cat.name());
+			categories.emplace_back(cat.name());
 		for (auto &cat : db)
-			catB.emplace_back(cat.name());
-
-		for (auto &cat_a_name : catA)
 		{
-			auto cat_a = da.get(cat_a_name);
-			auto cat_b = db.get(cat_a_name);
+			if (not std::ranges::contains(categories, cat.name()))
+				categories.emplace_back(cat.name());
+		}
 
+		for (auto &category : categories)
+		{
+			auto cat_a = da.get(category);
+			auto cat_b = db.get(category);
+
+			if (not cat_a)
+			{
+				cat_b->write(f1);
+				continue;
+			}
+			
 			if (not cat_b)
 			{
 				cat_a->write(f1);
@@ -540,7 +536,7 @@ void compareCifsText(const std::string &editor, cif::file &a, cif::file &b, std:
 
 			for (auto &item : cat_b->get_items())
 			{
-				if (std::ranges::find(items, item) == items.end())
+				if (not std::ranges::contains(items, item))
 					items.emplace_back(item);
 			}
 
