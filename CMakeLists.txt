@@ -158,7 +158,7 @@ add_library(prmain OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/pr-main.cpp")
 target_link_libraries(prmain cifpp::cifpp)
 
 # Create a revision file, containing the current git version info
-add_version_header(prmain "${PROJECT_SOURCE_DIR}/src/revision.hpp")
+write_version_header("${PROJECT_SOURCE_DIR}/src")
 
 foreach(PROGRAM IN LISTS programs)
     add_executable(${PROGRAM} ${PROJECT_SOURCE_DIR}/src/${PROGRAM}.cpp)
