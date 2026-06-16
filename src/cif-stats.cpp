@@ -103,9 +103,9 @@ int pr_main(int argc, char* argv[])
 
 	cif::VERBOSE = vm.count("verbose");
 
-	cif::gzio::ifstream in(vm["input"].as<std::string>());
+	cif::gzio::ifstream in(vm["input"].get<std::string>());
 	if (not in.is_open())
-		throw std::runtime_error("Could not open file " + vm["input"].as<std::string>());
+		throw std::runtime_error("Could not open file " + vm["input"].get<std::string>());
 
 	statsParser parser(in);
 	parser.parse_file();
