@@ -25,6 +25,7 @@
  */
 
 #include <chrono>
+#include <cif++/pdb.hpp>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -50,6 +51,7 @@ int pr_main(int argc, char *argv[])
 			mcfp::make_option("version", "Print version"),
 			mcfp::make_option("verbose,v", "Verbose output"),
 			mcfp::make_option("validate", "Validate output file before writing"),
+			mcfp::make_option("reconstruct,r", "Force reconstruction"),
 			mcfp::make_option("no-repair", "Do not attempt to repair an invalid PDBx file"),
 			mcfp::make_option<std::string>("dict", "Dictionary file containing restraints for residues in this specific target"));
 
@@ -83,7 +85,15 @@ int pr_main(int argc, char *argv[])
 		if (not in.is_open())
 			throw std::runtime_error("Could not open file " + file.string());
 
-		cif::file f = cif::pdb::read(in);
+		cif::file f;
+		
+		if (config.has("reconstruct"))
+		{
+			f.load(in);
+			cif::pdb::reconstruct_pdbx(f);
+		}
+		else
+			f = cif::pdb::read(in);
 
 		if (config.has("validate") and not f.is_valid())
 			throw std::runtime_error("The resulting mmCIF is not valid");

@@ -118,62 +118,63 @@ int pr_main(int argc, char *argv[])
 	{
 		cif::file f(config.operands().front());
 
-		for (auto &db : f)
+		if (not config.has("syntax-only"))
 		{
-			if (config.count("dict"))
-				db.set_validator(cif::validator_factory::instance().get(config.get<std::string>("dict")));
-			else
-				db.load_dictionary();
-			
-			if (db.get_validator() == nullptr)
-				db.set_validator(cif::validator_factory::instance().get("mmcif_pdbx.dic"));
-
-			if (not const_cast<const cif::datablock &>(db).is_valid())
-				result = 1;
-			
-			if (not config.has("validate-all-datablocks"))
-				break;
-		}
-
-		if (config.has("validate-pdbx"))
-		{
-			if (not cif::pdb::is_valid_pdbx_file(f, ec))
-			{
-				std::cerr << "Not a valid pdbx file: " << ec.message() << "\n";
-				result = 1;
-			}
-		}
-
-		if (config.has("strip"))
-		{
-			result = 0;
-
 			for (auto &db : f)
 			{
-				if (db.get_validator() == nullptr)
-				{
-					if (cif::VERBOSE > 0)
-						std::cerr << "Cannot strip datablock " << db.name() << " since it has no dictionary\n";
-					continue;
-				}
+				if (config.count("dict"))
+					db.set_validator(cif::validator_factory::instance().get(config.get<std::string>("dict")));
+				else
+					db.load_dictionary();
 
-				if (not db.strip())
-				{
-					std::clog << "Stripping datablock " << db.name() << " did not result in a valid file\n";
+				if (db.get_validator() == nullptr)
+					db.set_validator(cif::validator_factory::instance().get("mmcif_pdbx.dic"));
+
+				if (not const_cast<const cif::datablock &>(db).is_valid())
 					result = 1;
-				}
-				
+
 				if (not config.has("validate-all-datablocks"))
 					break;
 			}
+			if (config.has("validate-pdbx"))
+			{
+				if (not cif::pdb::is_valid_pdbx_file(f, ec))
+				{
+					std::cerr << "Not a valid pdbx file: " << ec.message() << "\n";
+					result = 1;
+				}
+			}
+			if (config.has("strip"))
+			{
+				result = 0;
+
+				for (auto &db : f)
+				{
+					if (db.get_validator() == nullptr)
+					{
+						if (cif::VERBOSE > 0)
+							std::cerr << "Cannot strip datablock " << db.name() << " since it has no dictionary\n";
+						continue;
+					}
+
+					if (not db.strip())
+					{
+						std::clog << "Stripping datablock " << db.name() << " did not result in a valid file\n";
+						result = 1;
+					}
+
+					if (not config.has("validate-all-datablocks"))
+						break;
+				}
+			}
+			
+			if (config.has("validate-links"))
+			{
+				if (not f.validate_links())
+					result = 1;
+			}
 		}
 
-		if (config.has("validate-links"))
-		{
-			if (not f.validate_links())
-				result = 1;
-		}
-		
 		if (result == 0 and (config.has("print") or config.has("strip")))
 		{
 			if (config.operands().size() == 1)
