@@ -578,7 +578,7 @@ void MMCQLApplication::showItems(std::string_view a, bool with_aliases)
 				{
 					auto ri = items.emplace({ { "name", iv.m_item_name },
 						{ "type", iv.m_type->m_name },
-						{ "mandatory", iv.m_mandatory },
+						{ "mandatory", iv.m_mandatory ? "y" : "n" },
 						{ "default", iv.m_default },
 						{ "enumeration", cif::join(iv.m_enums, ",") } });
 
