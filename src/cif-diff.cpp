@@ -26,10 +26,12 @@
 
 #include "cif++/category.hpp"
 #include <algorithm>
+#include <cif++/item.hpp>
 #include <cstdlib>
 #include <iomanip>
 #include <ranges>
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 #ifndef WIN32
 # include <sys/wait.h>
@@ -143,7 +145,7 @@ class templateParser : public cif::sac_parser
 	{
 	}
 
-	void produce_item(std::string_view category, std::string_view item, cif::item_value value) override
+	void produce_item(std::string_view category, std::string_view item, std::string_view value, cif::item_value_type hint) override
 	{
 		std::ostringstream tag;
 		tag << '_' << category << '.' << item;

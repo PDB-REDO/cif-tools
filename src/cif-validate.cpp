@@ -59,7 +59,7 @@ class dummy_parser : public cif::sac_parser
 			std::cout << "produce row\n";
 	}
 
-	void produce_item(std::string_view category, std::string_view item, cif::item_value value) override
+	void produce_item(std::string_view category, std::string_view item, std::string_view value, cif::item_value_type hint) override
 	{
 		if (cif::VERBOSE > 1)
 			std::cout << "produce item: " << value << '\n';
