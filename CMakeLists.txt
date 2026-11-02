@@ -114,26 +114,8 @@ endif()
 
 if(NOT (mcfp_FOUND OR libmcfp_FOUND OR TARGET mcfp))
     set(CPM_USE_LOCAL_PACKAGES ON)
-    CPMAddPackage("https://forge.hekkelman.net/maarten/mcfp.git@1.4.2")
+    CPMAddPackage("https://codeberg.org/mlhekkelman/mcfp.git@1.4.2")
 endif()
-
-# # FetchContent_Populate(linenoise
-# #     QUIET
-# #     GIT_REPOSITORY "https://github.com/mhekkel/linenoise"
-# #     GIT_TAG c049030
-# #     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/linenoise-src
-# #     EXCLUDE_FROM_ALL)
-# # add_library(linenoise STATIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>/linenoise.c)
-# # target_include_directories(linenoise PUBLIC $<BUILD_INTERFACE:${linenoise_SOURCE_DIR}>)
-
-# FetchContent_Populate(readln
-#     QUIET
-#     GIT_REPOSITORY "https://forge.hekkelman.net/maarten/readln"
-#     GIT_TAG 2396b296cd
-#     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/readln-src
-#     EXCLUDE_FROM_ALL)
-
-# add_library(readln STATIC $<BUILD_INTERFACE:${readln_SOURCE_DIR}>/readln.cpp)
 
 add_library(readln STATIC ${CMAKE_CURRENT_SOURCE_DIR}/readln/readln.cpp)
 target_compile_features(readln PUBLIC cxx_std_20)
